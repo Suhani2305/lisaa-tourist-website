@@ -26,6 +26,8 @@ import PackageDetail from './pages/Package/PackageDetail'
 import AndamanNicobar from './pages/Package/andaman-nicobar/AndamanNicobar'
 import Kerala from './pages/Package/kerala/Kerala'
 import TourDetailPage from './pages/state/rajasthan/TourDetailPage'
+// Admin Panel Routes
+import Admin from './pages/Admin/Admin'
 import './App.css'
 
 function App() {
@@ -33,6 +35,10 @@ function App() {
     <Router>
       <div className="App">
         <Routes>
+          {/* Admin Panel Routes */}
+          <Route path="/admin/*" element={<Admin />} />
+          
+          {/* Main Website Routes */}
           <Route path="/" element={<LandingPage />} />
           {/* All States Page */}
           <Route path="/all-states" element={<AllStates />} />
