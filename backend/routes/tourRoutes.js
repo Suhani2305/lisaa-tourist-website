@@ -7,22 +7,34 @@ router.get('/', async (req, res) => {
   try {
     const { 
       page = 1, 
-      limit = 10, 
+      limit = 1000, // Increased default limit to show all packages
       destination, 
       category, 
+      trendingCategory, // Filter by trending category (Culture & Heritage, etc.)
       search, 
       featured, 
       trending,
       minPrice,
       maxPrice,
-      difficulty
+      difficulty,
+      all = 'false' // New param to get ALL packages (for admin)
     } = req.query;
     
-    const query = { isActive: true };
+    // For admin panel, don't filter by isActive
+    const query = {};
+    
+    // Only apply isActive filter if not requesting all packages
+    if (all !== 'true') {
+      query.isActive = true;
+    }
 
     // Add filters
     if (destination) query.destination = destination;
     if (category) query.category = category;
+    if (trendingCategory) {
+      // Filter by trending category (can match multiple if array contains it)
+      query.trendingCategories = trendingCategory;
+    }
     if (featured === 'true') query.featured = true;
     if (trending === 'true') query.trending = true;
     if (difficulty) query.difficulty = difficulty;
@@ -35,72 +47,146 @@ router.get('/', async (req, res) => {
       query.$text = { $search: search };
     }
 
-    const tours = await Tour.find(query)
-      .populate('destination', 'name state city images')
-      .sort({ createdAt: -1 })
-      .limit(limit * 1)
-      .skip((page - 1) * limit);
+    console.log('🔍 Fetching tours with query:', query);
+    console.log('📄 Pagination - Page:', page, 'Limit:', limit);
 
+    let toursQuery = Tour.find(query).sort({ createdAt: -1 });
+    
+    // Only apply pagination if limit is not "all"
+    if (limit !== 'all') {
+      toursQuery = toursQuery.limit(parseInt(limit)).skip((page - 1) * parseInt(limit));
+    }
+    
+    const tours = await toursQuery;
     const total = await Tour.countDocuments(query);
+
+    console.log('✅ Found', tours.length, 'tours out of', total, 'total');
 
     res.json({
       tours,
-      totalPages: Math.ceil(total / limit),
-      currentPage: page,
+      totalPages: limit === 'all' ? 1 : Math.ceil(total / limit),
+      currentPage: parseInt(page),
       total
     });
   } catch (error) {
-    console.error('Get tours error:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error('❌ Get tours error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 
 // Get single tour
 router.get('/:id', async (req, res) => {
   try {
-    const tour = await Tour.findById(req.params.id)
-      .populate('destination', 'name state city images attractions');
+    console.log('🔍 Fetching tour with ID:', req.params.id);
+    const tour = await Tour.findById(req.params.id);
     
     if (!tour) {
+      console.log('❌ Tour not found with ID:', req.params.id);
       return res.status(404).json({ message: 'Tour not found' });
     }
 
+    console.log('✅ Tour found:', tour.title);
     res.json(tour);
   } catch (error) {
-    console.error('Get tour error:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error('❌ Get tour error:', error);
+    console.error('❌ Invalid ID format:', req.params.id);
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 
 // Create tour (admin only)
 router.post('/', async (req, res) => {
   try {
+    console.log('📦 Received tour data:', JSON.stringify(req.body, null, 2));
+    
     const tour = new Tour(req.body);
     await tour.save();
+    
+    console.log('✅ Tour created successfully:', tour._id);
     res.status(201).json({ message: 'Tour created successfully', tour });
   } catch (error) {
-    console.error('Create tour error:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error('❌ Create tour error:', error);
+    console.error('Error details:', error.message);
+    
+    // Handle duplicate key error (E11000)
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern)[0];
+      const value = error.keyValue[field];
+      return res.status(400).json({
+        message: `A package with this ${field} already exists: "${value}". Please use a different ${field}.`,
+        error: 'Duplicate entry',
+        field,
+        value
+      });
+    }
+    
+    // Send detailed validation errors
+    if (error.name === 'ValidationError') {
+      const errors = Object.keys(error.errors).map(key => ({
+        field: key,
+        message: error.errors[key].message
+      }));
+      return res.status(400).json({ 
+        message: 'Validation error', 
+        errors 
+      });
+    }
+    
+    res.status(500).json({ 
+      message: 'Server error', 
+      error: error.message 
+    });
   }
 });
 
 // Update tour (admin only)
 router.put('/:id', async (req, res) => {
   try {
+    console.log('📝 Updating tour:', req.params.id);
+    console.log('Update data:', JSON.stringify(req.body, null, 2));
+    
     const tour = await Tour.findByIdAndUpdate(
       req.params.id,
       req.body,
       { new: true, runValidators: true }
-    ).populate('destination');
+    );
 
     if (!tour) {
       return res.status(404).json({ message: 'Tour not found' });
     }
 
+    console.log('✅ Tour updated successfully');
     res.json({ message: 'Tour updated successfully', tour });
   } catch (error) {
-    console.error('Update tour error:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error('❌ Update tour error:', error);
+    
+    // Handle duplicate key error (E11000)
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern)[0];
+      const value = error.keyValue[field];
+      return res.status(400).json({
+        message: `A package with this ${field} already exists: "${value}". Please use a different ${field}.`,
+        error: 'Duplicate entry',
+        field,
+        value
+      });
+    }
+    
+    if (error.name === 'ValidationError') {
+      const errors = Object.keys(error.errors).map(key => ({
+        field: key,
+        message: error.errors[key].message
+      }));
+      return res.status(400).json({ 
+        message: 'Validation error', 
+        errors 
+      });
+    }
+    
+    res.status(500).json({ 
+      message: 'Server error', 
+      error: error.message 
+    });
   }
 });
 
@@ -128,7 +214,6 @@ router.delete('/:id', async (req, res) => {
 router.get('/featured/list', async (req, res) => {
   try {
     const tours = await Tour.find({ featured: true, isActive: true })
-      .populate('destination', 'name state city images')
       .sort({ createdAt: -1 })
       .limit(6);
     
@@ -143,7 +228,6 @@ router.get('/featured/list', async (req, res) => {
 router.get('/trending/list', async (req, res) => {
   try {
     const tours = await Tour.find({ trending: true, isActive: true })
-      .populate('destination', 'name state city images')
       .sort({ 'rating.average': -1 })
       .limit(6);
     
@@ -155,12 +239,12 @@ router.get('/trending/list', async (req, res) => {
 });
 
 // Get tours by destination
-router.get('/destination/:destinationId', async (req, res) => {
+router.get('/destination/:destinationName', async (req, res) => {
   try {
     const tours = await Tour.find({ 
-      destination: req.params.destinationId, 
+      destination: req.params.destinationName, 
       isActive: true 
-    }).populate('destination', 'name state city images');
+    });
     
     res.json(tours);
   } catch (error) {

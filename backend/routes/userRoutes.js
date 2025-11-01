@@ -109,11 +109,19 @@ router.put('/profile', async (req, res) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-    const { name, phone, address, preferences } = req.body;
+    const { name, phone, address, preferences, gender, profileImage } = req.body;
+
+    const updateData = {};
+    if (name) updateData.name = name;
+    if (phone) updateData.phone = phone;
+    if (address) updateData.address = address;
+    if (preferences) updateData.preferences = preferences;
+    if (gender) updateData.gender = gender;
+    if (profileImage) updateData.profileImage = profileImage;
 
     const user = await User.findByIdAndUpdate(
       decoded.userId,
-      { name, phone, address, preferences },
+      updateData,
       { new: true, runValidators: true }
     );
 

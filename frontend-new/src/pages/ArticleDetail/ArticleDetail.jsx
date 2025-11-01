@@ -1,0 +1,401 @@
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { 
+  Spin, 
+  Button, 
+  Tag, 
+  Typography, 
+  Divider, 
+  Avatar,
+  Space,
+  Card,
+  Row,
+  Col,
+  message
+} from 'antd';
+import {
+  ArrowLeftOutlined,
+  CalendarOutlined,
+  UserOutlined,
+  EyeOutlined,
+  HeartOutlined,
+  ShareAltOutlined,
+  ClockCircleOutlined
+} from '@ant-design/icons';
+import { articleService } from '../../services';
+import Header from '../landingpage/components/Header';
+import Footer from '../landingpage/components/Footer';
+
+const { Title, Paragraph, Text } = Typography;
+
+const ArticleDetail = () => {
+  const { articleId } = useParams();
+  const navigate = useNavigate();
+  const [article, setArticle] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [relatedArticles, setRelatedArticles] = useState([]);
+
+  // Scroll to top IMMEDIATELY when component mounts (before rendering)
+  React.useLayoutEffect(() => {
+    window.scrollTo(0, 0);
+  }, [articleId]);
+
+  useEffect(() => {
+    fetchArticleDetail();
+    fetchRelatedArticles();
+  }, [articleId]);
+
+  const fetchArticleDetail = async () => {
+    try {
+      setLoading(true);
+      console.log('🔄 Fetching article:', articleId);
+      const data = await articleService.getArticleById(articleId);
+      console.log('✅ Article loaded:', data);
+      setArticle(data);
+    } catch (error) {
+      console.error('❌ Failed to fetch article:', error);
+      message.error('Failed to load article');
+      setTimeout(() => navigate('/'), 2000);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchRelatedArticles = async () => {
+    try {
+      const data = await articleService.getAllArticles({ 
+        status: 'published', 
+        limit: 3 
+      });
+      setRelatedArticles(data.filter(a => a._id !== articleId).slice(0, 3));
+    } catch (error) {
+      console.error('❌ Failed to fetch related articles:', error);
+    }
+  };
+
+  const handleLike = async () => {
+    try {
+      await articleService.likeArticle(articleId);
+      setArticle({ ...article, likes: (article.likes || 0) + 1 });
+      message.success('Thank you for liking! ❤️');
+    } catch (error) {
+      console.error('❌ Like error:', error);
+    }
+  };
+
+  const handleShare = async () => {
+    try {
+      await articleService.shareArticle(articleId);
+      setArticle({ ...article, shares: (article.shares || 0) + 1 });
+      
+      // Copy URL to clipboard
+      const url = window.location.href;
+      await navigator.clipboard.writeText(url);
+      message.success('Link copied to clipboard! 🔗');
+    } catch (error) {
+      console.error('❌ Share error:', error);
+      message.success('Link copied to clipboard! 🔗');
+    }
+  };
+
+  if (loading) {
+    return (
+      <>
+        <Header />
+        <div style={{ 
+          minHeight: '60vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '40px'
+        }}>
+          <div style={{ textAlign: 'center' }}>
+            <Spin size="large" />
+            <div style={{ marginTop: '16px', color: '#6c757d' }}>Loading article...</div>
+          </div>
+        </div>
+        <Footer />
+      </>
+    );
+  }
+
+  if (!article) {
+    return (
+      <>
+        <Header />
+        <div style={{ 
+          minHeight: '60vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '40px',
+          textAlign: 'center'
+        }}>
+          <div>
+            <Title level={3}>Article not found</Title>
+            <Button type="primary" onClick={() => navigate('/')}>
+              Go to Homepage
+            </Button>
+          </div>
+        </div>
+        <Footer />
+      </>
+    );
+  }
+
+  return (
+    <>
+      <Header />
+      
+      <div style={{ backgroundColor: '#f8f9fa', minHeight: '100vh' }}>
+        {/* Back Button */}
+        <div style={{ 
+          maxWidth: '1200px', 
+          margin: '0 auto',
+          padding: '20px'
+        }}>
+          <Button 
+            icon={<ArrowLeftOutlined />}
+            onClick={() => {
+              // Set flag to scroll to articles section
+              sessionStorage.setItem('scrollToArticles', 'true');
+              navigate('/');
+            }}
+            style={{ marginBottom: '20px' }}
+          >
+            Back to Articles
+          </Button>
+        </div>
+
+        {/* Article Content */}
+        <div style={{ 
+          maxWidth: '900px', 
+          margin: '0 auto',
+          padding: '0 20px 60px 20px'
+        }}>
+          {/* Hero Image */}
+          {article.featuredImage && (
+            <div style={{
+              width: '100%',
+              height: '500px',
+              overflow: 'hidden',
+              marginBottom: '40px',
+              borderRadius: '16px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+            }}>
+              <img
+                src={article.featuredImage}
+                alt={article.title}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  imageRendering: 'high-quality',
+                  WebkitImageRendering: 'high-quality'
+                }}
+              />
+            </div>
+          )}
+          {/* Category & Type Tags */}
+          <Space style={{ marginBottom: '20px' }}>
+            <Tag color="orange" style={{ fontSize: '14px', padding: '4px 12px' }}>
+              {article.category}
+            </Tag>
+            <Tag color="blue" style={{ fontSize: '14px', padding: '4px 12px' }}>
+              {article.type?.replace('_', ' ').toUpperCase()}
+            </Tag>
+          </Space>
+
+          {/* Title */}
+          <Title level={1} style={{ 
+            fontSize: '2.5rem',
+            marginBottom: '20px',
+            lineHeight: '1.3'
+          }}>
+            {article.title}
+          </Title>
+
+          {/* Meta Info */}
+          <div style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '24px',
+            marginBottom: '30px',
+            paddingBottom: '30px',
+            borderBottom: '2px solid #e9ecef'
+          }}>
+            <Space>
+              <Avatar icon={<UserOutlined />} style={{ backgroundColor: '#FF6B35' }} />
+              <Text strong>{article.author}</Text>
+            </Space>
+            <Space>
+              <CalendarOutlined style={{ color: '#6c757d' }} />
+              <Text type="secondary">
+                {new Date(article.publishDate || article.createdAt).toLocaleDateString('en-US', { 
+                  month: 'long', 
+                  day: 'numeric', 
+                  year: 'numeric' 
+                })}
+              </Text>
+            </Space>
+            <Space>
+              <ClockCircleOutlined style={{ color: '#6c757d' }} />
+              <Text type="secondary">{article.readingTime || '5 min read'}</Text>
+            </Space>
+          </div>
+
+          {/* Article Stats & Actions */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '40px',
+            padding: '20px',
+            backgroundColor: '#fff',
+            borderRadius: '12px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+          }}>
+            <Space size="large">
+              <Space>
+                <EyeOutlined style={{ fontSize: '18px', color: '#6c757d' }} />
+                <Text>{article.views || 0} views</Text>
+              </Space>
+              <Space>
+                <HeartOutlined style={{ fontSize: '18px', color: '#FF6B35' }} />
+                <Text>{article.likes || 0} likes</Text>
+              </Space>
+              <Space>
+                <ShareAltOutlined style={{ fontSize: '18px', color: '#6c757d' }} />
+                <Text>{article.shares || 0} shares</Text>
+              </Space>
+            </Space>
+            <Space>
+              <Button 
+                icon={<HeartOutlined />}
+                onClick={handleLike}
+                style={{
+                  borderColor: '#FF6B35',
+                  color: '#FF6B35'
+                }}
+              >
+                Like
+              </Button>
+              <Button 
+                type="primary"
+                icon={<ShareAltOutlined />}
+                onClick={handleShare}
+                style={{
+                  backgroundColor: '#FF6B35',
+                  borderColor: '#FF6B35'
+                }}
+              >
+                Share
+              </Button>
+            </Space>
+          </div>
+
+          {/* Article Content */}
+          <Card style={{ 
+            marginBottom: '40px',
+            borderRadius: '12px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+          }}>
+            <div style={{
+              fontSize: '18px',
+              lineHeight: '1.8',
+              color: '#343a40',
+              whiteSpace: 'pre-wrap'
+            }}>
+              {article.content}
+            </div>
+          </Card>
+
+          {/* Customer Rating (if customer_experience) */}
+          {article.type === 'customer_experience' && article.customerRating && (
+            <Card style={{ 
+              marginBottom: '40px',
+              borderRadius: '12px',
+              backgroundColor: '#fff9f5',
+              border: '2px solid #FF6B35'
+            }}>
+              <Title level={4} style={{ color: '#FF6B35', marginBottom: '16px' }}>
+                ⭐ Customer Rating
+              </Title>
+              <div style={{ fontSize: '32px', color: '#FF6B35' }}>
+                {'⭐'.repeat(article.customerRating || 5)}
+              </div>
+              <Text type="secondary" style={{ fontSize: '16px', marginTop: '8px', display: 'block' }}>
+                {article.customerRating || 5} out of 5 stars
+              </Text>
+            </Card>
+          )}
+
+          {/* Tags */}
+          {article.tags && article.tags.length > 0 && (
+            <div style={{ marginBottom: '40px' }}>
+              <Title level={5}>Tags:</Title>
+              <Space wrap>
+                {article.tags.map(tag => (
+                  <Tag key={tag} style={{ fontSize: '14px', padding: '4px 12px' }}>
+                    {tag}
+                  </Tag>
+                ))}
+              </Space>
+            </div>
+          )}
+
+          {/* Related Articles */}
+          {relatedArticles.length > 0 && (
+            <>
+              <Divider />
+              <Title level={3} style={{ marginBottom: '30px' }}>
+                Related Articles
+              </Title>
+              <Row gutter={[20, 20]}>
+                {relatedArticles.map(related => (
+                  <Col xs={24} sm={12} md={8} key={related._id}>
+                    <Card
+                      hoverable
+                      cover={
+                        <img
+                          src={related.featuredImage || 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=90'}
+                          alt={related.title}
+                          style={{ 
+                            height: '200px', 
+                            objectFit: 'cover',
+                            imageRendering: 'high-quality'
+                          }}
+                        />
+                      }
+                      onClick={() => navigate(`/article/${related._id}`)}
+                      style={{ borderRadius: '12px', overflow: 'hidden' }}
+                    >
+                      <Card.Meta
+                        title={related.title}
+                        description={
+                          <Space direction="vertical" size="small">
+                            <Text type="secondary">
+                              By {related.author}
+                            </Text>
+                            <Text type="secondary" style={{ fontSize: '12px' }}>
+                              {new Date(related.publishDate || related.createdAt).toLocaleDateString()}
+                            </Text>
+                          </Space>
+                        }
+                      />
+                    </Card>
+                  </Col>
+                ))}
+              </Row>
+            </>
+          )}
+        </div>
+      </div>
+
+      <Footer />
+    </>
+  );
+};
+
+export default ArticleDetail;
+

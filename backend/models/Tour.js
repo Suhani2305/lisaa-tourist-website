@@ -14,13 +14,27 @@ const tourSchema = new mongoose.Schema({
   },
   shortDescription: {
     type: String,
-    required: [true, 'Short description is required'],
     maxlength: [300, 'Short description cannot exceed 300 characters']
   },
   destination: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Destination',
+    type: String,
     required: [true, 'Destination is required']
+  },
+  city: {
+    type: String,
+    default: ''
+  },
+  citySlug: {
+    type: String,
+    default: ''
+  },
+  state: {
+    type: String,
+    default: ''
+  },
+  stateSlug: {
+    type: String,
+    default: ''
   },
   duration: {
     days: {
@@ -42,8 +56,11 @@ const tourSchema = new mongoose.Schema({
     },
     child: {
       type: Number,
-      required: [true, 'Child price is required'],
-      min: [0, 'Price cannot be negative']
+      min: [0, 'Price cannot be negative'],
+      default: function() {
+        // Default to 70% of adult price if not provided
+        return this.price?.adult ? Math.round(this.price.adult * 0.7) : 0;
+      }
     },
     infant: {
       type: Number,
@@ -51,17 +68,41 @@ const tourSchema = new mongoose.Schema({
       min: [0, 'Price cannot be negative']
     }
   },
-  images: [{
-    url: {
+  discount: {
+    type: {
       type: String,
-      required: true
+      enum: ['percentage', 'fixed'],
+      default: 'percentage'
     },
-    alt: String,
-    isPrimary: {
+    value: {
+      type: Number,
+      min: [0, 'Discount cannot be negative'],
+      max: [100, 'Discount percentage cannot exceed 100%'],
+      default: 0
+    },
+    startDate: {
+      type: Date,
+      required: function() {
+        // Required if discount is active
+        return this.discount?.isActive === true;
+      }
+    },
+    endDate: {
+      type: Date,
+      required: function() {
+        // Required if discount is active
+        return this.discount?.isActive === true;
+      }
+    },
+    isActive: {
       type: Boolean,
       default: false
     }
-  }],
+  },
+  images: {
+    type: [String],
+    default: []
+  },
   itinerary: [{
     day: {
       type: Number,
@@ -88,7 +129,7 @@ const tourSchema = new mongoose.Schema({
   highlights: [String],
   category: {
     type: String,
-    enum: ['package', 'day-tour', 'multi-day', 'adventure', 'cultural', 'religious', 'wildlife', 'beach'],
+    enum: ['spiritual', 'wellness', 'heritage', 'study', 'adventure', 'cultural', 'package', 'day-tour', 'multi-day', 'religious', 'wildlife', 'beach', 'city-tour'],
     required: true
   },
   difficulty: {
@@ -110,12 +151,10 @@ const tourSchema = new mongoose.Schema({
   },
   availability: {
     startDate: {
-      type: Date,
-      required: true
+      type: Date
     },
     endDate: {
-      type: Date,
-      required: true
+      type: Date
     },
     isAvailable: {
       type: Boolean,
@@ -146,9 +185,27 @@ const tourSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  trendingCategories: {
+    type: [String],
+    default: [],
+    enum: ['Culture & Heritage', 'Nature & Adventure', 'Beaches & Islands', 'Wellness & Spirituality', 'Food & Festivals', 'Modern India', 'Special Journeys']
+  },
   tags: [String]
 }, {
   timestamps: true
+});
+
+// Pre-save hook to auto-calculate child price as 70% of adult price if not provided
+tourSchema.pre('save', function(next) {
+  if (this.isNew || this.isModified('price.adult')) {
+    // If child price is not set or is 0, calculate it as 70% of adult price
+    if (!this.price?.child || this.price.child === 0) {
+      if (this.price?.adult && this.price.adult > 0) {
+        this.price.child = Math.round(this.price.adult * 0.7);
+      }
+    }
+  }
+  next();
 });
 
 // Index for search functionality
@@ -157,5 +214,6 @@ tourSchema.index({ destination: 1 });
 tourSchema.index({ category: 1 });
 tourSchema.index({ price: 1 });
 tourSchema.index({ featured: 1, trending: 1 });
+tourSchema.index({ trendingCategories: 1 });
 
 module.exports = mongoose.model('Tour', tourSchema);

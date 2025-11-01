@@ -1,0 +1,378 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { tourService } from '../../../services';
+import { Spin } from 'antd';
+
+const PopularTours = () => {
+  const navigate = useNavigate();
+  const [tours, setTours] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchPopularTours();
+  }, []);
+
+  const fetchPopularTours = async () => {
+    try {
+      setLoading(true);
+      const data = await tourService.getAllTours();
+      
+      // Helper function to calculate discounted price
+      const calculateDiscountedPrice = (tour) => {
+        const originalPrice = tour.price?.adult || 0;
+        const discount = tour.discount;
+        
+        if (!discount || !discount.isActive) {
+          return { originalPrice, finalPrice: originalPrice, hasDiscount: false };
+        }
+        
+        // Check if discount is within date range
+        const now = new Date();
+        now.setHours(0, 0, 0, 0); // Reset time to start of day for comparison
+        
+        if (discount.startDate) {
+          const startDate = new Date(discount.startDate);
+          startDate.setHours(0, 0, 0, 0);
+          if (startDate > now) {
+            return { originalPrice, finalPrice: originalPrice, hasDiscount: false };
+          }
+        }
+        
+        if (discount.endDate) {
+          const endDate = new Date(discount.endDate);
+          endDate.setHours(23, 59, 59, 999); // Set to end of day
+          if (endDate < now) {
+            return { originalPrice, finalPrice: originalPrice, hasDiscount: false };
+          }
+        }
+        
+        let finalPrice = originalPrice;
+        if (discount.type === 'percentage') {
+          finalPrice = originalPrice * (1 - (discount.value / 100));
+        } else if (discount.type === 'fixed') {
+          finalPrice = Math.max(0, originalPrice - discount.value);
+        }
+        
+        return { 
+          originalPrice, 
+          finalPrice: Math.round(finalPrice), 
+          hasDiscount: true,
+          discountValue: discount.value,
+          discountType: discount.type
+        };
+      };
+      
+      // Transform backend data to component format
+      const formattedTours = data.slice(0, 4).map(tour => {
+        const priceInfo = calculateDiscountedPrice(tour);
+        return {
+          id: tour._id,
+          image: tour.images?.[0] || "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=1200&q=90&auto=format&fit=crop",
+          location: tour.destination,
+          title: tour.title,
+          description: tour.description ? tour.description.substring(0, 100) + '...' : '',
+          rating: tour.rating?.average ? `${tour.rating.average} (${tour.rating.count})` : "4.5 (0)",
+          duration: `${tour.duration?.days || 0} days`,
+          price: priceInfo.hasDiscount 
+            ? `₹${priceInfo.finalPrice.toLocaleString()}` 
+            : `₹${priceInfo.originalPrice.toLocaleString()}`,
+          originalPrice: priceInfo.originalPrice,
+          hasDiscount: priceInfo.hasDiscount,
+          discountValue: priceInfo.discountValue,
+          discountType: priceInfo.discountType,
+          type: tour.category || "Tour"
+        };
+      });
+      
+      setTours(formattedTours);
+    } catch (error) {
+      console.error("Failed to fetch popular tours:", error);
+      setTours([]); // Empty array - no mock data!
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Component for the heart icon (Top right of the image)
+  const CardIcons = () => (
+      <div style={{
+        position: 'absolute',
+        top: '10px',
+        right: '10px',
+        width: '30px',
+        height: '30px',
+        borderRadius: '50%',
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        cursor: 'pointer'
+      }}>
+        <span style={{ color: '#212529', fontSize: '14px' }}>♥</span> 
+      </div>
+  );
+
+  if (loading) {
+    return (
+      <div style={{ 
+        padding: "80px 20px", 
+        backgroundColor: 'white',
+        textAlign: "center",
+        minHeight: "400px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center"
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <Spin size="large" />
+          <div style={{ marginTop: '16px', color: '#6c757d' }}>Loading popular tours...</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ 
+      padding: window.innerWidth <= 480 ? '20px 0' : window.innerWidth <= 768 ? '30px 0' : '100px 0', 
+      backgroundColor: 'white' 
+    }}>
+      {/* Main Container with responsive padding */}
+      <div style={{ 
+        maxWidth: window.innerWidth <= 768 ? '100%' : '1800px', 
+        maxHeight: '800px',
+        margin: '0 auto', 
+        padding: window.innerWidth <= 480 ? '0 8px' : window.innerWidth <= 768 ? '0 12px' : window.innerWidth <= 1024 ? '0 32px' : '0 250px' 
+      }}>
+        {/* Header Section */}
+        <div style={{ marginBottom: window.innerWidth <= 768 ? '20px' : '40px' }}>
+          <h2 style={{
+            fontSize: window.innerWidth <= 480 ? '24px' : window.innerWidth <= 768 ? '28px' : '36px',
+            fontWeight: '700',
+            color: '#212529',
+            marginBottom: window.innerWidth <= 768 ? '8px' : '12px'
+          }}>
+            Popular Indian Tours
+          </h2>
+          <p style={{
+            color: '#6c757d',
+            fontSize: window.innerWidth <= 768 ? '14px' : '16px',
+            margin: 0
+          }}>
+            Explore the rich cultural heritage and spiritual destinations of India
+          </p>
+        </div>
+
+        {/* Tours Grid */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: window.innerWidth <= 480 ? '1fr' : 
+                             window.innerWidth <= 768 ? 'repeat(2, 1fr)' :
+                             window.innerWidth <= 1024 ? 'repeat(3, 1fr)' : 
+                             'repeat(4, 1fr)',
+          gap: window.innerWidth <= 480 ? '12px' : window.innerWidth <= 768 ? '16px' : '24px'
+        }}>
+          {tours.map((tour) => (
+            <div
+              key={tour.id}
+              onClick={() => navigate(`/package/${tour.id}`)}
+              style={{
+                backgroundColor: 'white',
+                borderRadius: '16px',
+                overflow: 'hidden',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-8px)';
+                e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.15)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+              }}
+            >
+              {/* Image Container */}
+              <div style={{ position: 'relative', paddingTop: '75%', overflow: 'hidden' }}>
+                <img
+                  src={tour.image}
+                  alt={tour.title}
+                  loading="lazy"
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    imageRendering: 'high-quality',
+                    WebkitImageRendering: 'high-quality'
+                  }}
+                />
+                <CardIcons />
+                
+                {/* Tour Type Badge */}
+                <div style={{
+                  position: 'absolute',
+                  bottom: '12px',
+                  left: '12px',
+                  backgroundColor: 'rgba(255, 107, 53, 0.9)',
+                  color: 'white',
+                  padding: '6px 12px',
+                  borderRadius: '20px',
+                  fontSize: '12px',
+                  fontWeight: '600'
+                }}>
+                  {tour.type}
+                </div>
+              </div>
+
+              {/* Content Container */}
+              <div style={{ padding: window.innerWidth <= 480 ? '12px' : '16px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                {/* Location */}
+                <div style={{
+                  fontSize: '13px',
+                  color: '#6c757d',
+                  marginBottom: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}>
+                  <span>📍</span>
+                  <span>{tour.location}</span>
+                </div>
+
+                {/* Title */}
+                <h3 style={{
+                  fontSize: window.innerWidth <= 480 ? '15px' : '16px',
+                  fontWeight: '600',
+                  color: '#212529',
+                  margin: '0 0 8px 0',
+                  lineHeight: '1.4'
+                }}>
+                  {tour.title}
+                </h3>
+
+                {/* Description */}
+                {tour.description && (
+                  <p style={{
+                    fontSize: window.innerWidth <= 480 ? '12px' : '13px',
+                    color: '#6c757d',
+                    margin: '0 0 12px 0',
+                    lineHeight: '1.5',
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }}>
+                    {tour.description}
+                  </p>
+                )}
+
+                {/* Rating */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  marginBottom: '12px'
+                }}>
+                  <span style={{ color: '#ffc107', fontSize: '14px' }}>★</span>
+                  <span style={{ fontSize: '14px', color: '#212529', fontWeight: '500' }}>
+                    {tour.rating}
+                  </span>
+                </div>
+
+                {/* Duration and Price */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  paddingTop: '12px',
+                  borderTop: '1px solid #f1f3f5'
+                }}>
+                  <span style={{
+                    fontSize: '13px',
+                    color: '#6c757d',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}>
+                    <span>🕒</span>
+                    <span>{tour.duration}</span>
+                  </span>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                    {tour.hasDiscount && (
+                      <span style={{
+                        fontSize: '12px',
+                        color: '#6c757d',
+                        textDecoration: 'line-through',
+                        marginBottom: '2px'
+                      }}>
+                        ₹{tour.originalPrice.toLocaleString()}
+                      </span>
+                    )}
+                    <span style={{
+                      fontSize: window.innerWidth <= 480 ? '15px' : '16px',
+                      fontWeight: '700',
+                      color: '#ff6b35'
+                    }}>
+                      {tour.price}
+                    </span>
+                    {tour.hasDiscount && (
+                      <span style={{
+                        fontSize: '11px',
+                        color: '#28a745',
+                        fontWeight: '600',
+                        marginTop: '2px'
+                      }}>
+                        {tour.discountType === 'percentage' ? `${tour.discountValue}% OFF` : `₹${tour.discountValue} OFF`}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* View All Button */}
+        <div style={{ 
+          textAlign: 'center', 
+          marginTop: window.innerWidth <= 768 ? '30px' : '50px' 
+        }}>
+          <button 
+            onClick={() => navigate('/package')}
+            style={{
+              padding: window.innerWidth <= 480 ? '10px 24px' : '12px 32px',
+              fontSize: window.innerWidth <= 480 ? '14px' : '16px',
+              fontWeight: '600',
+              color: '#ff6b35',
+              backgroundColor: 'white',
+              border: '2px solid #ff6b35',
+              borderRadius: '25px',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = '#ff6b35';
+              e.target.style.color = 'white';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = 'white';
+              e.target.style.color = '#ff6b35';
+            }}
+          >
+            View All Tours →
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default PopularTours;

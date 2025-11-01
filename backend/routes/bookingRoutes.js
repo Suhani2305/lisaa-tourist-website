@@ -70,6 +70,20 @@ router.post('/', authenticateToken, async (req, res) => {
   }
 });
 
+// Get user bookings (alias for /my-bookings)
+router.get('/user', authenticateToken, async (req, res) => {
+  try {
+    const bookings = await Booking.find({ user: req.user.userId })
+      .populate('tour', 'title destination price images')
+      .sort({ createdAt: -1 });
+
+    res.json(bookings);
+  } catch (error) {
+    console.error('Get user bookings error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Get user bookings
 router.get('/my-bookings', authenticateToken, async (req, res) => {
   try {
@@ -84,7 +98,7 @@ router.get('/my-bookings', authenticateToken, async (req, res) => {
   }
 });
 
-// Get single booking
+// Get single booking (Must be AFTER /user and /my-bookings routes)
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const booking = await Booking.findById(req.params.id)

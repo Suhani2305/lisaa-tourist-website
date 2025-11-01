@@ -21,10 +21,10 @@ const connectDB = async () => {
 // Sample data
 const sampleUsers = [
   {
-    name: 'Admin User',
-    email: 'admin@tourist.com',
+    name: 'Lisaa Admin',
+    email: 'Lsiaatech@gmail.com',
     password: 'admin123',
-    phone: '9876543210',
+    phone: '9263616263',
     role: 'admin'
   },
   {
