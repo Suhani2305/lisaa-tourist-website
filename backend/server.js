@@ -40,6 +40,7 @@ const paymentRoutes = require('./routes/paymentRoutes');
 const articleRoutes = require('./routes/articleRoutes');
 const stateRoutes = require('./routes/stateRoutes');
 const cityRoutes = require('./routes/cityRoutes');
+const inquiryRoutes = require('./routes/inquiryRoutes');
 
 // API Routes
 app.use('/api/users', userRoutes);
@@ -53,6 +54,7 @@ app.use('/api/payment', paymentRoutes);
 app.use('/api/articles', articleRoutes);
 app.use('/api/states', stateRoutes);
 app.use('/api/cities', cityRoutes);
+app.use('/api/inquiries', inquiryRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Form,
   Input,
@@ -9,6 +9,7 @@ import {
   Col,
   message,
   Space,
+  Select,
 } from 'antd';
 import {
   MailOutlined,
@@ -20,24 +21,56 @@ import {
 } from '@ant-design/icons';
 import Header from '../landingpage/components/Header';
 import Footer from '../landingpage/components/Footer';
+import { inquiryService, tourService } from '../../services';
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
+const { Option } = Select;
 
 const ContactUs = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const [packages, setPackages] = useState([]);
+  const [packagesLoading, setPackagesLoading] = useState(false);
+
+  useEffect(() => {
+    fetchPackages();
+  }, []);
+
+  const fetchPackages = async () => {
+    try {
+      setPackagesLoading(true);
+      const tours = await tourService.getAllTours({ limit: 1000 });
+      setPackages(Array.isArray(tours) ? tours : []);
+    } catch (error) {
+      console.error('Failed to fetch packages:', error);
+    } finally {
+      setPackagesLoading(false);
+    }
+  };
 
   const onFinish = async (values) => {
     setLoading(true);
     try {
-      // Here you can add API call to save inquiry
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      message.success('Thank you for contacting us! We will get back to you soon.');
-      form.resetFields();
+      // Submit inquiry to backend API
+      const response = await inquiryService.createInquiry({
+        name: values.name,
+        email: values.email,
+        phone: values.phone,
+        subject: values.subject || 'Contact Form Inquiry',
+        message: values.message,
+        interestedTour: values.interestedTour || null // Package/Tour ID
+      });
+
+      if (response.success) {
+        message.success(response.message || 'Thank you for contacting us! We will get back to you soon.');
+        form.resetFields();
+      } else {
+        message.error(response.message || 'Failed to send message. Please try again.');
+      }
     } catch (error) {
-      message.error('Failed to send message. Please try again.');
+      console.error('Contact form error:', error);
+      message.error(error.message || 'Failed to send message. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -142,6 +175,30 @@ const ContactUs = () => {
                         prefix={<MessageOutlined style={{ color: '#ff6b35' }} />}
                         placeholder="Enter subject"
                       />
+                    </Form.Item>
+                  </Col>
+
+                  <Col xs={24}>
+                    <Form.Item
+                      name="interestedTour"
+                      label="Interested Package (Optional)"
+                    >
+                      <Select
+                        placeholder="Select a package you're interested in"
+                        loading={packagesLoading}
+                        showSearch
+                        allowClear
+                        filterOption={(input, option) =>
+                          option?.children?.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                        }
+                        style={{ borderRadius: '8px' }}
+                      >
+                        {packages.map((pkg) => (
+                          <Option key={pkg._id} value={pkg._id}>
+                            {pkg.title} - {pkg.destination} ({pkg.duration?.days || 'N/A'} Days)
+                          </Option>
+                        ))}
+                      </Select>
                     </Form.Item>
                   </Col>
 
@@ -298,8 +355,7 @@ const ContactUs = () => {
                         Working Hours
                       </Text>
                       <Text type="secondary">
-                        Monday - Saturday: 9:00 AM - 6:00 PM<br />
-                        Sunday: Closed
+                        Monday - Sunday: 9:00 AM - 8:00 PM<br />
                       </Text>
                     </div>
                   </div>

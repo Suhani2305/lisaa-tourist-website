@@ -26,9 +26,10 @@ import {
   MailOutlined,
   ManOutlined,
   WomanOutlined,
+  DownloadOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { authService, bookingService } from '../../services';
+import { authService, bookingService, paymentService } from '../../services';
 import Header from '../landingpage/components/Header';
 import Footer from '../landingpage/components/Footer';
 
@@ -224,12 +225,32 @@ const UserDashboard = () => {
                           </Text>
                           
                           <Text strong style={{ fontSize: '18px', color: '#ff6b35' }}>
-                            ₹{booking.pricing.finalAmount.toLocaleString()}
+                            ₹{booking.pricing?.finalAmount?.toLocaleString() || booking.totalAmount?.toLocaleString() || '0'}
                           </Text>
                           
-                          <Button type="primary" block>
-                            View Details
-                          </Button>
+                          <Space style={{ width: '100%' }} direction="vertical">
+                            <Button type="primary" block>
+                              View Details
+                            </Button>
+                            {booking.payment?.status === 'paid' && (
+                              <Button 
+                                icon={<DownloadOutlined />} 
+                                block
+                                onClick={() => {
+                                  paymentService.downloadReceipt(booking._id)
+                                    .then(() => {
+                                      message.success('📄 Receipt downloaded successfully!');
+                                    })
+                                    .catch((err) => {
+                                      message.error('Failed to download receipt');
+                                      console.error(err);
+                                    });
+                                }}
+                              >
+                                Download Receipt
+                              </Button>
+                            )}
+                          </Space>
                         </Space>
                       </Card>
                     </Col>

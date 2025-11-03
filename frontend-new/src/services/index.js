@@ -8,6 +8,7 @@ import reviewService from './reviewService';
 import paymentService from './paymentService';
 import articleService from './articleService';
 import stateService from './stateService';
+import inquiryService from './inquiryService';
 
 export {
   api,
@@ -19,4 +20,5 @@ export {
   paymentService,
   articleService,
   stateService,
+  inquiryService,
 };

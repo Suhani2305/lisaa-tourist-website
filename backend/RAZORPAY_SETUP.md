@@ -71,12 +71,32 @@ npm run dev
 4. Replace test keys with live keys in `.env`
 5. Test thoroughly before going live!
 
+## 🌍 Enable International Cards Support
+
+If you're getting "International cards are not supported" error:
+
+1. **Login to Razorpay Dashboard**: https://dashboard.razorpay.com/
+2. Go to **Settings** → **Payment Methods**
+3. Scroll down to **Card Payment Methods**
+4. Enable **International Cards** option
+5. Save the settings
+6. **Note**: International cards support requires:
+   - Complete KYC verification
+   - Live mode account (not test mode)
+   - Additional approval from Razorpay (may take 1-2 business days)
+
+**Alternative**: If international cards are not available, customers can use:
+- Net Banking (select international banks if available)
+- UPI (for Indian customers)
+- Contact support for wire transfer options
+
 ## 💡 Payment Methods Enabled:
 
 ✅ Credit/Debit Cards (Visa, Mastercard, RuPay)
 ✅ UPI (Google Pay, PhonePe, Paytm, etc.)
 ✅ Net Banking (All major banks)
 ✅ Wallets (Paytm, PhonePe, Amazon Pay, etc.)
+⚠️ International Cards (Requires dashboard activation - see below)
 
 ## 🔒 Security Features:
 

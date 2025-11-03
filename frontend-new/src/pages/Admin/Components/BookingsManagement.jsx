@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { bookingService } from '../../../services';
 import {
   Card,
   Table,
@@ -82,209 +83,73 @@ const BookingsManagement = () => {
   const [filterPayment, setFilterPayment] = useState('all');
   const [selectedBooking, setSelectedBooking] = useState(null);
 
-  // Mock data - In real app, this would come from API
-  const mockBookings = [
-    {
-      id: 'TB000001',
-      bookingNumber: 'TB000001',
-      user: {
-        name: 'Rajesh Kumar',
-        email: 'rajesh.kumar@email.com',
-        phone: '+91 98765 43210',
-        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100'
-      },
-      tour: {
-        title: 'Kerala Backwaters Paradise',
-        destination: 'Kerala, India',
-        duration: '5 Days / 4 Nights',
-        image: 'https://images.unsplash.com/photo-1587474260584-136574528ed5?w=400',
-        category: 'Nature & Wildlife'
-      },
-      travelers: [
-        { name: 'Rajesh Kumar', age: 35, type: 'adult', gender: 'male' },
-        { name: 'Priya Kumar', age: 32, type: 'adult', gender: 'female' },
-        { name: 'Arjun Kumar', age: 8, type: 'child', gender: 'male' }
-      ],
-      contactInfo: {
-        email: 'rajesh.kumar@email.com',
-        phone: '+91 98765 43210',
-        emergencyContact: {
-          name: 'Suresh Kumar',
-          phone: '+91 98765 43211',
-          relation: 'Brother'
-        }
-      },
-      travelDates: {
-        startDate: '2024-03-15',
-        endDate: '2024-03-19'
-      },
-      pricing: {
-        basePrice: 135000,
-        totalAmount: 135000,
-        discount: 0,
-        taxes: 20250,
-        finalAmount: 155250
-      },
-      payment: {
-        status: 'paid',
-        method: 'credit-card',
-        transactionId: 'TXN123456789',
-        paymentDate: '2024-02-15'
-      },
-      status: 'confirmed',
-      specialRequests: 'Vegetarian meals only, ground floor room preferred',
-      cancellationPolicy: {
-        canCancel: true,
-        cancellationDeadline: '2024-03-10',
-        refundPercentage: 80
-      },
-      notes: 'VIP customer, provide extra attention',
-      createdAt: '2024-02-10',
-      updatedAt: '2024-02-15'
-    },
-    {
-      id: 'TB000002',
-      bookingNumber: 'TB000002',
-      user: {
-        name: 'Sarah Johnson',
-        email: 'sarah.johnson@email.com',
-        phone: '+1 555-0123',
-        avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100'
-      },
-      tour: {
-        title: 'Rajasthan Heritage Tour',
-        destination: 'Rajasthan, India',
-        duration: '7 Days / 6 Nights',
-        image: 'https://images.unsplash.com/photo-1564507592333-c60657eea523?w=400',
-        category: 'Cultural Heritage'
-      },
-      travelers: [
-        { name: 'Sarah Johnson', age: 28, type: 'adult', gender: 'female' },
-        { name: 'Michael Johnson', age: 30, type: 'adult', gender: 'male' }
-      ],
-      contactInfo: {
-        email: 'sarah.johnson@email.com',
-        phone: '+1 555-0123',
-        emergencyContact: {
-          name: 'Emily Johnson',
-          phone: '+1 555-0124',
-          relation: 'Sister'
-        }
-      },
-      travelDates: {
-        startDate: '2024-04-20',
-        endDate: '2024-04-26'
-      },
-      pricing: {
-        basePrice: 76000,
-        totalAmount: 76000,
-        discount: 5000,
-        taxes: 10650,
-        finalAmount: 81650
-      },
-      payment: {
-        status: 'pending',
-        method: 'net-banking',
-        transactionId: null,
-        paymentDate: null
-      },
-      status: 'pending',
-      specialRequests: 'English speaking guide required',
-      cancellationPolicy: {
-        canCancel: true,
-        cancellationDeadline: '2024-04-15',
-        refundPercentage: 90
-      },
-      notes: 'First time visitors to India',
-      createdAt: '2024-02-12',
-      updatedAt: '2024-02-12'
-    },
-    {
-      id: 'TB000003',
-      bookingNumber: 'TB000003',
-      user: {
-        name: 'Amit Patel',
-        email: 'amit.patel@email.com',
-        phone: '+91 98765 43212',
-        avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100'
-      },
-      tour: {
-        title: 'Andaman Islands Adventure',
-        destination: 'Andaman & Nicobar Islands',
-        duration: '6 Days / 5 Nights',
-        image: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400',
-        category: 'Adventure & Sports'
-      },
-      travelers: [
-        { name: 'Amit Patel', age: 40, type: 'adult', gender: 'male' },
-        { name: 'Sunita Patel', age: 38, type: 'adult', gender: 'female' },
-        { name: 'Rohan Patel', age: 12, type: 'child', gender: 'male' },
-        { name: 'Kavya Patel', age: 6, type: 'child', gender: 'female' }
-      ],
-      contactInfo: {
-        email: 'amit.patel@email.com',
-        phone: '+91 98765 43212',
-        emergencyContact: {
-          name: 'Vikram Patel',
-          phone: '+91 98765 43213',
-          relation: 'Brother'
-        }
-      },
-      travelDates: {
-        startDate: '2024-05-10',
-        endDate: '2024-05-15'
-      },
-      pricing: {
-        basePrice: 208000,
-        totalAmount: 208000,
-        discount: 15000,
-        taxes: 28950,
-        finalAmount: 221950
-      },
-      payment: {
-        status: 'paid',
-        method: 'upi',
-        transactionId: 'UPI987654321',
-        paymentDate: '2024-02-20'
-      },
-      status: 'confirmed',
-      specialRequests: 'Non-vegetarian meals, beach view rooms',
-      cancellationPolicy: {
-        canCancel: true,
-        cancellationDeadline: '2024-05-05',
-        refundPercentage: 75
-      },
-      notes: 'Family with children, ensure safety measures',
-      createdAt: '2024-02-18',
-      updatedAt: '2024-02-20'
-    }
-  ];
-
   useEffect(() => {
     fetchBookings();
-  }, []);
+  }, [filterStatus, filterPayment, searchText]);
 
   const fetchBookings = async () => {
     setLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      // Ensure all data is properly structured
-      const processedBookings = mockBookings.map(booking => ({
-        ...booking,
-        // Ensure all nested objects are properly structured
-        user: booking.user || {},
-        tour: booking.tour || {},
-        travelers: Array.isArray(booking.travelers) ? booking.travelers : [],
-        contactInfo: booking.contactInfo || {},
-        travelDates: booking.travelDates || {},
-        pricing: booking.pricing || {},
-        payment: booking.payment || {},
-        cancellationPolicy: booking.cancellationPolicy || {}
-      }));
-      setBookings(processedBookings);
+      // Fetch bookings from real API only - NO MOCK DATA
+      const response = await bookingService.getAllBookings({
+        status: filterStatus !== 'all' ? filterStatus : undefined,
+        payment: filterPayment !== 'all' ? filterPayment : undefined
+      });
+      
+      if (response && Array.isArray(response)) {
+        // Transform API data to match component format
+        const processedBookings = response.map(booking => ({
+          id: booking._id,
+          bookingNumber: booking.bookingNumber || booking._id,
+          user: booking.user ? {
+            name: booking.user.name || 'N/A',
+            email: booking.user.email || 'N/A',
+            phone: booking.user.phone || 'N/A',
+            avatar: booking.user.profileImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(booking.user.name || 'User')}&background=ff6b35&color=fff`
+          } : {},
+          tour: booking.tour ? {
+            title: booking.tour.title || 'N/A',
+            destination: booking.tour.destination || 'N/A',
+            duration: booking.tour.duration ? `${booking.tour.duration.days} Days / ${booking.tour.duration.nights} Nights` : 'N/A',
+            image: booking.tour.images?.[0] || 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=400',
+            category: booking.tour.category || 'General'
+          } : {},
+          travelers: Array.isArray(booking.travelers) ? booking.travelers : [],
+          contactInfo: booking.contactInfo || {},
+          travelDates: booking.travelDates || {
+            startDate: booking.bookingDate || new Date().toISOString(),
+            endDate: booking.bookingDate || new Date().toISOString()
+          },
+          pricing: booking.pricing || {
+            basePrice: booking.totalAmount || 0,
+            totalAmount: booking.totalAmount || 0,
+            discount: 0,
+            taxes: 0,
+            finalAmount: booking.totalAmount || 0
+          },
+          payment: booking.payment || {
+            status: booking.paymentStatus || 'pending',
+            method: booking.paymentMethod || 'N/A',
+            transactionId: booking.paymentId || 'N/A',
+            paymentDate: booking.paymentDate || null
+          },
+          status: booking.status || 'pending',
+          specialRequests: booking.specialRequests || '',
+          notes: booking.notes || '',
+          cancellationPolicy: booking.cancellationPolicy || {},
+          createdAt: booking.createdAt ? new Date(booking.createdAt).toISOString().split('T')[0] : '',
+          updatedAt: booking.updatedAt ? new Date(booking.updatedAt).toISOString().split('T')[0] : ''
+        }));
+        setBookings(processedBookings);
+      } else {
+        // If no bookings, set empty array
+        setBookings([]);
+        message.info('No bookings found');
+      }
     } catch (error) {
-      message.error('Failed to fetch bookings');
+      console.error('Failed to fetch bookings:', error);
+      message.error(error.message || 'Failed to fetch bookings. Please try again.');
+      setBookings([]);
     } finally {
       setLoading(false);
     }
@@ -309,27 +174,35 @@ const BookingsManagement = () => {
 
   const handleDeleteBooking = async (id) => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setBookings(bookings.filter(booking => booking.id !== id));
-      message.success('Booking deleted successfully');
+      const response = await bookingService.cancelBooking(id);
+      if (response) {
+        setBookings(bookings.filter(booking => booking.id !== id));
+        message.success('Booking deleted successfully');
+      } else {
+        message.error('Failed to delete booking');
+      }
     } catch (error) {
-      message.error('Failed to delete booking');
+      console.error('Delete booking error:', error);
+      message.error(error.message || 'Failed to delete booking');
     }
   };
 
   const handleStatusUpdate = async (id, newStatus) => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setBookings(bookings.map(booking => 
-        booking.id === id 
-          ? { ...booking, status: newStatus, updatedAt: new Date().toISOString().split('T')[0] }
-          : booking
-      ));
-      message.success(`Booking ${newStatus} successfully`);
+      const response = await bookingService.updateBookingStatus(id, newStatus);
+      if (response) {
+        setBookings(bookings.map(booking => 
+          booking.id === id 
+            ? { ...booking, status: newStatus, updatedAt: new Date().toISOString().split('T')[0] }
+            : booking
+        ));
+        message.success(`Booking status updated to ${newStatus}`);
+      } else {
+        message.error('Failed to update booking status');
+      }
     } catch (error) {
-      message.error('Failed to update booking status');
+      console.error('Update booking status error:', error);
+      message.error(error.message || 'Failed to update booking status');
     }
   };
 

@@ -147,6 +147,14 @@ npm install razorpay
 ### Payment modal not opening
 ✅ **Solution:** Check browser console for errors
 
+### Error: "International cards are not supported"
+✅ **Solution:** Enable international cards in Razorpay Dashboard:
+1. Login to https://dashboard.razorpay.com/
+2. Go to **Settings** → **Payment Methods**
+3. Enable **International Cards**
+4. **Note**: Requires KYC completion and Live mode (not Test mode)
+5. May take 1-2 business days for activation
+
 ---
 
 ## 📞 Support

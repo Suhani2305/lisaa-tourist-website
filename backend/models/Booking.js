@@ -137,8 +137,8 @@ bookingSchema.pre('save', async function(next) {
 });
 
 // Index for efficient queries
+// Note: bookingNumber already has unique: true which creates an index automatically
 bookingSchema.index({ user: 1 });
-bookingSchema.index({ bookingNumber: 1 });
 bookingSchema.index({ status: 1 });
 bookingSchema.index({ 'travelDates.startDate': 1 });
 

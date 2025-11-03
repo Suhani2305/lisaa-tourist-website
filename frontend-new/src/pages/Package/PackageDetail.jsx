@@ -186,14 +186,31 @@ const PackageDetail = () => {
             const verifyResponse = await paymentService.verifyPayment(verificationData);
 
             if (verifyResponse.success) {
-              message.success('🎉 Payment successful! Your booking is confirmed!');
+              message.success({
+                content: '🎉 Payment successful! Your booking is confirmed! Check your email, SMS & WhatsApp for confirmation.',
+                duration: 5
+              });
               setBookingModalVisible(false);
               form.resetFields();
+              
+              // Download receipt if available
+              if (verifyResponse.receiptUrl || verifyResponse.bookingId) {
+                setTimeout(() => {
+                  paymentService.downloadReceipt(verifyResponse.bookingId)
+                    .then(() => {
+                      message.success('📄 Receipt downloaded successfully!');
+                    })
+                    .catch((err) => {
+                      console.warn('Receipt download failed:', err);
+                      // Don't show error - receipt download is optional
+                    });
+                }, 1000);
+              }
               
               // Redirect to user dashboard
               setTimeout(() => {
                 navigate('/user-dashboard');
-              }, 2000);
+              }, 3000);
             }
           } catch (error) {
             message.error('Payment verification failed. Please contact support.');

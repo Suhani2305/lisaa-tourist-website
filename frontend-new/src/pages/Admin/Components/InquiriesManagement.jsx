@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { inquiryService } from '../../../services';
 import {
   Card,
   Table,
@@ -95,107 +96,178 @@ const InquiriesManagement = () => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterPriority, setFilterPriority] = useState('all');
   const [selectedInquiry, setSelectedInquiry] = useState(null);
+  const [replyModalVisible, setReplyModalVisible] = useState(false);
+  const [replyForm] = Form.useForm();
 
-  // Mock data - In real app, this would come from API
-  const mockInquiries = [
-    {
-      id: 'INQ001',
-      name: 'Priya Sharma',
-      email: 'priya.sharma@email.com',
-      phone: '+91 98765 43210',
-      avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100',
-      status: 'new',
-      priority: 'high',
-      source: 'website',
-      subject: 'Kerala Backwaters Tour Inquiry',
-      message: 'Hi, I am interested in booking a Kerala backwaters tour for my family. We are 4 people and would like to travel in March. Please provide details about packages and pricing.',
-      interestedTour: 'Kerala Backwaters Paradise',
-      budget: '50000-75000',
-      travelDate: '2024-03-15',
-      createdAt: '2024-02-15',
-      updatedAt: '2024-02-15',
-      assignedTo: 'Rajesh Kumar',
-      tags: ['Kerala', 'Family', 'Backwaters'],
-      followUpDate: '2024-02-20',
-      notes: 'VIP customer, interested in luxury package'
-    },
-    {
-      id: 'INQ002',
-      name: 'Michael Johnson',
-      email: 'michael.johnson@email.com',
-      phone: '+1 555-0123',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100',
-      status: 'contacted',
-      priority: 'medium',
-      source: 'phone',
-      subject: 'Rajasthan Heritage Tour',
-      message: 'Hello, I am planning a trip to Rajasthan with my wife. We are interested in the heritage tour and would like to know about the best time to visit and what to expect.',
-      interestedTour: 'Rajasthan Heritage Tour',
-      budget: '80000-100000',
-      travelDate: '2024-04-20',
-      createdAt: '2024-02-12',
-      updatedAt: '2024-02-16',
-      assignedTo: 'Sarah Wilson',
-      tags: ['Rajasthan', 'Heritage', 'International'],
-      followUpDate: '2024-02-18',
-      notes: 'International customer, first time to India'
-    },
-    {
-      id: 'INQ003',
-      name: 'Amit Patel',
-      email: 'amit.patel@email.com',
-      phone: '+91 98765 43212',
-      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100',
-      status: 'qualified',
-      priority: 'low',
-      source: 'social_media',
-      subject: 'Andaman Islands Adventure',
-      message: 'I saw your post about Andaman Islands on Instagram. My friends and I are planning a trip there. Can you provide information about adventure activities and water sports?',
-      interestedTour: 'Andaman Islands Adventure',
-      budget: '30000-50000',
-      travelDate: '2024-05-10',
-      createdAt: '2024-02-10',
-      updatedAt: '2024-02-14',
-      assignedTo: 'Vikram Singh',
-      tags: ['Andaman', 'Adventure', 'Group'],
-      followUpDate: '2024-02-17',
-      notes: 'Group booking, interested in adventure activities'
-    },
-    {
-      id: 'INQ004',
-      name: 'Sunita Reddy',
-      email: 'sunita.reddy@email.com',
-      phone: '+91 98765 43213',
-      avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100',
-      status: 'converted',
-      priority: 'high',
-      source: 'referral',
-      subject: 'Kerala Ayurveda Retreat',
-      message: 'My friend recommended your services. I am looking for a relaxing Ayurveda retreat in Kerala. Please send me details about your wellness packages.',
-      interestedTour: 'Kerala Ayurveda Retreat',
-      budget: '60000-80000',
-      travelDate: '2024-03-01',
-      createdAt: '2024-02-08',
-      updatedAt: '2024-02-15',
-      assignedTo: 'Priya Sharma',
-      tags: ['Kerala', 'Ayurveda', 'Wellness'],
-      followUpDate: null,
-      notes: 'Converted to booking, wellness-focused customer'
-    }
-  ];
+  // Reply templates generator function
+  const getReplyTemplates = () => {
+    const customerName = editingInquiry?.name || 'Customer';
+    const tourTitle = editingInquiry?.interestedTour?.title;
+    const subject = editingInquiry?.subject;
+    
+    return [
+      {
+        label: 'General Inquiry Response',
+        value: `Dear ${customerName},
+
+Thank you for contacting Lisaa Tours & Travels. We have received your inquiry and appreciate your interest in our services.
+
+Our team is currently reviewing your request and will get back to you within 24-48 hours with detailed information about our tour packages and pricing.
+
+If you have any immediate questions or concerns, please feel free to contact us:
+📧 Email: Lsiaatech@gmail.com
+📱 Phone: +91 9263616263
+
+We look forward to serving you and making your travel experience memorable.
+
+Best regards,
+Lisaa Tours & Travels Team`
+      },
+      {
+        label: 'Package Information Request',
+        value: `Dear ${customerName},
+
+Thank you for your interest in our tour packages. We are delighted to provide you with more information about our services.
+
+${tourTitle 
+  ? `Regarding your interest in "${tourTitle}" package:`
+  : 'Regarding your tour inquiry:'}
+
+Our comprehensive tour packages include:
+✓ Comfortable accommodation
+✓ Transportation
+✓ Professional guide services
+✓ Meals (as per package)
+✓ Sightseeing and activities
+
+For detailed pricing, itinerary, and booking information, our travel consultant will contact you shortly.
+
+Best regards,
+Lisaa Tours & Travels Team`
+      },
+      {
+        label: 'Booking Confirmation',
+        value: `Dear ${customerName},
+
+Thank you for choosing Lisaa Tours & Travels! We are excited to confirm your interest in booking with us.
+
+Our booking team will reach out to you shortly to:
+• Confirm tour dates and availability
+• Discuss pricing and payment options
+• Provide detailed itinerary
+• Answer any questions you may have
+
+We are committed to making your travel experience unforgettable. Please feel free to contact us at:
+📧 Email: Lsiaatech@gmail.com
+📱 Phone: +91 9263616263
+
+Thank you for your trust in us!
+
+Best regards,
+Lisaa Tours & Travels Team`
+      },
+      {
+        label: 'Inquiry Closed - Thank You',
+        value: `Dear ${customerName},
+
+Thank you for contacting Lisaa Tours & Travels regarding your inquiry.
+
+${subject ? `Regarding your inquiry: "${subject}"` : 'We have addressed your inquiry and hope our response was helpful.'}
+
+We appreciate your interest in our services. If you have any further questions or would like to book a tour in the future, please don't hesitate to reach out to us.
+
+We hope to serve you in the future and make your travel dreams come true!
+
+Best regards,
+Lisaa Tours & Travels Team`
+      },
+      {
+        label: 'Additional Information Needed',
+        value: `Dear ${customerName},
+
+Thank you for your inquiry. To better assist you and provide the most suitable tour package, we need some additional information:
+
+1. Preferred travel dates
+2. Number of travelers (adults/children)
+3. Budget range
+4. Specific destinations or activities of interest
+5. Any special requirements or preferences
+
+Once we receive this information, our travel consultant will prepare a customized package proposal for you.
+
+You can reach us at:
+📧 Email: Lsiaatech@gmail.com
+📱 Phone: +91 9263616263
+
+We look forward to hearing from you soon!
+
+Best regards,
+Lisaa Tours & Travels Team`
+      },
+      {
+        label: 'Custom Package Offer',
+        value: `Dear ${customerName},
+
+Thank you for your inquiry with Lisaa Tours & Travels!
+
+Based on your requirements, we would be happy to create a customized tour package tailored specifically for you. Our team specializes in crafting unique travel experiences that match your preferences and budget.
+
+We will contact you shortly to discuss:
+• Customized itinerary based on your interests
+• Best available pricing options
+• Travel dates and availability
+• Special inclusions and upgrades
+
+${tourTitle 
+  ? `We have noted your interest in "${tourTitle}" and will include similar experiences in your custom package.`
+  : 'We will create a package that best suits your travel needs.'}
+
+Looking forward to planning your perfect trip!
+
+Best regards,
+Lisaa Tours & Travels Team`
+      }
+    ];
+  };
 
   useEffect(() => {
     fetchInquiries();
-  }, []);
+  }, [filterStatus, filterPriority, searchText]);
 
   const fetchInquiries = async () => {
     setLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setInquiries(mockInquiries);
+      // Fetch inquiries from real API only
+      const response = await inquiryService.getAllInquiries({
+        status: filterStatus !== 'all' ? filterStatus : undefined,
+        priority: filterPriority !== 'all' ? filterPriority : undefined,
+        search: searchText || undefined
+      });
+      
+      if (response.success && response.inquiries) {
+        // Transform API data to match component format
+        const transformedInquiries = response.inquiries.map(inq => ({
+          id: inq._id,
+          ...inq,
+          createdAt: inq.createdAt ? new Date(inq.createdAt).toISOString().split('T')[0] : '',
+          updatedAt: inq.updatedAt ? new Date(inq.updatedAt).toISOString().split('T')[0] : '',
+          travelDate: inq.travelDate ? new Date(inq.travelDate).toISOString().split('T')[0] : null,
+          followUpDate: inq.followUpDate ? new Date(inq.followUpDate).toISOString().split('T')[0] : null,
+          // Add default avatar if not present
+          avatar: inq.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(inq.name)}&background=ff6b35&color=fff`,
+          // Keep interestedTour as populated object if available
+          interestedTour: inq.interestedTour
+        }));
+        setInquiries(transformedInquiries);
+      } else {
+        // If no inquiries, set empty array
+        setInquiries([]);
+        message.info('No inquiries found');
+      }
     } catch (error) {
-      message.error('Failed to fetch inquiries');
+      console.error('Failed to fetch inquiries:', error);
+      message.error(error.message || 'Failed to fetch inquiries. Please try again.');
+      setInquiries([]);
     } finally {
       setLoading(false);
     }
@@ -211,34 +283,44 @@ const InquiriesManagement = () => {
     form.setFieldsValue({
       ...inquiry,
       travelDate: inquiry.travelDate ? new Date(inquiry.travelDate) : null,
-      followUpDate: inquiry.followUpDate ? new Date(inquiry.followUpDate) : null
+      followUpDate: inquiry.followUpDate ? new Date(inquiry.followUpDate) : null,
+      // Set interestedTour to the populated tour object if available
+      interestedTour: inquiry.interestedTour?._id || inquiry.interestedTour
     });
     setModalVisible(true);
   };
 
   const handleDeleteInquiry = async (id) => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setInquiries(inquiries.filter(inquiry => inquiry.id !== id));
-      message.success('Inquiry deleted successfully');
+      const response = await inquiryService.deleteInquiry(id);
+      if (response.success) {
+        setInquiries(inquiries.filter(inquiry => inquiry.id !== id));
+        message.success('Inquiry deleted successfully');
+      } else {
+        message.error('Failed to delete inquiry');
+      }
     } catch (error) {
-      message.error('Failed to delete inquiry');
+      console.error('Delete inquiry error:', error);
+      message.error(error.message || 'Failed to delete inquiry');
     }
   };
 
   const handleStatusUpdate = async (id, newStatus) => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setInquiries(inquiries.map(inquiry => 
-        inquiry.id === id 
-          ? { ...inquiry, status: newStatus, updatedAt: new Date().toISOString().split('T')[0] }
-          : inquiry
-      ));
-      message.success(`Inquiry ${newStatus} successfully`);
+      const response = await inquiryService.updateInquiry(id, { status: newStatus });
+      if (response.success) {
+        setInquiries(inquiries.map(inquiry => 
+          inquiry.id === id 
+            ? { ...inquiry, status: newStatus, updatedAt: new Date().toISOString().split('T')[0] }
+            : inquiry
+        ));
+        message.success(`Inquiry status updated to ${newStatus}`);
+      } else {
+        message.error('Failed to update inquiry status');
+      }
     } catch (error) {
-      message.error('Failed to update inquiry status');
+      console.error('Update inquiry error:', error);
+      message.error(error.message || 'Failed to update inquiry status');
     }
   };
 
@@ -247,36 +329,78 @@ const InquiriesManagement = () => {
       const values = await form.validateFields();
       
       if (editingInquiry) {
-        // Update existing inquiry
-        const updatedInquiries = inquiries.map(inquiry =>
-          inquiry.id === editingInquiry.id
-            ? { 
-                ...inquiry, 
-                ...values, 
-                travelDate: values.travelDate ? values.travelDate.toISOString().split('T')[0] : null,
-                followUpDate: values.followUpDate ? values.followUpDate.toISOString().split('T')[0] : null,
-                updatedAt: new Date().toISOString().split('T')[0] 
-              }
-            : inquiry
-        );
-        setInquiries(updatedInquiries);
-        message.success('Inquiry updated successfully');
+        // Update existing inquiry via API (only admin-editable fields)
+        try {
+          const updateData = {
+            // Only include admin-editable fields, exclude customer fields (name, email, phone, subject, message)
+            status: values.status,
+            priority: values.priority,
+            assignedTo: values.assignedTo || null, // Convert empty string to null
+            notes: values.notes,
+            interestedTour: values.interestedTour || null, // Convert empty string to null
+            budget: values.budget || '',
+            travelDate: values.travelDate ? values.travelDate.toISOString() : null,
+            followUpDate: values.followUpDate ? values.followUpDate.toISOString() : null,
+            source: values.source,
+            tags: values.tags
+          };
+          
+          const response = await inquiryService.updateInquiry(editingInquiry.id, updateData);
+          
+          if (response.success) {
+            // Update local state
+            await fetchInquiries(); // Refresh to get updated data
+            message.success('Inquiry updated successfully');
+            setModalVisible(false);
+            form.resetFields();
+            setEditingInquiry(null);
+          } else {
+            message.error('Failed to update inquiry');
+          }
+        } catch (error) {
+          console.error('Update inquiry error:', error);
+          message.error(error.message || 'Failed to update inquiry');
+        }
       } else {
-        // Add new inquiry
-        const newInquiry = {
-          id: `INQ${Date.now()}`,
-          ...values,
-          createdAt: new Date().toISOString().split('T')[0],
-          updatedAt: new Date().toISOString().split('T')[0]
-        };
-        setInquiries([newInquiry, ...inquiries]);
-        message.success('Inquiry added successfully');
+        // Adding new inquiry should go through contact form, but keeping for admin use
+        message.info('New inquiries should be created through the Contact Form');
+        setModalVisible(false);
+        form.resetFields();
       }
-      
-      setModalVisible(false);
-      form.resetFields();
     } catch (error) {
       console.error('Validation failed:', error);
+    }
+  };
+
+  const handleSendReply = async () => {
+    try {
+      const values = await replyForm.validateFields();
+      const replyMessage = values.replyMessage;
+      
+      if (!replyMessage) {
+        message.error('Please enter a reply message');
+        return;
+      }
+
+      // Update inquiry status to closed/converted and send reply
+      const updateData = {
+        status: values.status || 'closed',
+        replyMessage: replyMessage
+      };
+
+      const response = await inquiryService.updateInquiry(editingInquiry.id, updateData);
+      
+      if (response.success) {
+        message.success('Reply sent successfully to customer!');
+        setReplyModalVisible(false);
+        replyForm.resetFields();
+        await fetchInquiries(); // Refresh inquiries
+      } else {
+        message.error('Failed to send reply');
+      }
+    } catch (error) {
+      console.error('Send reply error:', error);
+      message.error(error.message || 'Failed to send reply');
     }
   };
 
@@ -385,12 +509,19 @@ const InquiriesManagement = () => {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             <BookOutlined style={{ color: '#1890ff', fontSize: '12px' }} />
-            <Text style={{ fontSize: '12px' }}>{record.interestedTour}</Text>
+            <Text style={{ fontSize: '12px' }}>
+              {record.interestedTour?.title 
+                ? `${record.interestedTour.title} - ${record.interestedTour.destination}`
+                : record.interestedTour || 'No package selected'
+              }
+            </Text>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
-            <DollarOutlined style={{ color: '#52c41a', fontSize: '12px' }} />
-            <Text style={{ fontSize: '12px' }}>₹{record.budget}</Text>
-          </div>
+          {record.budget && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+              <DollarOutlined style={{ color: '#52c41a', fontSize: '12px' }} />
+              <Text style={{ fontSize: '12px' }}>₹{record.budget}</Text>
+            </div>
+          )}
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
             <CalendarOutlined style={{ color: '#faad14', fontSize: '12px' }} />
             <Text style={{ fontSize: '12px' }}>{record.travelDate}</Text>
@@ -705,18 +836,32 @@ const InquiriesManagement = () => {
         onCancel={handleModalCancel}
         width={900}
         footer={[
+          <Button 
+            key="reply" 
+            type="primary"
+            icon={<SendOutlined />} 
+            onClick={() => {
+              setEditingInquiry(selectedInquiry);
+              setDetailModalVisible(false);
+              setReplyModalVisible(true);
+            }}
+            style={{ 
+              borderRadius: '8px',
+              background: '#ff6b35',
+              border: 'none'
+            }}
+          >
+            Send Reply
+          </Button>,
           <Button key="print" icon={<PrinterOutlined />} style={{ borderRadius: '8px' }}>
             Print
-          </Button>,
-          <Button key="email" icon={<SendOutlined />} style={{ borderRadius: '8px' }}>
-            Email
           </Button>,
           <Button key="close" onClick={handleModalCancel} style={{ borderRadius: '8px' }}>
             Close
           </Button>
         ]}
       >
-        {selectedInquiry && (
+        {selectedInquiry ? (
           <div style={{ fontFamily: "'Poppins', sans-serif" }}>
             <Tabs 
               defaultActiveKey="overview"
@@ -730,12 +875,12 @@ const InquiriesManagement = () => {
                         <Col span={12}>
                           <Card title="Contact Information" size="small">
                             <Descriptions column={1} size="small">
-                              <Descriptions.Item label="Name">{selectedInquiry.name}</Descriptions.Item>
-                              <Descriptions.Item label="Email">{selectedInquiry.email}</Descriptions.Item>
-                              <Descriptions.Item label="Phone">{selectedInquiry.phone}</Descriptions.Item>
+                              <Descriptions.Item label="Name">{selectedInquiry?.name || 'N/A'}</Descriptions.Item>
+                              <Descriptions.Item label="Email">{selectedInquiry?.email || 'N/A'}</Descriptions.Item>
+                              <Descriptions.Item label="Phone">{selectedInquiry?.phone || 'N/A'}</Descriptions.Item>
                               <Descriptions.Item label="Source">
-                                <Tag color="blue" icon={getSourceIcon(selectedInquiry.source)}>
-                                  {selectedInquiry.source.replace('_', ' ').toUpperCase()}
+                                <Tag color="blue" icon={getSourceIcon(selectedInquiry?.source || 'website')}>
+                                  {(selectedInquiry?.source || 'website').replace('_', ' ').toUpperCase()}
                                 </Tag>
                               </Descriptions.Item>
                             </Descriptions>
@@ -744,18 +889,20 @@ const InquiriesManagement = () => {
                         <Col span={12}>
                           <Card title="Inquiry Details" size="small">
                             <Descriptions column={1} size="small">
-                              <Descriptions.Item label="Subject">{selectedInquiry.subject}</Descriptions.Item>
+                              <Descriptions.Item label="Subject">{selectedInquiry?.subject || 'N/A'}</Descriptions.Item>
                               <Descriptions.Item label="Status">
-                                <Tag color={getStatusColor(selectedInquiry.status)}>
-                                  {selectedInquiry.status.toUpperCase()}
+                                <Tag color={getStatusColor(selectedInquiry?.status || 'new')}>
+                                  {(selectedInquiry?.status || 'new').toUpperCase()}
                                 </Tag>
                               </Descriptions.Item>
                               <Descriptions.Item label="Priority">
-                                <Tag color={getPriorityColor(selectedInquiry.priority)}>
-                                  {selectedInquiry.priority.toUpperCase()}
+                                <Tag color={getPriorityColor(selectedInquiry?.priority || 'medium')}>
+                                  {(selectedInquiry?.priority || 'medium').toUpperCase()}
                                 </Tag>
                               </Descriptions.Item>
-                              <Descriptions.Item label="Assigned To">{selectedInquiry.assignedTo}</Descriptions.Item>
+                              <Descriptions.Item label="Assigned To">
+                                {selectedInquiry.assignedTo || 'Not assigned'}
+                              </Descriptions.Item>
                             </Descriptions>
                           </Card>
                         </Col>
@@ -768,28 +915,33 @@ const InquiriesManagement = () => {
                           <Card title="Tour Interest" size="small">
                             <Text strong>Interested Tour:</Text>
                             <br />
-                            <Text>{selectedInquiry.interestedTour}</Text>
+                            <Text>
+                              {selectedInquiry.interestedTour?.title 
+                                ? `${selectedInquiry.interestedTour.title} - ${selectedInquiry.interestedTour.destination}`
+                                : selectedInquiry.interestedTour || 'No package selected'
+                              }
+                            </Text>
                             <br /><br />
                             <Text strong>Budget:</Text>
                             <br />
-                            <Text>₹{selectedInquiry.budget}</Text>
+                            <Text>{selectedInquiry.budget ? `₹${selectedInquiry.budget}` : 'Not specified'}</Text>
                             <br /><br />
                             <Text strong>Travel Date:</Text>
                             <br />
-                            <Text>{selectedInquiry.travelDate}</Text>
+                            <Text>{selectedInquiry.travelDate || 'Not specified'}</Text>
                           </Card>
                         </Col>
                         <Col span={12}>
                           <Card title="Timeline" size="small">
                             <Text strong>Created:</Text>
                             <br />
-                            <Text>{selectedInquiry.createdAt}</Text>
+                            <Text>{selectedInquiry?.createdAt || 'N/A'}</Text>
                             <br /><br />
                             <Text strong>Last Updated:</Text>
                             <br />
-                            <Text>{selectedInquiry.updatedAt}</Text>
+                            <Text>{selectedInquiry?.updatedAt || 'N/A'}</Text>
                             <br /><br />
-                            {selectedInquiry.followUpDate && (
+                            {selectedInquiry?.followUpDate && (
                               <>
                                 <Text strong>Follow-up Date:</Text>
                                 <br />
@@ -808,16 +960,20 @@ const InquiriesManagement = () => {
                   children: (
                     <div>
                       <Card title="Customer Message" size="small">
-                        <Text>{selectedInquiry.message}</Text>
+                        <Text>{selectedInquiry?.message || 'No message available'}</Text>
                       </Card>
                       <Card title="Admin Notes" size="small" style={{ marginTop: '16px' }}>
-                        <Text>{selectedInquiry.notes || 'No notes available'}</Text>
+                        <Text>{selectedInquiry?.notes || 'No notes available'}</Text>
                       </Card>
                     </div>
                   )
                 }
               ]}
             />
+          </div>
+        ) : (
+          <div style={{ padding: '20px', textAlign: 'center' }}>
+            <Text type="secondary">Loading inquiry details...</Text>
           </div>
         )}
       </Modal>
@@ -856,26 +1012,32 @@ const InquiriesManagement = () => {
           layout="vertical"
           style={{ fontFamily: "'Poppins', sans-serif" }}
         >
+          {/* Customer Information - Read Only */}
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item
                 name="name"
                 label="Customer Name"
-                rules={[{ required: true, message: 'Please enter customer name' }]}
               >
-                <Input placeholder="Enter customer name" style={{ borderRadius: '8px' }} />
+                <Input 
+                  placeholder="Customer name" 
+                  style={{ borderRadius: '8px' }}
+                  readOnly
+                  disabled
+                />
               </Form.Item>
             </Col>
             <Col span={12}>
               <Form.Item
                 name="email"
                 label="Email"
-                rules={[
-                  { required: true, message: 'Please enter email' },
-                  { type: 'email', message: 'Please enter valid email' }
-                ]}
               >
-                <Input placeholder="Enter email" style={{ borderRadius: '8px' }} />
+                <Input 
+                  placeholder="Customer email" 
+                  style={{ borderRadius: '8px' }}
+                  readOnly
+                  disabled
+                />
               </Form.Item>
             </Col>
           </Row>
@@ -885,18 +1047,25 @@ const InquiriesManagement = () => {
               <Form.Item
                 name="phone"
                 label="Phone"
-                rules={[{ required: true, message: 'Please enter phone number' }]}
               >
-                <Input placeholder="Enter phone number" style={{ borderRadius: '8px' }} />
+                <Input 
+                  placeholder="Customer phone" 
+                  style={{ borderRadius: '8px' }}
+                  readOnly
+                  disabled
+                />
               </Form.Item>
             </Col>
             <Col span={12}>
               <Form.Item
                 name="source"
                 label="Source"
-                rules={[{ required: true, message: 'Please select source' }]}
               >
-                <Select placeholder="Select source" style={{ borderRadius: '8px' }}>
+                <Select 
+                  placeholder="Select source" 
+                  style={{ borderRadius: '8px' }}
+                  disabled
+                >
                   <Option value="website">Website</Option>
                   <Option value="phone">Phone</Option>
                   <Option value="social_media">Social Media</Option>
@@ -910,20 +1079,25 @@ const InquiriesManagement = () => {
           <Form.Item
             name="subject"
             label="Subject"
-            rules={[{ required: true, message: 'Please enter subject' }]}
           >
-            <Input placeholder="Enter inquiry subject" style={{ borderRadius: '8px' }} />
+            <Input 
+              placeholder="Inquiry subject" 
+              style={{ borderRadius: '8px' }}
+              readOnly
+              disabled
+            />
           </Form.Item>
 
           <Form.Item
             name="message"
-            label="Message"
-            rules={[{ required: true, message: 'Please enter message' }]}
+            label="Customer Message"
           >
             <TextArea
               rows={4}
-              placeholder="Enter customer message"
+              placeholder="Customer message"
               style={{ borderRadius: '8px' }}
+              readOnly
+              disabled
             />
           </Form.Item>
 
@@ -959,12 +1133,32 @@ const InquiriesManagement = () => {
             <Col span={8}>
               <Form.Item
                 name="assignedTo"
-                label="Assigned To"
+                label="Assigned To (Admin Name)"
               >
-                <Input placeholder="Enter assigned person" style={{ borderRadius: '8px' }} />
+                <Input placeholder="Enter admin name" style={{ borderRadius: '8px' }} />
               </Form.Item>
             </Col>
           </Row>
+
+          <Form.Item
+            name="interestedTour"
+            label="Interested Package"
+          >
+            <Text 
+              style={{ 
+                padding: '8px 12px', 
+                background: '#f5f5f5', 
+                borderRadius: '8px',
+                display: 'block',
+                minHeight: '32px'
+              }}
+            >
+              {editingInquiry?.interestedTour?.title 
+                ? `${editingInquiry.interestedTour.title} - ${editingInquiry.interestedTour.destination}`
+                : editingInquiry?.interestedTour || 'No package selected'
+              }
+            </Text>
+          </Form.Item>
 
           <Form.Item
             name="notes"
@@ -976,6 +1170,141 @@ const InquiriesManagement = () => {
               style={{ borderRadius: '8px' }}
             />
           </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* Reply Modal */}
+      <Modal
+        title={
+          <div style={{ fontFamily: "'Poppins', sans-serif" }}>
+            📧 Send Reply to Customer - {editingInquiry?.name}
+          </div>
+        }
+        open={replyModalVisible}
+        onOk={handleSendReply}
+        onCancel={() => {
+          setReplyModalVisible(false);
+          replyForm.resetFields();
+        }}
+        width={700}
+        okText="Send Reply"
+        cancelText="Cancel"
+        okButtonProps={{
+          style: {
+            background: '#ff6b35',
+            border: 'none',
+            borderRadius: '8px',
+            fontFamily: "'Poppins', sans-serif",
+            fontWeight: '600'
+          }
+        }}
+        cancelButtonProps={{
+          style: {
+            borderRadius: '8px',
+            fontFamily: "'Poppins', sans-serif"
+          }
+        }}
+      >
+        <Form
+          form={replyForm}
+          layout="vertical"
+          style={{ fontFamily: "'Poppins', sans-serif" }}
+          initialValues={{
+            status: 'closed'
+          }}
+        >
+          <Form.Item
+            name="status"
+            label="Update Status"
+            rules={[{ required: true, message: 'Please select status' }]}
+          >
+            <Select placeholder="Select status" style={{ borderRadius: '8px' }}>
+              <Option value="closed">Closed</Option>
+              <Option value="converted">Converted</Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item label="Customer Details">
+            <div style={{ 
+              background: '#f5f5f5', 
+              padding: '12px', 
+              borderRadius: '8px',
+              marginBottom: '16px'
+            }}>
+              <Text strong>Email:</Text> <Text>{editingInquiry?.email}</Text><br />
+              <Text strong>Subject:</Text> <Text>{editingInquiry?.subject}</Text>
+            </div>
+          </Form.Item>
+
+          <Form.Item
+            label={
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>Reply Message</span>
+                <Select
+                  placeholder="Quick Templates"
+                  style={{ width: 200, borderRadius: '8px' }}
+                  onChange={(value) => {
+                    replyForm.setFieldsValue({ replyMessage: value });
+                  }}
+                  options={getReplyTemplates().map(template => ({
+                    label: template.label,
+                    value: template.value
+                  }))}
+                />
+              </div>
+            }
+            name="replyMessage"
+            rules={[{ required: true, message: 'Please enter reply message' }]}
+          >
+            <TextArea
+              rows={8}
+              placeholder="Enter your reply message to the customer... or select a template above"
+              style={{ borderRadius: '8px' }}
+            />
+          </Form.Item>
+
+          <div style={{ 
+            marginBottom: '16px',
+            padding: '12px',
+            background: '#f0f2f5',
+            borderRadius: '8px'
+          }}>
+            <Text strong style={{ display: 'block', marginBottom: '8px' }}>
+              📝 Quick Templates:
+            </Text>
+            <Space wrap>
+              {getReplyTemplates().map((template, index) => (
+                <Button
+                  key={index}
+                  size="small"
+                  onClick={() => {
+                    replyForm.setFieldsValue({ replyMessage: template.value });
+                    message.success('Template applied! You can edit it as needed.');
+                  }}
+                  style={{ 
+                    borderRadius: '6px',
+                    fontSize: '11px',
+                    marginBottom: '4px'
+                  }}
+                >
+                  {template.label}
+                </Button>
+              ))}
+            </Space>
+          </div>
+
+          <div style={{ 
+            background: '#fff7e6', 
+            padding: '12px', 
+            borderRadius: '8px',
+            border: '1px solid #ffe58f',
+            marginTop: '16px'
+          }}>
+            <Text type="warning">
+              ⚠️ This reply will be sent via email to {editingInquiry?.email}. 
+              The inquiry status will be updated to the selected status.
+            </Text>
+          </div>
         </Form>
       </Modal>
     </div>

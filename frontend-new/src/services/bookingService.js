@@ -32,10 +32,10 @@ const bookingService = {
   },
 
   // Get all bookings (admin)
-  getAllBookings: async () => {
+  getAllBookings: async (params = {}) => {
     try {
-      const response = await api.get('/bookings');
-      return response.data;
+      const response = await api.get('/bookings/admin/all', { params });
+      return response.data.bookings || response.data;
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Failed to get bookings');
     }

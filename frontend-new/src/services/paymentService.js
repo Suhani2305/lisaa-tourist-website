@@ -44,6 +44,30 @@ const paymentService = {
       };
       document.body.appendChild(script);
     });
+  },
+
+  // Download receipt
+  downloadReceipt: async (bookingId) => {
+    try {
+      const response = await api.get(`/payment/receipt/${bookingId}`, {
+        responseType: 'blob'
+      });
+      
+      // Create blob URL and trigger download
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Receipt_${bookingId}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      return { success: true };
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to download receipt');
+    }
   }
 };
 

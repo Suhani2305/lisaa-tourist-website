@@ -3,6 +3,14 @@ const router = express.Router();
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const Booking = require('../models/Booking');
+const User = require('../models/User');
+const Tour = require('../models/Tour');
+const emailService = require('../services/emailService');
+const smsService = require('../services/smsService');
+const whatsappService = require('../services/whatsappService');
+const receiptService = require('../services/receiptService');
+const path = require('path');
+const fs = require('fs');
 
 // Initialize Razorpay
 // Get your API keys from: https://dashboard.razorpay.com/app/dashboard
@@ -85,30 +93,115 @@ router.post('/verify-payment', async (req, res) => {
     if (razorpay_signature === expectedSign) {
       console.log('✅ Payment signature verified!');
 
+      // Fetch user and tour details
+      const user = await User.findById(bookingDetails.userId);
+      const tour = await Tour.findById(bookingDetails.tourId);
+
+      if (!user || !tour) {
+        return res.status(404).json({
+          success: false,
+          message: 'User or tour not found'
+        });
+      }
+
       // Create booking in database
       const booking = new Booking({
         user: bookingDetails.userId,
         tour: bookingDetails.tourId,
-        travelers: bookingDetails.travelers,
-        bookingDate: bookingDetails.bookingDate,
-        totalAmount: bookingDetails.totalAmount,
-        paymentStatus: 'paid',
-        paymentMethod: 'razorpay',
-        paymentId: razorpay_payment_id,
-        orderId: razorpay_order_id,
+        travelers: bookingDetails.travelers?.adults 
+          ? [{ 
+              name: user.name, 
+              age: 30, 
+              type: 'adult', 
+              gender: user.gender || 'male' 
+            }]
+          : [],
+        contactInfo: {
+          email: user.email,
+          phone: user.phone || bookingDetails.phone
+        },
+        travelDates: {
+          startDate: new Date(bookingDetails.bookingDate),
+          endDate: new Date(new Date(bookingDetails.bookingDate).getTime() + (tour.duration?.days || 1) * 24 * 60 * 60 * 1000)
+        },
+        pricing: {
+          basePrice: bookingDetails.totalAmount,
+          totalAmount: bookingDetails.totalAmount,
+          discount: 0,
+          taxes: 0,
+          finalAmount: bookingDetails.totalAmount
+        },
+        payment: {
+          status: 'paid',
+          method: 'credit-card',
+          transactionId: razorpay_payment_id,
+          paymentDate: new Date()
+        },
         status: 'confirmed',
         specialRequests: bookingDetails.specialRequests || ''
       });
 
       await booking.save();
 
+      // Populate booking with user and tour
+      await booking.populate('user', 'name email phone');
+      await booking.populate('tour', 'title destination duration images');
+
       console.log('✅ Booking created:', booking._id);
+
+      // Generate receipt PDF
+      let receiptUrl = null;
+      try {
+        const receiptResult = await receiptService.generateReceiptPDF({
+          user: booking.user,
+          tour: booking.tour,
+          booking: booking,
+          bookingNumber: booking.bookingNumber
+        });
+        if (receiptResult.success) {
+          receiptUrl = receiptResult.url;
+        }
+      } catch (receiptError) {
+        console.error('❌ Receipt generation error:', receiptError);
+      }
+
+      // Send notifications asynchronously (don't wait for them)
+      Promise.all([
+        emailService.sendBookingConfirmationEmail({
+          user: booking.user,
+          tour: booking.tour,
+          booking: booking,
+          bookingNumber: booking.bookingNumber
+        }),
+        smsService.sendBookingConfirmationSMS({
+          user: booking.user,
+          tour: booking.tour,
+          booking: booking,
+          bookingNumber: booking.bookingNumber
+        }),
+        whatsappService.sendBookingConfirmationWhatsApp({
+          user: booking.user,
+          tour: booking.tour,
+          booking: booking,
+          bookingNumber: booking.bookingNumber
+        })
+      ]).then(results => {
+        console.log('📧 Notification results:', {
+          email: results[0].success ? 'sent' : 'failed',
+          sms: results[1].success ? 'sent' : 'failed',
+          whatsapp: results[2].success ? 'sent' : 'failed'
+        });
+      }).catch(error => {
+        console.error('❌ Notification sending error:', error);
+      });
 
       res.json({
         success: true,
         message: 'Payment verified and booking confirmed!',
         bookingId: booking._id,
-        paymentId: razorpay_payment_id
+        bookingNumber: booking.bookingNumber,
+        paymentId: razorpay_payment_id,
+        receiptUrl: receiptUrl
       });
     } else {
       console.error('❌ Invalid payment signature');
@@ -140,6 +233,89 @@ router.get('/payment/:paymentId', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch payment details',
+      error: error.message
+    });
+  }
+});
+
+// Download receipt
+router.get('/receipt/:bookingId', async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.bookingId)
+      .populate('user', 'name email phone')
+      .populate('tour', 'title destination duration images');
+
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: 'Booking not found'
+      });
+    }
+
+    // Generate receipt if not exists
+    const receiptResult = await receiptService.generateReceiptPDF({
+      user: booking.user,
+      tour: booking.tour,
+      booking: booking,
+      bookingNumber: booking.bookingNumber
+    });
+
+    if (!receiptResult.success) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to generate receipt',
+        error: receiptResult.error
+      });
+    }
+
+    // Send PDF file
+    const filepath = receiptResult.filepath;
+    const filename = `Receipt_${booking.bookingNumber}.pdf`;
+
+    if (!fs.existsSync(filepath)) {
+      return res.status(404).json({
+        success: false,
+        message: 'Receipt file not found'
+      });
+    }
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    
+    const fileStream = fs.createReadStream(filepath);
+    fileStream.pipe(res);
+  } catch (error) {
+    console.error('❌ Download receipt error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to download receipt',
+      error: error.message
+    });
+  }
+});
+
+// Serve receipt files statically (optional - for direct access)
+router.get('/receipts/:filename', (req, res) => {
+  try {
+    const filepath = receiptService.getReceiptPath(req.params.filename);
+    
+    if (!fs.existsSync(filepath)) {
+      return res.status(404).json({
+        success: false,
+        message: 'Receipt not found'
+      });
+    }
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${req.params.filename}"`);
+    
+    const fileStream = fs.createReadStream(filepath);
+    fileStream.pipe(res);
+  } catch (error) {
+    console.error('❌ Serve receipt error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to serve receipt',
       error: error.message
     });
   }
