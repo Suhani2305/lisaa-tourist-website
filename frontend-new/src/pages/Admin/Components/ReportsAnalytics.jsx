@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { analyticsService } from '../../../services';
 import {
   Card,
   Table,
@@ -289,119 +290,213 @@ const ReportsAnalytics = () => {
   const [dateRange, setDateRange] = useState([]);
   const [selectedMetric, setSelectedMetric] = useState('overview');
   const [exportFormat, setExportFormat] = useState('pdf');
+  const [analyticsData, setAnalyticsData] = useState(null);
+  const [revenueTrends, setRevenueTrends] = useState([]);
+  const [bookingTrends, setBookingTrends] = useState([]);
+  const [popularDestinations, setPopularDestinations] = useState([]);
+  const [customerDemographics, setCustomerDemographics] = useState(null);
+  
+  // Filter states
+  const [selectedMonths, setSelectedMonths] = useState([]);
+  const [selectedYears, setSelectedYears] = useState([]);
+  const [appliedFilters, setAppliedFilters] = useState({
+    dateRange: null,
+    months: [],
+    years: []
+  });
 
-  // Mock data for analytics
-  const analyticsData = {
-    overview: {
-      totalBookings: 1247,
-      totalRevenue: 2847500,
-      totalCustomers: 892,
-      totalTours: 45,
-      bookingGrowth: 12.5,
-      revenueGrowth: 18.3,
-      customerGrowth: 8.7,
-      tourGrowth: 5.2
-    },
-    bookings: {
-      total: 1247,
-      confirmed: 1156,
-      pending: 67,
-      cancelled: 24,
-      byMonth: [
-        { month: 'Jan', bookings: 89, revenue: 245000 },
-        { month: 'Feb', bookings: 102, revenue: 287000 },
-        { month: 'Mar', bookings: 134, revenue: 356000 },
-        { month: 'Apr', bookings: 156, revenue: 412000 },
-        { month: 'May', bookings: 178, revenue: 489000 },
-        { month: 'Jun', bookings: 201, revenue: 567000 },
-        { month: 'Jul', bookings: 189, revenue: 523000 },
-        { month: 'Aug', bookings: 165, revenue: 445000 },
-        { month: 'Sep', bookings: 142, revenue: 389000 },
-        { month: 'Oct', bookings: 98, revenue: 267000 },
-        { month: 'Nov', bookings: 76, revenue: 198000 },
-        { month: 'Dec', bookings: 65, revenue: 168000 }
-      ],
-      byDestination: [
-        { destination: 'Kerala', bookings: 234, revenue: 567000 },
-        { destination: 'Rajasthan', bookings: 198, revenue: 445000 },
-        { destination: 'Andaman', bookings: 156, revenue: 389000 },
-        { destination: 'Kashmir', bookings: 134, revenue: 312000 },
-        { destination: 'Goa', bookings: 98, revenue: 234000 },
-        { destination: 'Himachal', bookings: 87, revenue: 198000 },
-        { destination: 'Uttarakhand', bookings: 76, revenue: 167000 },
-        { destination: 'Others', bookings: 264, revenue: 541000 }
-      ]
-    },
-    customers: {
-      total: 892,
-      new: 234,
-      returning: 658,
-      byAge: [
-        { age: '18-25', count: 156, percentage: 17.5 },
-        { age: '26-35', count: 267, percentage: 29.9 },
-        { age: '36-45', count: 234, percentage: 26.2 },
-        { age: '46-55', count: 145, percentage: 16.3 },
-        { age: '56-65', count: 67, percentage: 7.5 },
-        { age: '65+', count: 23, percentage: 2.6 }
-      ],
-      byGender: [
-        { gender: 'Male', count: 456, percentage: 51.1 },
-        { gender: 'Female', count: 436, percentage: 48.9 }
-      ],
-      byLocation: [
-        { location: 'Delhi', count: 123, percentage: 13.8 },
-        { location: 'Mumbai', count: 98, percentage: 11.0 },
-        { location: 'Bangalore', count: 87, percentage: 9.8 },
-        { location: 'Chennai', count: 76, percentage: 8.5 },
-        { location: 'Kolkata', count: 65, percentage: 7.3 },
-        { location: 'Pune', count: 54, percentage: 6.1 },
-        { location: 'Others', count: 389, percentage: 43.6 }
-      ]
-    },
-    revenue: {
-      total: 2847500,
-      monthly: [
-        { month: 'Jan', revenue: 245000, growth: 5.2 },
-        { month: 'Feb', revenue: 287000, growth: 17.1 },
-        { month: 'Mar', revenue: 356000, growth: 24.0 },
-        { month: 'Apr', revenue: 412000, growth: 15.7 },
-        { month: 'May', revenue: 489000, growth: 18.7 },
-        { month: 'Jun', revenue: 567000, growth: 15.9 },
-        { month: 'Jul', revenue: 523000, growth: -7.8 },
-        { month: 'Aug', revenue: 445000, growth: -14.9 },
-        { month: 'Sep', revenue: 389000, growth: -12.6 },
-        { month: 'Oct', revenue: 267000, growth: -31.4 },
-        { month: 'Nov', revenue: 198000, growth: -25.8 },
-        { month: 'Dec', revenue: 168000, growth: -15.2 }
-      ],
-      bySource: [
-        { source: 'Direct Website', revenue: 1245000, percentage: 43.7 },
-        { source: 'Social Media', revenue: 567000, percentage: 19.9 },
-        { source: 'Referrals', revenue: 445000, percentage: 15.6 },
-        { source: 'Google Ads', revenue: 389000, percentage: 13.7 },
-        { source: 'Other', revenue: 203500, percentage: 7.1 }
-      ]
-    },
-    performance: {
-      website: {
-        pageViews: 45678,
-        uniqueVisitors: 12345,
-        bounceRate: 34.2,
-        avgSessionDuration: '3:45',
-        conversionRate: 8.7
-      },
-      social: {
-        facebook: { followers: 1234, engagement: 4.2 },
-        instagram: { followers: 5678, engagement: 6.8 },
-        twitter: { followers: 2345, engagement: 3.1 },
-        youtube: { followers: 3456, engagement: 5.9 }
-      },
-      seo: {
-        organicTraffic: 7890,
-        keywordRankings: 156,
-        backlinks: 234,
-        domainAuthority: 45
+  useEffect(() => {
+    fetchAnalytics();
+  }, []);
+
+  const fetchAnalytics = async (filters = appliedFilters) => {
+    setLoading(true);
+    try {
+      // Build period based on filters
+      let period = 'month';
+      if (filters.years && filters.years.length > 0) {
+        period = 'year';
+      } else if (filters.months && filters.months.length > 0) {
+        period = 'month';
       }
+
+      const [dashboard, revenue, bookings, destinations, demographics] = await Promise.all([
+        analyticsService.getDashboardAnalytics(),
+        analyticsService.getRevenueTrends(period),
+        analyticsService.getBookingTrends(period),
+        analyticsService.getPopularDestinations(),
+        analyticsService.getCustomerDemographics()
+      ]);
+      
+      // Transform API data to match component format
+      setAnalyticsData({
+        overview: {
+          totalBookings: dashboard.overview?.totalBookings || 0,
+          totalRevenue: dashboard.overview?.totalRevenue || 0,
+          totalCustomers: dashboard.overview?.totalCustomers || 0,
+          totalTours: dashboard.overview?.totalTours || 0,
+          bookingGrowth: 0, // Calculate from trends
+          revenueGrowth: 0, // Calculate from trends
+          customerGrowth: 0,
+          tourGrowth: 0
+        },
+        bookings: {
+          total: dashboard.overview?.totalBookings || 0,
+          confirmed: dashboard.bookingStatus?.confirmed || 0,
+          pending: dashboard.bookingStatus?.pending || 0,
+          cancelled: dashboard.bookingStatus?.cancelled || 0,
+          byMonth: revenue || [],
+          byDestination: destinations || []
+        },
+        customers: {
+          total: dashboard.overview?.totalCustomers || 0,
+          new: 0,
+          returning: 0,
+          byAge: demographics?.byAge || [],
+          byGender: demographics?.byGender || [],
+          byLocation: demographics?.byLocation || []
+        },
+        revenue: {
+          total: dashboard.overview?.totalRevenue || 0,
+          monthly: dashboard.overview?.monthlyRevenue || 0,
+          yearly: dashboard.overview?.yearlyRevenue || 0,
+          byMonth: revenue || [],
+          byDestination: destinations || []
+        },
+        performance: {
+          website: {
+            pageViews: 0,
+            uniqueVisitors: 0,
+            bounceRate: 0,
+            avgSessionDuration: '0:00',
+            conversionRate: 0
+          },
+          social: {
+            facebook: { followers: 0, engagement: 0 },
+            instagram: { followers: 0, engagement: 0 },
+            twitter: { followers: 0, engagement: 0 },
+            youtube: { followers: 0, engagement: 0 }
+          },
+          seo: {
+            organicTraffic: 0,
+            keywordRankings: 0,
+            backlinks: 0,
+            domainAuthority: 0
+          }
+        },
+        dashboard: dashboard
+      });
+      
+      // Apply filters to data
+      let filteredRevenue = revenue || [];
+      let filteredBookings = bookings || [];
+      
+      if (filters.months && filters.months.length > 0) {
+        filteredRevenue = filteredRevenue.filter(item => {
+          const itemDate = new Date(item._id + '-01');
+          const itemMonth = itemDate.getMonth() + 1;
+          return filters.months.includes(itemMonth);
+        });
+        filteredBookings = filteredBookings.filter(item => {
+          const itemDate = new Date(item._id + '-01');
+          const itemMonth = itemDate.getMonth() + 1;
+          return filters.months.includes(itemMonth);
+        });
+      }
+      
+      if (filters.years && filters.years.length > 0) {
+        filteredRevenue = filteredRevenue.filter(item => {
+          const itemDate = new Date(item._id + '-01');
+          const itemYear = itemDate.getFullYear();
+          return filters.years.includes(itemYear);
+        });
+        filteredBookings = filteredBookings.filter(item => {
+          const itemDate = new Date(item._id + '-01');
+          const itemYear = itemDate.getFullYear();
+          return filters.years.includes(itemYear);
+        });
+      }
+
+      if (filters.dateRange && filters.dateRange.length === 2) {
+        const startDate = new Date(filters.dateRange[0]);
+        const endDate = new Date(filters.dateRange[1]);
+        
+        filteredRevenue = filteredRevenue.filter(item => {
+          const itemDate = new Date(item._id + '-01');
+          return itemDate >= startDate && itemDate <= endDate;
+        });
+        filteredBookings = filteredBookings.filter(item => {
+          const itemDate = new Date(item._id + '-01');
+          return itemDate >= startDate && itemDate <= endDate;
+        });
+      }
+
+      setRevenueTrends(filteredRevenue);
+      setBookingTrends(filteredBookings);
+      setPopularDestinations(destinations || []);
+      setCustomerDemographics(demographics || null);
+    } catch (error) {
+      console.error('Failed to fetch analytics:', error);
+      message.error('Failed to fetch analytics data');
+      // Fallback to empty data structure
+      setAnalyticsData({
+        overview: {
+          totalBookings: 0,
+          totalRevenue: 0,
+          totalCustomers: 0,
+          totalTours: 0,
+          bookingGrowth: 0,
+          revenueGrowth: 0,
+          customerGrowth: 0,
+          tourGrowth: 0
+        },
+        bookings: {
+          total: 0,
+          confirmed: 0,
+          pending: 0,
+          cancelled: 0,
+          byMonth: [],
+          byDestination: []
+        },
+        customers: {
+          total: 0,
+          new: 0,
+          returning: 0,
+          byAge: [],
+          byGender: [],
+          byLocation: []
+        },
+        revenue: {
+          total: 0,
+          monthly: 0,
+          yearly: 0,
+          byMonth: [],
+          byDestination: []
+        },
+        performance: {
+          website: {
+            pageViews: 0,
+            uniqueVisitors: 0,
+            bounceRate: 0,
+            avgSessionDuration: '0:00',
+            conversionRate: 0
+          },
+          social: {
+            facebook: { followers: 0, engagement: 0 },
+            instagram: { followers: 0, engagement: 0 },
+            twitter: { followers: 0, engagement: 0 },
+            youtube: { followers: 0, engagement: 0 }
+          },
+          seo: {
+            organicTraffic: 0,
+            keywordRankings: 0,
+            backlinks: 0,
+            domainAuthority: 0
+          }
+        }
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -425,10 +520,386 @@ const ReportsAnalytics = () => {
     return growth >= 0 ? <RiseOutlined /> : <FallOutlined />;
   };
 
-  const handleExport = (format) => {
-    message.success(`Exporting report as ${format.toUpperCase()}...`);
-    // In real app, this would trigger actual export
+  const handleApplyFilters = () => {
+    const filters = {
+      dateRange: dateRange,
+      months: selectedMonths,
+      years: selectedYears
+    };
+    setAppliedFilters(filters);
+    fetchAnalytics(filters);
+    message.success('Filters applied successfully!');
   };
+
+  const handleRefreshData = () => {
+    setDateRange([]);
+    setSelectedMonths([]);
+    setSelectedYears([]);
+    setAppliedFilters({
+      dateRange: null,
+      months: [],
+      years: []
+    });
+    fetchAnalytics({ dateRange: null, months: [], years: [] });
+    message.success('Data refreshed!');
+  };
+
+  const handleExport = (format) => {
+    try {
+      if (!analyticsData) {
+        message.warning('No data available to export');
+        return;
+      }
+
+      // Use filtered data for export
+      const exportData = {
+        ...analyticsData,
+        revenue: {
+          ...analyticsData.revenue,
+          byMonth: revenueTrends
+        },
+        bookings: {
+          ...analyticsData.bookings,
+          byMonth: bookingTrends
+        },
+        filters: appliedFilters
+      };
+
+      if (format === 'csv') {
+        // Export as CSV
+        const csvData = generateCSV();
+        const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `analytics-report-${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        message.success('CSV report exported successfully!');
+      } else if (format === 'excel') {
+        // Export as Excel (CSV format with .xlsx extension)
+        const csvData = generateCSV();
+        const blob = new Blob([csvData], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `analytics-report-${new Date().toISOString().split('T')[0]}.xlsx`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        message.success('Excel report exported successfully!');
+      } else if (format === 'pdf') {
+        // For PDF, we'll use window.print() which allows saving as PDF
+        message.info('Opening print dialog. You can save as PDF from there.');
+        window.print();
+      }
+    } catch (error) {
+      console.error('Export error:', error);
+      message.error('Failed to export report');
+    }
+  };
+
+  const generateCSV = () => {
+    const rows = [];
+    
+    // Header
+    rows.push(['Analytics Report', `Generated: ${new Date().toLocaleString()}`]);
+    
+    // Filter info
+    if (appliedFilters.months.length > 0 || appliedFilters.years.length > 0 || appliedFilters.dateRange) {
+      rows.push([]);
+      rows.push(['FILTERS APPLIED']);
+      if (appliedFilters.months.length > 0) {
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const selectedMonthNames = appliedFilters.months.map(m => monthNames[m - 1]).join(', ');
+        rows.push(['Months', selectedMonthNames]);
+      }
+      if (appliedFilters.years.length > 0) {
+        rows.push(['Years', appliedFilters.years.join(', ')]);
+      }
+      if (appliedFilters.dateRange && appliedFilters.dateRange.length === 2) {
+        rows.push(['Date Range', `${appliedFilters.dateRange[0].toLocaleDateString()} to ${appliedFilters.dateRange[1].toLocaleDateString()}`]);
+      }
+    }
+    rows.push([]);
+    
+    // Overview
+    rows.push(['OVERVIEW']);
+    rows.push(['Total Bookings', analyticsData?.overview?.totalBookings || 0]);
+    rows.push(['Total Revenue', `₹${formatCurrency(analyticsData?.overview?.totalRevenue || 0).replace('₹', '')}`]);
+    rows.push(['Total Customers', analyticsData?.overview?.totalCustomers || 0]);
+    rows.push(['Total Tours', analyticsData?.overview?.totalTours || 0]);
+    rows.push([]);
+    
+    // Bookings
+    rows.push(['BOOKINGS']);
+    rows.push(['Total', analyticsData?.bookings?.total || 0]);
+    rows.push(['Confirmed', analyticsData?.bookings?.confirmed || 0]);
+    rows.push(['Pending', analyticsData?.bookings?.pending || 0]);
+    rows.push(['Cancelled', analyticsData?.bookings?.cancelled || 0]);
+    rows.push([]);
+    
+    // Revenue
+    rows.push(['REVENUE']);
+    rows.push(['Total Revenue', `₹${formatCurrency(analyticsData?.revenue?.total || 0).replace('₹', '')}`]);
+    rows.push(['Monthly Revenue', `₹${formatCurrency(analyticsData?.revenue?.monthly || 0).replace('₹', '')}`]);
+    rows.push(['Yearly Revenue', `₹${formatCurrency(analyticsData?.revenue?.yearly || 0).replace('₹', '')}`]);
+    rows.push([]);
+    
+    // Revenue Trends (filtered)
+    if (revenueTrends.length > 0) {
+      rows.push(['REVENUE TRENDS']);
+      rows.push(['Period', 'Revenue', 'Bookings']);
+      revenueTrends.forEach(item => {
+        rows.push([item._id || 'N/A', `₹${item.revenue || 0}`, item.bookings || item.count || 0]);
+      });
+      rows.push([]);
+    }
+    
+    // Customer Demographics
+    if (customerDemographics) {
+      rows.push(['CUSTOMER DEMOGRAPHICS']);
+      rows.push([]);
+      
+      // Age Distribution
+      if (customerDemographics.byAge && customerDemographics.byAge.length > 0) {
+        rows.push(['CUSTOMERS BY AGE']);
+        rows.push(['Age Group', 'Count', 'Percentage']);
+        customerDemographics.byAge.forEach(item => {
+          rows.push([item.age, item.count, `${item.percentage}%`]);
+        });
+        rows.push([]);
+      }
+      
+      // Location Distribution
+      if (customerDemographics.byLocation && customerDemographics.byLocation.length > 0) {
+        rows.push(['CUSTOMERS BY LOCATION']);
+        rows.push(['Location', 'Count', 'Percentage']);
+        customerDemographics.byLocation.forEach(item => {
+          rows.push([item.location, item.count, `${item.percentage}%`]);
+        });
+        rows.push([]);
+      }
+      
+      // Gender Distribution
+      if (customerDemographics.byGender && customerDemographics.byGender.length > 0) {
+        rows.push(['CUSTOMERS BY GENDER']);
+        rows.push(['Gender', 'Count', 'Percentage']);
+        customerDemographics.byGender.forEach(item => {
+          rows.push([item.gender, item.count, `${item.percentage}%`]);
+        });
+      }
+    }
+    
+    // Convert to CSV string
+    return rows.map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+  };
+
+  const handlePrint = () => {
+    try {
+      if (!analyticsData) {
+        message.warning('No data available to print');
+        return;
+      }
+
+      // Create a print-friendly view
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        message.error('Please allow popups to print');
+        return;
+      }
+
+      // Use filtered data for print
+      const printData = {
+        ...analyticsData,
+        revenue: {
+          ...analyticsData.revenue,
+          byMonth: revenueTrends
+        },
+        bookings: {
+          ...analyticsData.bookings,
+          byMonth: bookingTrends
+        }
+      };
+
+      const printContent = `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Analytics Report</title>
+            <style>
+              @media print {
+                body { margin: 0; padding: 20px; font-family: Arial, sans-serif; }
+                .no-print { display: none; }
+                h1 { color: #2c3e50; border-bottom: 2px solid #ff6b35; padding-bottom: 10px; }
+                table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+                th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+                th { background-color: #ff6b35; color: white; }
+                .stat { margin: 15px 0; padding: 10px; background: #f5f5f5; border-radius: 5px; }
+              }
+              body { font-family: Arial, sans-serif; padding: 20px; }
+              h1 { color: #2c3e50; border-bottom: 2px solid #ff6b35; padding-bottom: 10px; }
+              table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+              th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+              th { background-color: #ff6b35; color: white; }
+              .stat { margin: 15px 0; padding: 10px; background: #f5f5f5; border-radius: 5px; }
+            </style>
+          </head>
+          <body>
+            <h1>📊 Analytics Report</h1>
+            <p><strong>Generated:</strong> ${new Date().toLocaleString()}</p>
+            ${appliedFilters.months.length > 0 || appliedFilters.years.length > 0 || appliedFilters.dateRange ? `
+            <h2>Filters Applied</h2>
+            <ul>
+              ${appliedFilters.months.length > 0 ? `<li><strong>Months:</strong> ${appliedFilters.months.map(m => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][m - 1]).join(', ')}</li>` : ''}
+              ${appliedFilters.years.length > 0 ? `<li><strong>Years:</strong> ${appliedFilters.years.join(', ')}</li>` : ''}
+              ${appliedFilters.dateRange && appliedFilters.dateRange.length === 2 ? `<li><strong>Date Range:</strong> ${appliedFilters.dateRange[0].toLocaleDateString()} to ${appliedFilters.dateRange[1].toLocaleDateString()}</li>` : ''}
+            </ul>
+            ` : ''}
+            <h2>Overview</h2>
+            <div class="stat">
+              <strong>Total Bookings:</strong> ${analyticsData?.overview?.totalBookings || 0}
+            </div>
+            <div class="stat">
+              <strong>Total Revenue:</strong> ₹${formatCurrency(analyticsData?.overview?.totalRevenue || 0).replace('₹', '')}
+            </div>
+            <div class="stat">
+              <strong>Total Customers:</strong> ${analyticsData?.overview?.totalCustomers || 0}
+            </div>
+            <div class="stat">
+              <strong>Total Tours:</strong> ${analyticsData?.overview?.totalTours || 0}
+            </div>
+            
+            <h2>Bookings Status</h2>
+            <table>
+              <tr>
+                <th>Status</th>
+                <th>Count</th>
+              </tr>
+              <tr>
+                <td>Total</td>
+                <td>${analyticsData?.bookings?.total || 0}</td>
+              </tr>
+              <tr>
+                <td>Confirmed</td>
+                <td>${analyticsData?.bookings?.confirmed || 0}</td>
+              </tr>
+              <tr>
+                <td>Pending</td>
+                <td>${analyticsData?.bookings?.pending || 0}</td>
+              </tr>
+              <tr>
+                <td>Cancelled</td>
+                <td>${analyticsData?.bookings?.cancelled || 0}</td>
+              </tr>
+            </table>
+            
+            <h2>Revenue</h2>
+            <table>
+              <tr>
+                <th>Type</th>
+                <th>Amount</th>
+              </tr>
+              <tr>
+                <td>Total Revenue</td>
+                <td>₹${formatCurrency(analyticsData?.revenue?.total || 0).replace('₹', '')}</td>
+              </tr>
+              <tr>
+                <td>Monthly Revenue</td>
+                <td>₹${formatCurrency(analyticsData?.revenue?.monthly || 0).replace('₹', '')}</td>
+              </tr>
+              <tr>
+                <td>Yearly Revenue</td>
+                <td>₹${formatCurrency(analyticsData?.revenue?.yearly || 0).replace('₹', '')}</td>
+              </tr>
+            </table>
+            
+            ${revenueTrends.length > 0 ? `
+            <h2>Revenue Trends (Filtered Data)</h2>
+            <table>
+              <tr>
+                <th>Period</th>
+                <th>Revenue</th>
+                <th>Bookings</th>
+              </tr>
+              ${revenueTrends.map(item => `
+                <tr>
+                  <td>${item._id || 'N/A'}</td>
+                  <td>₹${item.revenue || 0}</td>
+                  <td>${item.bookings || item.count || 0}</td>
+                </tr>
+              `).join('')}
+            </table>
+            ` : ''}
+            
+            ${customerDemographics && (customerDemographics.byAge?.length > 0 || customerDemographics.byLocation?.length > 0) ? `
+            <h2>Customer Demographics</h2>
+            ${customerDemographics.byAge && customerDemographics.byAge.length > 0 ? `
+            <h3>Customers by Age</h3>
+            <table>
+              <tr>
+                <th>Age Group</th>
+                <th>Count</th>
+                <th>Percentage</th>
+              </tr>
+              ${customerDemographics.byAge.map(item => `
+                <tr>
+                  <td>${item.age}</td>
+                  <td>${item.count}</td>
+                  <td>${item.percentage}%</td>
+                </tr>
+              `).join('')}
+            </table>
+            ` : ''}
+            ${customerDemographics.byLocation && customerDemographics.byLocation.length > 0 ? `
+            <h3>Customers by Location</h3>
+            <table>
+              <tr>
+                <th>Location</th>
+                <th>Count</th>
+                <th>Percentage</th>
+              </tr>
+              ${customerDemographics.byLocation.map(item => `
+                <tr>
+                  <td>${item.location}</td>
+                  <td>${item.count}</td>
+                  <td>${item.percentage}%</td>
+                </tr>
+              `).join('')}
+            </table>
+            ` : ''}
+            ` : ''}
+            
+            <script>
+              window.onload = function() {
+                window.print();
+              };
+            </script>
+          </body>
+        </html>
+      `;
+
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+    } catch (error) {
+      console.error('Print error:', error);
+      message.error('Failed to print report');
+    }
+  };
+
+  if (!analyticsData) {
+    return (
+      <div style={{ textAlign: 'center', padding: '50px' }}>
+        <LoadingOutlined style={{ fontSize: '48px', color: '#1890ff' }} spin />
+        <div style={{ marginTop: '16px' }}>
+          <Text>Loading analytics data...</Text>
+        </div>
+      </div>
+    );
+  }
 
   const OverviewTab = () => (
     <div>
@@ -438,7 +909,7 @@ const ReportsAnalytics = () => {
           <Card style={{ borderRadius: '16px', textAlign: 'center' }}>
             <Statistic
               title="Total Bookings"
-              value={analyticsData.overview.totalBookings}
+              value={analyticsData?.overview?.totalBookings || 0}
               prefix={<BookIcon style={{ color: '#1890ff' }} />}
               valueStyle={{ color: '#1890ff', fontFamily: "'Poppins', sans-serif" }}
             />
@@ -504,21 +975,21 @@ const ReportsAnalytics = () => {
               <Col span={12}>
                 <Statistic
                   title="Page Views"
-                  value={formatNumber(analyticsData.performance.website.pageViews)}
+                  value={formatNumber(analyticsData?.performance?.website?.pageViews || 0)}
                   prefix={<EyeOutlined style={{ color: '#1890ff' }} />}
                 />
               </Col>
               <Col span={12}>
                 <Statistic
                   title="Unique Visitors"
-                  value={formatNumber(analyticsData.performance.website.uniqueVisitors)}
+                  value={formatNumber(analyticsData?.performance?.website?.uniqueVisitors || 0)}
                   prefix={<UserOutlined style={{ color: '#52c41a' }} />}
                 />
               </Col>
               <Col span={12}>
                 <Statistic
                   title="Bounce Rate"
-                  value={analyticsData.performance.website.bounceRate}
+                  value={analyticsData?.performance?.website?.bounceRate || 0}
                   suffix="%"
                   prefix={<FallOutlined style={{ color: '#ff4d4f' }} />}
                 />
@@ -526,7 +997,7 @@ const ReportsAnalytics = () => {
               <Col span={12}>
                 <Statistic
                   title="Conversion Rate"
-                  value={analyticsData.performance.website.conversionRate}
+                  value={analyticsData?.performance?.website?.conversionRate || 0}
                   suffix="%"
                   prefix={<RiseOutlined style={{ color: '#52c41a' }} />}
                 />
@@ -542,10 +1013,10 @@ const ReportsAnalytics = () => {
                   <Text strong>Facebook</Text>
                   <br />
                   <Text style={{ fontSize: '18px', color: '#1890ff' }}>
-                    {formatNumber(analyticsData.performance.social.facebook.followers)}
+                    {formatNumber(analyticsData?.performance?.social?.facebook?.followers || 0)}
                   </Text>
                   <br />
-                  <Text type="secondary">{analyticsData.performance.social.facebook.engagement}% engagement</Text>
+                  <Text type="secondary">{analyticsData?.performance?.social?.facebook?.engagement || 0}% engagement</Text>
                 </div>
               </Col>
               <Col span={12}>
@@ -553,10 +1024,10 @@ const ReportsAnalytics = () => {
                   <Text strong>Instagram</Text>
                   <br />
                   <Text style={{ fontSize: '18px', color: '#e1306c' }}>
-                    {formatNumber(analyticsData.performance.social.instagram.followers)}
+                    {formatNumber(analyticsData?.performance?.social?.instagram?.followers || 0)}
                   </Text>
                   <br />
-                  <Text type="secondary">{analyticsData.performance.social.instagram.engagement}% engagement</Text>
+                  <Text type="secondary">{analyticsData?.performance?.social?.instagram?.engagement || 0}% engagement</Text>
                 </div>
               </Col>
             </Row>
@@ -668,7 +1139,7 @@ const ReportsAnalytics = () => {
               title="Monthly Growth"
               value={12.5}
               suffix="%"
-              prefix={<TrendingUpOutlined style={{ color: '#52c41a' }} />}
+              prefix={<RiseOutlined style={{ color: '#52c41a' }} />}
               valueStyle={{ color: '#52c41a', fontFamily: "'Poppins', sans-serif" }}
             />
           </Card>
@@ -842,6 +1313,7 @@ const ReportsAnalytics = () => {
           </Button>
           <Button
             icon={<PrinterIcon />}
+            onClick={handlePrint}
             style={{
               borderRadius: '12px',
               fontFamily: "'Poppins', sans-serif",
@@ -853,19 +1325,66 @@ const ReportsAnalytics = () => {
         </Space>
       </div>
 
-      {/* Date Range Filter */}
+      {/* Filters */}
       <Card style={{ marginBottom: '24px', borderRadius: '16px' }}>
         <Row gutter={[16, 16]} align="middle">
-          <Col xs={24} sm={8} md={6}>
-            <Text strong>Date Range:</Text>
+          <Col xs={24} sm={12} md={6}>
+            <Text strong style={{ display: 'block', marginBottom: '8px' }}>Date Range:</Text>
             <DatePicker.RangePicker
               style={{ width: '100%', borderRadius: '8px' }}
               value={dateRange}
               onChange={setDateRange}
+              format="DD/MM/YYYY"
             />
           </Col>
-          <Col xs={24} sm={8} md={6}>
-            <Text strong>Metric:</Text>
+          <Col xs={24} sm={12} md={6}>
+            <Text strong style={{ display: 'block', marginBottom: '8px' }}>Select Months:</Text>
+            <Select
+              mode="multiple"
+              placeholder="Select months"
+              value={selectedMonths}
+              onChange={setSelectedMonths}
+              style={{ width: '100%', borderRadius: '8px' }}
+              allowClear
+            >
+              {[
+                { value: 1, label: 'January' },
+                { value: 2, label: 'February' },
+                { value: 3, label: 'March' },
+                { value: 4, label: 'April' },
+                { value: 5, label: 'May' },
+                { value: 6, label: 'June' },
+                { value: 7, label: 'July' },
+                { value: 8, label: 'August' },
+                { value: 9, label: 'September' },
+                { value: 10, label: 'October' },
+                { value: 11, label: 'November' },
+                { value: 12, label: 'December' }
+              ].map(month => (
+                <Option key={month.value} value={month.value}>{month.label}</Option>
+              ))}
+            </Select>
+          </Col>
+          <Col xs={24} sm={12} md={6}>
+            <Text strong style={{ display: 'block', marginBottom: '8px' }}>Select Years:</Text>
+            <Select
+              mode="multiple"
+              placeholder="Select years"
+              value={selectedYears}
+              onChange={setSelectedYears}
+              style={{ width: '100%', borderRadius: '8px' }}
+              allowClear
+            >
+              {Array.from({ length: 10 }, (_, i) => {
+                const year = new Date().getFullYear() - i;
+                return (
+                  <Option key={year} value={year}>{year}</Option>
+                );
+              })}
+            </Select>
+          </Col>
+          <Col xs={24} sm={12} md={6}>
+            <Text strong style={{ display: 'block', marginBottom: '8px' }}>Metric:</Text>
             <Select
               value={selectedMetric}
               onChange={setSelectedMetric}
@@ -877,19 +1396,24 @@ const ReportsAnalytics = () => {
               <Option value="customers">Customers</Option>
             </Select>
           </Col>
-          <Col xs={24} sm={8} md={12}>
+          <Col xs={24}>
             <Space>
               <Button
+                type="primary"
                 icon={<FilterOutlined />}
+                onClick={handleApplyFilters}
                 style={{
                   borderRadius: '8px',
-                  fontFamily: "'Poppins', sans-serif"
+                  fontFamily: "'Poppins', sans-serif",
+                  background: '#ff6b35',
+                  border: 'none'
                 }}
               >
                 Apply Filters
               </Button>
               <Button
                 icon={<ReloadIcon />}
+                onClick={handleRefreshData}
                 style={{
                   borderRadius: '8px',
                   fontFamily: "'Poppins', sans-serif"
@@ -897,6 +1421,14 @@ const ReportsAnalytics = () => {
               >
                 Refresh Data
               </Button>
+              {(appliedFilters.months.length > 0 || appliedFilters.years.length > 0 || appliedFilters.dateRange) && (
+                <Text type="secondary" style={{ fontFamily: "'Poppins', sans-serif" }}>
+                  Filters Active: 
+                  {appliedFilters.months.length > 0 && ` ${appliedFilters.months.length} month(s)`}
+                  {appliedFilters.years.length > 0 && ` ${appliedFilters.years.length} year(s)`}
+                  {appliedFilters.dateRange && ' Date Range'}
+                </Text>
+              )}
             </Space>
           </Col>
         </Row>

@@ -109,7 +109,7 @@ router.put('/profile', async (req, res) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-    const { name, phone, address, preferences, gender, profileImage } = req.body;
+    const { name, phone, address, preferences, gender, profileImage, dateOfBirth, age } = req.body;
 
     const updateData = {};
     if (name) updateData.name = name;
@@ -118,6 +118,21 @@ router.put('/profile', async (req, res) => {
     if (preferences) updateData.preferences = preferences;
     if (gender) updateData.gender = gender;
     if (profileImage) updateData.profileImage = profileImage;
+    if (dateOfBirth) updateData.dateOfBirth = dateOfBirth;
+    
+    // Calculate age from dateOfBirth if provided
+    if (dateOfBirth && !age) {
+      const today = new Date();
+      const birthDate = new Date(dateOfBirth);
+      let calculatedAge = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        calculatedAge--;
+      }
+      updateData.age = calculatedAge;
+    } else if (age) {
+      updateData.age = age;
+    }
 
     const user = await User.findByIdAndUpdate(
       decoded.userId,
@@ -139,10 +154,125 @@ router.put('/profile', async (req, res) => {
 // Get all users (admin only)
 router.get('/', async (req, res) => {
   try {
-    const users = await User.find({ isActive: true }).select('-password');
-    res.json(users);
+    const { status, search } = req.query;
+    let query = {};
+    
+    if (status && status !== 'all') {
+      query.isActive = status === 'active';
+    }
+    
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { phone: { $regex: search, $options: 'i' } }
+      ];
+    }
+    
+    const users = await User.find(query).select('-password').sort({ createdAt: -1 });
+    
+    // Populate booking stats for each user
+    const Booking = require('../models/Booking');
+    const usersWithStats = await Promise.all(users.map(async (user) => {
+      const userObj = user.toObject();
+      const bookings = await Booking.find({ user: user._id });
+      const totalBookings = bookings.length;
+      const totalSpent = bookings.reduce((sum, booking) => {
+        return sum + (booking.totalAmount || 0);
+      }, 0);
+      
+      const lastBooking = bookings.length > 0 ? bookings[bookings.length - 1] : null;
+      const lastActivity = lastBooking ? lastBooking.createdAt : user.createdAt;
+      
+      return {
+        ...userObj,
+        id: userObj._id.toString(),
+        totalBookings,
+        totalSpent,
+        lastActivity
+      };
+    }));
+    
+    res.json(usersWithStats);
   } catch (error) {
     console.error('Get users error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get user by ID
+router.get('/:id', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select('-password');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    const Booking = require('../models/Booking');
+    const bookings = await Booking.find({ user: user._id }).populate('tour', 'title destination');
+    const totalBookings = bookings.length;
+    const totalSpent = bookings.reduce((sum, booking) => sum + (booking.totalAmount || 0), 0);
+    
+    res.json({
+      ...user.toObject(),
+      id: user._id.toString(),
+      totalBookings,
+      totalSpent,
+      bookings
+    });
+  } catch (error) {
+    console.error('Get user error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Update user (admin only)
+router.put('/:id', async (req, res) => {
+  try {
+    const { name, phone, address, preferences, gender, profileImage, isActive } = req.body;
+    
+    const updateData = {};
+    if (name) updateData.name = name;
+    if (phone) updateData.phone = phone;
+    if (address) updateData.address = address;
+    if (preferences) updateData.preferences = preferences;
+    if (gender) updateData.gender = gender;
+    if (profileImage !== undefined) updateData.profileImage = profileImage;
+    if (isActive !== undefined) updateData.isActive = isActive;
+    
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true, runValidators: true }
+    ).select('-password');
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    res.json({ message: 'User updated successfully', user });
+  } catch (error) {
+    console.error('Update user error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Delete user (admin only)
+router.delete('/:id', async (req, res) => {
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { isActive: false },
+      { new: true }
+    );
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    res.json({ message: 'User deactivated successfully' });
+  } catch (error) {
+    console.error('Delete user error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

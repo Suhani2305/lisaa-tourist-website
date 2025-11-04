@@ -41,6 +41,9 @@ const articleRoutes = require('./routes/articleRoutes');
 const stateRoutes = require('./routes/stateRoutes');
 const cityRoutes = require('./routes/cityRoutes');
 const inquiryRoutes = require('./routes/inquiryRoutes');
+const offerRoutes = require('./routes/offerRoutes');
+const mediaRoutes = require('./routes/mediaRoutes');
+const analyticsRoutes = require('./routes/analyticsRoutes');
 
 // API Routes
 app.use('/api/users', userRoutes);
@@ -55,6 +58,9 @@ app.use('/api/articles', articleRoutes);
 app.use('/api/states', stateRoutes);
 app.use('/api/cities', cityRoutes);
 app.use('/api/inquiries', inquiryRoutes);
+app.use('/api/offers', offerRoutes);
+app.use('/api/media', mediaRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

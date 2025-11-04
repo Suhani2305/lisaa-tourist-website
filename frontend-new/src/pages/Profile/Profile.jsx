@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { 
+import {
   Card, 
   Form,
   Input,
@@ -13,7 +13,8 @@ import {
   Col,
   Select,
   Upload,
-  Radio
+  Radio,
+  DatePicker
 } from 'antd';
 import {
   UserOutlined,
@@ -25,6 +26,7 @@ import {
   WomanOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import dayjs from 'dayjs';
 import { authService } from '../../services';
 import Header from '../landingpage/components/Header';
 import Footer from '../landingpage/components/Footer';
@@ -58,6 +60,12 @@ const Profile = () => {
         email: userData.email,
         phone: userData.phone,
         gender: userData.gender || 'male',
+        dateOfBirth: userData.dateOfBirth ? dayjs(userData.dateOfBirth) : null,
+        city: userData.address?.city || '',
+        state: userData.address?.state || '',
+        country: userData.address?.country || 'India',
+        street: userData.address?.street || '',
+        zipCode: userData.address?.zipCode || ''
       });
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -109,6 +117,14 @@ const Profile = () => {
         name: values.name,
         phone: values.phone,
         gender: values.gender,
+        dateOfBirth: values.dateOfBirth && dayjs.isDayjs(values.dateOfBirth) ? values.dateOfBirth.toISOString() : (values.dateOfBirth || null),
+        address: {
+          street: values.street || '',
+          city: values.city || '',
+          state: values.state || '',
+          zipCode: values.zipCode || '',
+          country: values.country || 'India'
+        }
       };
       
       // If image is selected, convert to base64
@@ -287,6 +303,79 @@ const Profile = () => {
                       <UserOutlined /> Other
                     </Radio.Button>
                   </Radio.Group>
+                </Form.Item>
+              </Col>
+
+              <Col xs={24} md={12}>
+                <Form.Item
+                  name="dateOfBirth"
+                  label="Date of Birth"
+                >
+                  <DatePicker
+                    style={{ width: '100%' }}
+                    format="DD/MM/YYYY"
+                    placeholder="Select your date of birth"
+                    disabledDate={(current) => {
+                      // Disable future dates
+                      return current && current > dayjs();
+                    }}
+                  />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Divider />
+            <Title level={4}>Address Information</Title>
+            <Row gutter={16}>
+              <Col xs={24} md={12}>
+                <Form.Item
+                  name="street"
+                  label="Street Address"
+                >
+                  <Input placeholder="Enter street address" />
+                </Form.Item>
+              </Col>
+
+              <Col xs={24} md={12}>
+                <Form.Item
+                  name="city"
+                  label="City"
+                >
+                  <Input placeholder="Enter city" />
+                </Form.Item>
+              </Col>
+
+              <Col xs={24} md={12}>
+                <Form.Item
+                  name="state"
+                  label="State"
+                >
+                  <Input placeholder="Enter state" />
+                </Form.Item>
+              </Col>
+
+              <Col xs={24} md={12}>
+                <Form.Item
+                  name="zipCode"
+                  label="Zip Code"
+                >
+                  <Input placeholder="Enter zip code" maxLength={10} />
+                </Form.Item>
+              </Col>
+
+              <Col xs={24} md={12}>
+                <Form.Item
+                  name="country"
+                  label="Country"
+                >
+                  <Select placeholder="Select country" defaultValue="India">
+                    <Option value="India">India</Option>
+                    <Option value="USA">USA</Option>
+                    <Option value="UK">UK</Option>
+                    <Option value="Canada">Canada</Option>
+                    <Option value="Australia">Australia</Option>
+                    <Option value="Other">Other</Option>
+                  </Select>
                 </Form.Item>
               </Col>
 

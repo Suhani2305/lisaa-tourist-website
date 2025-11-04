@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { mediaService } from '../../../services';
 import {
   Card,
   Table,
@@ -125,6 +126,9 @@ const MediaGallery = () => {
   const [filterCategory, setFilterCategory] = useState('all');
   const [selectedMedia, setSelectedMedia] = useState(null);
   const [viewMode, setViewMode] = useState('grid'); // grid or list
+  const [uploadModalVisible, setUploadModalVisible] = useState(false);
+  const [uploadFileList, setUploadFileList] = useState([]);
+  const [uploading, setUploading] = useState(false);
 
   // Mock data - In real app, this would come from API
   const mockMediaFiles = [
@@ -259,15 +263,55 @@ const MediaGallery = () => {
 
   useEffect(() => {
     fetchMediaFiles();
-  }, []);
+  }, [filterType, filterCategory, searchText]);
+
+  const formatFileSize = (bytes) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
 
   const fetchMediaFiles = async () => {
     setLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setMediaFiles(mockMediaFiles);
+      const response = await mediaService.getAllMedia({
+        type: filterType !== 'all' ? filterType : undefined,
+        category: filterCategory !== 'all' ? filterCategory : undefined,
+        search: searchText || undefined,
+        isActive: true
+      });
+      
+      // Transform API data to match component format
+      const transformedMedia = Array.isArray(response) ? response.map(media => ({
+        id: media._id || media.id,
+        name: media.name,
+        title: media.title || media.name,
+        type: media.type,
+        category: media.category || 'Other',
+        size: formatFileSize(media.size || 0),
+        dimensions: media.dimensions || '',
+        format: media.format || '',
+        url: media.url,
+        thumbnail: media.thumbnail || media.url,
+        alt: media.alt || media.title || media.name,
+        description: media.description || '',
+        tags: media.tags || [],
+        uploadedBy: media.uploadedBy || 'Admin',
+        uploadDate: media.uploadDate ? new Date(media.uploadDate).toISOString().split('T')[0] : (media.createdAt ? new Date(media.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]),
+        lastModified: media.lastModified ? new Date(media.lastModified).toISOString().split('T')[0] : (media.updatedAt ? new Date(media.updatedAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]),
+        views: media.views || 0,
+        downloads: media.downloads || 0,
+        likes: media.likes || 0,
+        status: media.isActive ? 'active' : 'inactive',
+        fileSize: media.size || 0,
+        ...media
+      })) : [];
+      
+      setMediaFiles(transformedMedia);
     } catch (error) {
+      console.error('Failed to fetch media files:', error);
       message.error('Failed to fetch media files');
     } finally {
       setLoading(false);
@@ -290,26 +334,23 @@ const MediaGallery = () => {
 
   const handleDeleteMedia = async (id) => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setMediaFiles(mediaFiles.filter(media => media.id !== id));
+      await mediaService.deleteMedia(id);
       message.success('Media file deleted successfully');
+      fetchMediaFiles(); // Refresh list
     } catch (error) {
+      console.error('Failed to delete media file:', error);
       message.error('Failed to delete media file');
     }
   };
 
   const handleStatusUpdate = async (id, newStatus) => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setMediaFiles(mediaFiles.map(media => 
-        media.id === id 
-          ? { ...media, status: newStatus, lastModified: new Date().toISOString().split('T')[0] }
-          : media
-      ));
+      const isActive = newStatus === 'active';
+      await mediaService.updateMedia(id, { isActive });
       message.success(`Media ${newStatus} successfully`);
+      fetchMediaFiles(); // Refresh list
     } catch (error) {
+      console.error('Failed to update media status:', error);
       message.error('Failed to update media status');
     }
   };
@@ -335,46 +376,186 @@ const MediaGallery = () => {
     try {
       const values = await form.validateFields();
       
+      // Handle file upload
+      let mediaUrl = values.url;
+      let thumbnailUrl = values.thumbnail;
+      const uploadFile = values.uploadFile || form.getFieldValue('uploadFile');
+      
+      if (uploadFile && !editingMedia) {
+        // Convert file to base64
+        const base64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(uploadFile);
+        });
+        
+        mediaUrl = base64;
+        if (values.type === 'image') {
+          thumbnailUrl = base64;
+        }
+      }
+      
+      // Determine file format
+      const fileName = uploadFile?.name || values.name || 'untitled';
+      const fileExtension = fileName.split('.').pop()?.toUpperCase() || '';
+      
+      const mediaData = {
+        ...values,
+        name: fileName,
+        url: mediaUrl || values.url,
+        thumbnail: thumbnailUrl || values.thumbnail || (values.type === 'image' ? mediaUrl : ''),
+        format: fileExtension || values.format || '',
+        size: uploadFile?.size || values.size || 0,
+        mimeType: uploadFile?.type || values.mimeType || '',
+        uploadDate: values.uploadDate ? values.uploadDate.toISOString() : new Date().toISOString(),
+        tags: values.tags || []
+      };
+      
+      // Remove uploadFile from data
+      delete mediaData.uploadFile;
+      
       if (editingMedia) {
         // Update existing media
-        const updatedMedia = mediaFiles.map(media =>
-          media.id === editingMedia.id
-            ? { 
-                ...media, 
-                ...values, 
-                uploadDate: values.uploadDate ? values.uploadDate.toISOString().split('T')[0] : media.uploadDate,
-                lastModified: new Date().toISOString().split('T')[0] 
-              }
-            : media
-        );
-        setMediaFiles(updatedMedia);
-        message.success('Media updated successfully');
+        await mediaService.updateMedia(editingMedia.id, mediaData);
+        message.success('Media file updated successfully');
       } else {
-        // Add new media
-        const newMedia = {
-          id: `MEDIA${Date.now()}`,
-          ...values,
-          views: 0,
-          downloads: 0,
-          likes: 0,
-          uploadDate: new Date().toISOString().split('T')[0],
-          lastModified: new Date().toISOString().split('T')[0]
-        };
-        setMediaFiles([newMedia, ...mediaFiles]);
-        message.success('Media added successfully');
+        // Create new media
+        await mediaService.createMedia(mediaData);
+        message.success('Media file created successfully');
       }
       
       setModalVisible(false);
+      setEditingMedia(null);
       form.resetFields();
+      fetchMediaFiles(); // Refresh list
     } catch (error) {
-      console.error('Validation failed:', error);
+      console.error('Failed to save media:', error);
+      message.error(error.message || 'Failed to save media file');
     }
   };
 
   const handleModalCancel = () => {
     setModalVisible(false);
     setDetailModalVisible(false);
+    setUploadModalVisible(false);
     form.resetFields();
+    setUploadFileList([]);
+  };
+
+  // Handle file upload
+  const handleFileUpload = async () => {
+    if (uploadFileList.length === 0) {
+      message.warning('Please select files to upload');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const uploadPromises = uploadFileList.map(async (file) => {
+        // Convert file to base64
+        const base64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file.originFileObj || file);
+        });
+
+        // Determine file type
+        const fileType = file.type?.split('/')[0] || 'document';
+        const typeMap = {
+          'image': 'image',
+          'video': 'video',
+          'audio': 'audio',
+          'application': 'document'
+        };
+        const mediaType = typeMap[fileType] || 'document';
+
+        // Get file extension
+        const fileName = file.name || 'untitled';
+        const fileExtension = fileName.split('.').pop()?.toUpperCase() || '';
+
+        // Create media data
+        const mediaData = {
+          name: fileName,
+          title: fileName.split('.')[0].replace(/[-_]/g, ' '),
+          type: mediaType,
+          category: 'Other',
+          format: fileExtension,
+          url: base64,
+          thumbnail: mediaType === 'image' ? base64 : '',
+          size: file.size || 0,
+          mimeType: file.type || '',
+          description: `Uploaded ${mediaType}`,
+          tags: [],
+          isActive: true
+        };
+
+        return mediaService.createMedia(mediaData);
+      });
+
+      await Promise.all(uploadPromises);
+      message.success(`${uploadFileList.length} file(s) uploaded successfully!`);
+      setUploadModalVisible(false);
+      setUploadFileList([]);
+      fetchMediaFiles();
+    } catch (error) {
+      console.error('Upload error:', error);
+      message.error('Failed to upload files');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Handle file change
+  const handleFileChange = ({ fileList }) => {
+    setUploadFileList(fileList);
+  };
+
+  // Handle export
+  const handleExport = () => {
+    try {
+      const csvData = [
+        ['Media Export', `Generated: ${new Date().toLocaleString()}`],
+        [],
+        ['Name', 'Title', 'Type', 'Category', 'Size', 'Format', 'Views', 'Downloads', 'Likes', 'Status']
+      ];
+
+      mediaFiles.forEach(media => {
+        csvData.push([
+          media.name,
+          media.title,
+          media.type,
+          media.category,
+          media.size,
+          media.format,
+          media.views,
+          media.downloads,
+          media.likes,
+          media.status
+        ]);
+      });
+
+      const csv = csvData.map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `media-export-${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      message.success('Media exported successfully!');
+    } catch (error) {
+      console.error('Export error:', error);
+      message.error('Failed to export media');
+    }
+  };
+
+  // Handle import (CSV)
+  const handleImport = () => {
+    message.info('Import functionality coming soon!');
   };
 
   const getTypeColor = (type) => {
@@ -422,14 +603,6 @@ const MediaGallery = () => {
   const imageCount = mediaFiles.filter(m => m.type === 'image').length;
   const videoCount = mediaFiles.filter(m => m.type === 'video').length;
   const totalSize = mediaFiles.reduce((sum, m) => sum + m.fileSize, 0);
-
-  const formatFileSize = (bytes) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
 
   // Grid View Component
   const GridView = () => (
@@ -736,6 +909,7 @@ const MediaGallery = () => {
         <Space>
           <Button
             icon={<CloudUploadOutlined />}
+            onClick={() => setUploadModalVisible(true)}
             style={{
               borderRadius: '12px',
               fontFamily: "'Poppins', sans-serif",
@@ -746,6 +920,7 @@ const MediaGallery = () => {
           </Button>
           <Button
             icon={<ImportOutlined />}
+            onClick={handleImport}
             style={{
               borderRadius: '12px',
               fontFamily: "'Poppins', sans-serif",
@@ -756,6 +931,7 @@ const MediaGallery = () => {
           </Button>
           <Button
             icon={<ExportOutlined />}
+            onClick={handleExport}
             style={{
               borderRadius: '12px',
               fontFamily: "'Poppins', sans-serif",
@@ -1128,7 +1304,116 @@ const MediaGallery = () => {
           >
             <Input placeholder="Enter alt text for accessibility" style={{ borderRadius: '8px' }} />
           </Form.Item>
+
+          <Form.Item
+            name="url"
+            label="Media File"
+            rules={editingMedia ? [] : [{ required: !editingMedia, message: 'Please upload a media file' }]}
+          >
+            <Upload
+              listType="picture-card"
+              maxCount={1}
+              beforeUpload={(file) => {
+                // Check file size (max 10MB)
+                const isLt10M = file.size / 1024 / 1024 < 10;
+                if (!isLt10M) {
+                  message.error('File must be smaller than 10MB!');
+                  return false;
+                }
+                return false; // Prevent auto upload
+              }}
+              onChange={(info) => {
+                const { fileList } = info;
+                // Store file in form
+                form.setFieldValue('uploadFile', fileList[0]?.originFileObj);
+                // Preview image
+                if (fileList[0]?.originFileObj) {
+                  const reader = new FileReader();
+                  reader.onloadend = () => {
+                    form.setFieldValue('url', reader.result);
+                    if (form.getFieldValue('type') === 'image') {
+                      form.setFieldValue('thumbnail', reader.result);
+                    }
+                  };
+                  reader.readAsDataURL(fileList[0].originFileObj);
+                }
+              }}
+              accept="image/*,video/*,audio/*,.pdf,.doc,.docx"
+            >
+              {form.getFieldValue('url') ? null : (
+                <div>
+                  <PlusOutlined />
+                  <div style={{ marginTop: 8 }}>Upload</div>
+                </div>
+              )}
+            </Upload>
+            {form.getFieldValue('url') && (
+              <div style={{ marginTop: '8px' }}>
+                {form.getFieldValue('type') === 'image' ? (
+                  <Image
+                    src={form.getFieldValue('url')}
+                    alt="Preview"
+                    style={{ maxWidth: '200px', maxHeight: '200px', borderRadius: '8px' }}
+                  />
+                ) : (
+                  <Text type="secondary">File selected: {form.getFieldValue('uploadFile')?.name || 'File'}</Text>
+                )}
+              </div>
+            )}
+          </Form.Item>
         </Form>
+      </Modal>
+
+      {/* Upload Multiple Files Modal */}
+      <Modal
+        title={
+          <div style={{ fontFamily: "'Poppins', sans-serif" }}>
+            📤 Upload Media Files
+          </div>
+        }
+        open={uploadModalVisible}
+        onOk={handleFileUpload}
+        onCancel={handleModalCancel}
+        width={600}
+        okText="Upload Files"
+        cancelText="Cancel"
+        confirmLoading={uploading}
+        okButtonProps={{
+          style: {
+            background: '#ff6b35',
+            border: 'none',
+            borderRadius: '8px',
+            fontFamily: "'Poppins', sans-serif",
+            fontWeight: '600'
+          }
+        }}
+        cancelButtonProps={{
+          style: {
+            borderRadius: '8px',
+            fontFamily: "'Poppins', sans-serif"
+          }
+        }}
+      >
+        <div style={{ fontFamily: "'Poppins', sans-serif" }}>
+          <Upload
+            multiple
+            fileList={uploadFileList}
+            onChange={handleFileChange}
+            beforeUpload={() => false} // Prevent auto upload
+            accept="image/*,video/*,audio/*,.pdf,.doc,.docx"
+            listType="picture-card"
+          >
+            {uploadFileList.length >= 10 ? null : (
+              <div>
+                <PlusOutlined />
+                <div style={{ marginTop: 8 }}>Upload</div>
+              </div>
+            )}
+          </Upload>
+          <Text type="secondary" style={{ display: 'block', marginTop: '16px' }}>
+            You can upload up to 10 files at once. Supported formats: Images, Videos, Audio, Documents (PDF, DOC, DOCX)
+          </Text>
+        </div>
       </Modal>
     </div>
   );

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { userService } from '../../../services';
 import {
   Card,
   Table,
@@ -91,177 +92,121 @@ const CustomersManagement = () => {
   const [filterTier, setFilterTier] = useState('all');
   const [selectedCustomer, setSelectedCustomer] = useState(null);
 
-  // Mock data - In real app, this would come from API
-  const mockCustomers = [
-    {
-      id: 'CUST001',
-      name: 'Rajesh Kumar',
-      email: 'rajesh.kumar@email.com',
-      phone: '+91 98765 43210',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100',
-      status: 'active',
-      tier: 'gold',
-      joinDate: '2023-01-15',
-      lastActivity: '2024-02-15',
-      totalBookings: 8,
-      totalSpent: 125000,
-      loyaltyPoints: 2500,
-      preferences: {
-        destinations: ['Kerala', 'Rajasthan', 'Andaman'],
-        tourTypes: ['Cultural', 'Adventure', 'Beach'],
-        budget: 'premium'
-      },
-      address: {
-        street: '123 MG Road',
-        city: 'Mumbai',
-        state: 'Maharashtra',
-        pincode: '400001',
-        country: 'India'
-      },
-      emergencyContact: {
-        name: 'Suresh Kumar',
-        phone: '+91 98765 43211',
-        relation: 'Brother'
-      },
-      notes: 'VIP customer, prefers luxury accommodations',
-      tags: ['VIP', 'Frequent Traveler', 'Luxury'],
-      socialMedia: {
-        facebook: 'rajesh.kumar',
-        instagram: '@rajesh_travels',
-        twitter: '@rajesh_k'
-      }
-    },
-    {
-      id: 'CUST002',
-      name: 'Sarah Johnson',
-      email: 'sarah.johnson@email.com',
-      phone: '+1 555-0123',
-      avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100',
-      status: 'active',
-      tier: 'silver',
-      joinDate: '2023-06-20',
-      lastActivity: '2024-02-10',
-      totalBookings: 3,
-      totalSpent: 45000,
-      loyaltyPoints: 900,
-      preferences: {
-        destinations: ['Rajasthan', 'Kerala'],
-        tourTypes: ['Cultural', 'Heritage'],
-        budget: 'mid-range'
-      },
-      address: {
-        street: '456 Park Avenue',
-        city: 'New York',
-        state: 'NY',
-        pincode: '10001',
-        country: 'USA'
-      },
-      emergencyContact: {
-        name: 'Emily Johnson',
-        phone: '+1 555-0124',
-        relation: 'Sister'
-      },
-      notes: 'First time visitor to India, interested in cultural experiences',
-      tags: ['International', 'Cultural', 'First-time'],
-      socialMedia: {
-        facebook: 'sarah.johnson',
-        instagram: '@sarah_travels',
-        twitter: '@sarah_j'
-      }
-    },
-    {
-      id: 'CUST003',
-      name: 'Amit Patel',
-      email: 'amit.patel@email.com',
-      phone: '+91 98765 43212',
-      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100',
-      status: 'inactive',
-      tier: 'bronze',
-      joinDate: '2022-11-10',
-      lastActivity: '2023-08-15',
-      totalBookings: 2,
-      totalSpent: 25000,
-      loyaltyPoints: 500,
-      preferences: {
-        destinations: ['Kerala', 'Goa'],
-        tourTypes: ['Beach', 'Relaxation'],
-        budget: 'budget'
-      },
-      address: {
-        street: '789 Gandhi Road',
-        city: 'Delhi',
-        state: 'Delhi',
-        pincode: '110001',
-        country: 'India'
-      },
-      emergencyContact: {
-        name: 'Vikram Patel',
-        phone: '+91 98765 43213',
-        relation: 'Brother'
-      },
-      notes: 'Budget-conscious traveler, prefers group tours',
-      tags: ['Budget', 'Group Travel', 'Beach'],
-      socialMedia: {
-        facebook: 'amit.patel',
-        instagram: '@amit_travels',
-        twitter: '@amit_p'
-      }
-    }
-  ];
-
   useEffect(() => {
     fetchCustomers();
-  }, []);
+  }, [filterStatus, searchText]);
 
   const fetchCustomers = async () => {
     setLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setCustomers(mockCustomers);
+      const response = await userService.getAllUsers({
+        status: filterStatus !== 'all' ? filterStatus : undefined,
+        search: searchText || undefined
+      });
+      
+      // Transform API data to match component format
+      const transformedCustomers = Array.isArray(response) ? response.map(user => ({
+        id: user.id || user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone || 'N/A',
+        avatar: user.profileImage || null,
+        status: user.isActive ? 'active' : 'inactive',
+        tier: calculateTier(user.totalSpent || 0),
+        joinDate: user.createdAt ? new Date(user.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        lastActivity: user.lastActivity ? new Date(user.lastActivity).toISOString().split('T')[0] : user.createdAt ? new Date(user.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        totalBookings: user.totalBookings || 0,
+        totalSpent: user.totalSpent || 0,
+        loyaltyPoints: Math.floor((user.totalSpent || 0) / 100), // Calculate from totalSpent
+        preferences: user.preferences || {},
+        address: user.address || {},
+        tags: generateTags(user),
+        ...user
+      })) : [];
+      
+      setCustomers(transformedCustomers);
     } catch (error) {
+      console.error('Failed to fetch customers:', error);
       message.error('Failed to fetch customers');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleViewDetails = (customer) => {
-    setSelectedCustomer(customer);
-    setDetailModalVisible(true);
+  const calculateTier = (totalSpent) => {
+    if (totalSpent >= 100000) return 'platinum';
+    if (totalSpent >= 50000) return 'gold';
+    if (totalSpent >= 25000) return 'silver';
+    return 'bronze';
+  };
+
+  const generateTags = (user) => {
+    const tags = [];
+    if (user.totalBookings >= 5) tags.push('Frequent Traveler');
+    if ((user.totalSpent || 0) >= 100000) tags.push('VIP');
+    if (user.preferences?.travelStyle === 'luxury') tags.push('Luxury');
+    if (user.preferences?.travelStyle === 'budget') tags.push('Budget');
+    return tags;
+  };
+
+  const handleViewDetails = async (customer) => {
+    try {
+      // Fetch full customer details
+      const fullCustomer = await userService.getUserById(customer.id);
+      setSelectedCustomer({
+        ...fullCustomer,
+        avatar: fullCustomer.profileImage || null,
+        status: fullCustomer.isActive ? 'active' : 'inactive',
+        tier: calculateTier(fullCustomer.totalSpent || 0),
+        joinDate: fullCustomer.createdAt ? new Date(fullCustomer.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        lastActivity: fullCustomer.lastActivity ? new Date(fullCustomer.lastActivity).toISOString().split('T')[0] : fullCustomer.createdAt ? new Date(fullCustomer.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        tags: generateTags(fullCustomer)
+      });
+      setDetailModalVisible(true);
+    } catch (error) {
+      console.error('Failed to fetch customer details:', error);
+      message.error('Failed to fetch customer details');
+      // Fallback to basic customer data
+      setSelectedCustomer(customer);
+      setDetailModalVisible(true);
+    }
   };
 
   const handleEditCustomer = (customer) => {
     setEditingCustomer(customer);
     form.setFieldsValue({
-      ...customer,
-      joinDate: customer.joinDate ? new Date(customer.joinDate) : null
+      name: customer.name,
+      phone: customer.phone,
+      email: customer.email,
+      address: customer.address || {},
+      preferences: customer.preferences || {},
+      gender: customer.gender || 'male',
+      profileImage: customer.avatar || customer.profileImage || '',
+      status: customer.status || (customer.isActive ? 'active' : 'inactive'),
+      joinDate: customer.joinDate || (customer.createdAt ? new Date(customer.createdAt) : null)
     });
     setModalVisible(true);
   };
 
   const handleDeleteCustomer = async (id) => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setCustomers(customers.filter(customer => customer.id !== id));
-      message.success('Customer deleted successfully');
+      await userService.deleteUser(id);
+      message.success('Customer deactivated successfully');
+      fetchCustomers(); // Refresh list
     } catch (error) {
+      console.error('Failed to delete customer:', error);
       message.error('Failed to delete customer');
     }
   };
 
   const handleStatusUpdate = async (id, newStatus) => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setCustomers(customers.map(customer => 
-        customer.id === id 
-          ? { ...customer, status: newStatus, lastActivity: new Date().toISOString().split('T')[0] }
-          : customer
-      ));
+      const isActive = newStatus === 'active';
+      await userService.updateUser(id, { isActive });
       message.success(`Customer ${newStatus} successfully`);
+      fetchCustomers(); // Refresh list
     } catch (error) {
+      console.error('Failed to update customer status:', error);
       message.error('Failed to update customer status');
     }
   };
@@ -272,32 +217,27 @@ const CustomersManagement = () => {
       
       if (editingCustomer) {
         // Update existing customer
-        const updatedCustomers = customers.map(customer =>
-          customer.id === editingCustomer.id
-            ? { ...customer, ...values, lastActivity: new Date().toISOString().split('T')[0] }
-            : customer
-        );
-        setCustomers(updatedCustomers);
+        await userService.updateUser(editingCustomer.id, {
+          name: values.name,
+          phone: values.phone,
+          address: values.address,
+          preferences: values.preferences,
+          gender: values.gender,
+          profileImage: values.profileImage,
+          isActive: values.status === 'active'
+        });
         message.success('Customer updated successfully');
+        fetchCustomers(); // Refresh list
       } else {
-        // Add new customer
-        const newCustomer = {
-          id: `CUST${Date.now()}`,
-          ...values,
-          totalBookings: 0,
-          totalSpent: 0,
-          loyaltyPoints: 0,
-          joinDate: new Date().toISOString().split('T')[0],
-          lastActivity: new Date().toISOString().split('T')[0]
-        };
-        setCustomers([newCustomer, ...customers]);
-        message.success('Customer added successfully');
+        message.info('New customers are created through registration. Please use the registration form.');
       }
       
       setModalVisible(false);
+      setEditingCustomer(null);
       form.resetFields();
     } catch (error) {
-      console.error('Validation failed:', error);
+      console.error('Failed to update customer:', error);
+      message.error('Failed to update customer');
     }
   };
 

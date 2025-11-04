@@ -9,6 +9,10 @@ import paymentService from './paymentService';
 import articleService from './articleService';
 import stateService from './stateService';
 import inquiryService from './inquiryService';
+import userService from './userService';
+import offerService from './offerService';
+import mediaService from './mediaService';
+import analyticsService from './analyticsService';
 
 export {
   api,
@@ -21,4 +25,8 @@ export {
   articleService,
   stateService,
   inquiryService,
+  userService,
+  offerService,
+  mediaService,
+  analyticsService,
 };

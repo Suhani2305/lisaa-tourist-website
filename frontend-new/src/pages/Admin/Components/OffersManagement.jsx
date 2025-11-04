@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { offerService, tourService } from '../../../services';
 import {
   Card,
   Table,
@@ -100,106 +101,57 @@ const OffersManagement = () => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterType, setFilterType] = useState('all');
   const [selectedOffer, setSelectedOffer] = useState(null);
-
-  // Mock data - In real app, this would come from API
-  const mockOffers = [
-    {
-      id: 'OFFER001',
-      title: 'Early Bird Special - Kerala Backwaters',
-      code: 'KERALA20',
-      type: 'percentage',
-      value: 20,
-      description: 'Get 20% off on Kerala Backwaters tour when you book 30 days in advance',
-      status: 'active',
-      startDate: '2024-02-01',
-      endDate: '2024-03-31',
-      minAmount: 50000,
-      maxDiscount: 15000,
-      usageLimit: 100,
-      usedCount: 45,
-      applicableTours: ['Kerala Backwaters Paradise', 'Kerala Ayurveda Retreat'],
-      customerTiers: ['bronze', 'silver', 'gold', 'platinum'],
-      image: 'https://images.unsplash.com/photo-1587474260584-136574528ed5?w=400',
-      terms: 'Valid for bookings made 30 days in advance. Cannot be combined with other offers.',
-      createdAt: '2024-01-15',
-      updatedAt: '2024-02-15'
-    },
-    {
-      id: 'OFFER002',
-      title: 'Family Package Discount',
-      code: 'FAMILY15',
-      type: 'percentage',
-      value: 15,
-      description: 'Special discount for family bookings with 4 or more members',
-      status: 'active',
-      startDate: '2024-02-01',
-      endDate: '2024-12-31',
-      minAmount: 100000,
-      maxDiscount: 25000,
-      usageLimit: 50,
-      usedCount: 12,
-      applicableTours: ['All Tours'],
-      customerTiers: ['bronze', 'silver', 'gold', 'platinum'],
-      image: 'https://images.unsplash.com/photo-1564507592333-c60657eea523?w=400',
-      terms: 'Valid for bookings with 4 or more family members. Minimum booking amount ₹1,00,000.',
-      createdAt: '2024-01-20',
-      updatedAt: '2024-02-10'
-    },
-    {
-      id: 'OFFER003',
-      title: 'New Customer Welcome',
-      code: 'WELCOME10',
-      type: 'percentage',
-      value: 10,
-      description: 'Welcome discount for new customers on their first booking',
-      status: 'active',
-      startDate: '2024-01-01',
-      endDate: '2024-12-31',
-      minAmount: 25000,
-      maxDiscount: 5000,
-      usageLimit: 200,
-      usedCount: 78,
-      applicableTours: ['All Tours'],
-      customerTiers: ['bronze'],
-      image: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400',
-      terms: 'Valid for first-time customers only. Cannot be combined with other offers.',
-      createdAt: '2024-01-01',
-      updatedAt: '2024-02-05'
-    },
-    {
-      id: 'OFFER004',
-      title: 'Loyalty Rewards - Gold Members',
-      code: 'GOLD25',
-      type: 'percentage',
-      value: 25,
-      description: 'Exclusive discount for Gold tier loyalty members',
-      status: 'expired',
-      startDate: '2023-12-01',
-      endDate: '2024-01-31',
-      minAmount: 75000,
-      maxDiscount: 20000,
-      usageLimit: 30,
-      usedCount: 30,
-      applicableTours: ['All Tours'],
-      customerTiers: ['gold', 'platinum'],
-      image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400',
-      terms: 'Exclusive for Gold and Platinum tier members. Limited time offer.',
-      createdAt: '2023-11-15',
-      updatedAt: '2024-01-31'
-    }
-  ];
+  const [availableTours, setAvailableTours] = useState([]);
 
   useEffect(() => {
     fetchOffers();
-  }, []);
+    fetchTours();
+  }, [filterStatus, searchText]);
+
+  const fetchTours = async () => {
+    try {
+      const tours = await tourService.getAllTours({ all: 'true', limit: 1000 });
+      setAvailableTours(Array.isArray(tours) ? tours : (tours?.data || tours?.tours || []));
+    } catch (error) {
+      console.error('Failed to fetch tours:', error);
+    }
+  };
 
   const fetchOffers = async () => {
     setLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setOffers(mockOffers);
+      const response = await offerService.getAllOffers({
+        status: filterStatus !== 'all' ? filterStatus : undefined,
+        search: searchText || undefined
+      });
+      
+      // Transform API data to match component format
+      const transformedOffers = Array.isArray(response) ? response.map(offer => ({
+        id: offer._id || offer.id,
+        title: offer.title,
+        code: offer.code,
+        type: offer.type,
+        value: offer.value,
+        description: offer.description || '',
+        status: offer.status,
+        startDate: offer.startDate ? new Date(offer.startDate).toISOString().split('T')[0] : null,
+        endDate: offer.endDate ? new Date(offer.endDate).toISOString().split('T')[0] : null,
+        minAmount: offer.minAmount || 0,
+        maxDiscount: offer.maxDiscount || null,
+        usageLimit: offer.usageLimit || null,
+        usedCount: offer.usedCount || 0,
+        applicableTours: offer.applicableTours || [],
+        customerTiers: offer.customerTiers || [],
+        image: offer.image || '',
+        terms: offer.terms || '',
+        createdAt: offer.createdAt ? new Date(offer.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        updatedAt: offer.updatedAt ? new Date(offer.updatedAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        ...offer
+      })) : [];
+      
+      setOffers(transformedOffers);
     } catch (error) {
+      console.error('Failed to fetch offers:', error);
       message.error('Failed to fetch offers');
     } finally {
       setLoading(false);
@@ -223,81 +175,78 @@ const OffersManagement = () => {
 
   const handleDeleteOffer = async (id) => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setOffers(offers.filter(offer => offer.id !== id));
+      await offerService.deleteOffer(id);
       message.success('Offer deleted successfully');
+      fetchOffers(); // Refresh list
     } catch (error) {
+      console.error('Failed to delete offer:', error);
       message.error('Failed to delete offer');
     }
   };
 
   const handleStatusUpdate = async (id, newStatus) => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setOffers(offers.map(offer => 
-        offer.id === id 
-          ? { ...offer, status: newStatus, updatedAt: new Date().toISOString().split('T')[0] }
-          : offer
-      ));
+      await offerService.updateOffer(id, { status: newStatus });
       message.success(`Offer ${newStatus} successfully`);
+      fetchOffers(); // Refresh list
     } catch (error) {
+      console.error('Failed to update offer status:', error);
       message.error('Failed to update offer status');
     }
   };
 
-  const handleDuplicateOffer = (offer) => {
-    const newOffer = {
-      ...offer,
-      id: `OFFER${Date.now()}`,
-      title: `${offer.title} (Copy)`,
-      code: `${offer.code}COPY`,
-      status: 'draft',
-      createdAt: new Date().toISOString().split('T')[0],
-      updatedAt: new Date().toISOString().split('T')[0],
-      usedCount: 0
-    };
-    setOffers([newOffer, ...offers]);
-    message.success('Offer duplicated successfully');
+  const handleDuplicateOffer = async (offer) => {
+    try {
+      const newOfferData = {
+        ...offer,
+        title: `${offer.title} (Copy)`,
+        code: `${offer.code}COPY`,
+        status: 'inactive',
+        usedCount: 0
+      };
+      delete newOfferData.id;
+      delete newOfferData._id;
+      delete newOfferData.createdAt;
+      delete newOfferData.updatedAt;
+      
+      await offerService.createOffer(newOfferData);
+      message.success('Offer duplicated successfully');
+      fetchOffers(); // Refresh list
+    } catch (error) {
+      console.error('Failed to duplicate offer:', error);
+      message.error('Failed to duplicate offer');
+    }
   };
 
   const handleModalOk = async () => {
     try {
       const values = await form.validateFields();
       
+      const offerData = {
+        ...values,
+        startDate: values.startDate ? values.startDate.toISOString() : null,
+        endDate: values.endDate ? values.endDate.toISOString() : null,
+        applicableTours: values.applicableTours || [],
+        customerTiers: values.customerTiers || []
+      };
+      
       if (editingOffer) {
         // Update existing offer
-        const updatedOffers = offers.map(offer =>
-          offer.id === editingOffer.id
-            ? { 
-                ...offer, 
-                ...values, 
-                startDate: values.startDate ? values.startDate.toISOString().split('T')[0] : null,
-                endDate: values.endDate ? values.endDate.toISOString().split('T')[0] : null,
-                updatedAt: new Date().toISOString().split('T')[0] 
-              }
-            : offer
-        );
-        setOffers(updatedOffers);
+        await offerService.updateOffer(editingOffer.id, offerData);
         message.success('Offer updated successfully');
       } else {
-        // Add new offer
-        const newOffer = {
-          id: `OFFER${Date.now()}`,
-          ...values,
-          usedCount: 0,
-          createdAt: new Date().toISOString().split('T')[0],
-          updatedAt: new Date().toISOString().split('T')[0]
-        };
-        setOffers([newOffer, ...offers]);
-        message.success('Offer added successfully');
+        // Create new offer
+        await offerService.createOffer(offerData);
+        message.success('Offer created successfully');
       }
       
       setModalVisible(false);
+      setEditingOffer(null);
       form.resetFields();
+      fetchOffers(); // Refresh list
     } catch (error) {
-      console.error('Validation failed:', error);
+      console.error('Failed to save offer:', error);
+      message.error(error.message || 'Failed to save offer');
     }
   };
 
