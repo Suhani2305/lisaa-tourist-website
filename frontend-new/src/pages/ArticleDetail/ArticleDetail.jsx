@@ -314,21 +314,21 @@ const ArticleDetail = () => {
           }}>
             <Space>
               <Avatar icon={<UserOutlined />} style={{ backgroundColor: '#FF6B35' }} />
-              <Text strong>{article.author}</Text>
+              <TypographyText strong>{article.author}</TypographyText>
             </Space>
             <Space>
               <CalendarOutlined style={{ color: '#6c757d' }} />
-              <Text type="secondary">
+              <TypographyText type="secondary">
                 {new Date(article.publishDate || article.createdAt).toLocaleDateString('en-US', { 
                   month: 'long', 
                   day: 'numeric', 
                   year: 'numeric' 
                 })}
-              </Text>
+              </TypographyText>
             </Space>
             <Space>
               <ClockCircleOutlined style={{ color: '#6c757d' }} />
-              <Text type="secondary">{article.readingTime || '5 min read'}</Text>
+              <TypographyText type="secondary">{article.readingTime || '5 min read'}</TypographyText>
             </Space>
           </div>
 
@@ -413,9 +413,9 @@ const ArticleDetail = () => {
               <div style={{ fontSize: '32px', color: '#FF6B35' }}>
                 {'⭐'.repeat(article.customerRating || 5)}
               </div>
-              <Text type="secondary" style={{ fontSize: '16px', marginTop: '8px', display: 'block' }}>
+              <TypographyText type="secondary" style={{ fontSize: '16px', marginTop: '8px', display: 'block' }}>
                 {article.customerRating || 5} out of 5 stars
-              </Text>
+              </TypographyText>
             </Card>
           )}
 
@@ -463,12 +463,12 @@ const ArticleDetail = () => {
                         title={related.title}
                         description={
                           <Space direction="vertical" size="small">
-                            <Text type="secondary">
+                            <TypographyText type="secondary">
                               By {related.author}
-                            </Text>
-                            <Text type="secondary" style={{ fontSize: '12px' }}>
+                            </TypographyText>
+                            <TypographyText type="secondary" style={{ fontSize: '12px' }}>
                               {new Date(related.publishDate || related.createdAt).toLocaleDateString()}
-                            </Text>
+                            </TypographyText>
                           </Space>
                         }
                       />

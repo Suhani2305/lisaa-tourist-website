@@ -280,7 +280,7 @@ link.href = "https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;7
 link.rel = "stylesheet";
 document.head.appendChild(link);
 
-const { Title, Text, Paragraph } = Typography;
+const { Title, Text: TypographyText, Paragraph } = Typography;
 const { TextArea } = Input;
 const { Option } = Select;
 const { Meta } = Card;
@@ -936,7 +936,7 @@ const ReportsAnalytics = () => {
       <div style={{ textAlign: 'center', padding: '50px' }}>
         <LoadingOutlined style={{ fontSize: '48px', color: '#1890ff' }} spin />
         <div style={{ marginTop: '16px' }}>
-          <Text>Loading analytics data...</Text>
+          <TypographyText>Loading analytics data...</TypographyText>
         </div>
       </div>
     );
@@ -955,9 +955,9 @@ const ReportsAnalytics = () => {
               valueStyle={{ color: '#1890ff', fontFamily: "'Poppins', sans-serif" }}
             />
             <div style={{ marginTop: '8px' }}>
-              <Text style={{ color: getGrowthColor(analyticsData.overview.bookingGrowth), fontSize: '12px' }}>
+              <TypographyText style={{ color: getGrowthColor(analyticsData.overview.bookingGrowth), fontSize: '12px' }}>
                 {getGrowthIcon(analyticsData.overview.bookingGrowth)} {analyticsData.overview.bookingGrowth}% vs last month
-              </Text>
+              </TypographyText>
             </div>
           </Card>
         </Col>
@@ -970,9 +970,9 @@ const ReportsAnalytics = () => {
               valueStyle={{ color: '#52c41a', fontFamily: "'Poppins', sans-serif" }}
             />
             <div style={{ marginTop: '8px' }}>
-              <Text style={{ color: getGrowthColor(analyticsData.overview.revenueGrowth), fontSize: '12px' }}>
+              <TypographyText style={{ color: getGrowthColor(analyticsData.overview.revenueGrowth), fontSize: '12px' }}>
                 {getGrowthIcon(analyticsData.overview.revenueGrowth)} {analyticsData.overview.revenueGrowth}% vs last month
-              </Text>
+              </TypographyText>
             </div>
           </Card>
         </Col>
@@ -985,9 +985,9 @@ const ReportsAnalytics = () => {
               valueStyle={{ color: '#ff6b35', fontFamily: "'Poppins', sans-serif" }}
             />
             <div style={{ marginTop: '8px' }}>
-              <Text style={{ color: getGrowthColor(analyticsData.overview.customerGrowth), fontSize: '12px' }}>
+              <TypographyText style={{ color: getGrowthColor(analyticsData.overview.customerGrowth), fontSize: '12px' }}>
                 {getGrowthIcon(analyticsData.overview.customerGrowth)} {analyticsData.overview.customerGrowth}% vs last month
-              </Text>
+              </TypographyText>
             </div>
           </Card>
         </Col>
@@ -1000,9 +1000,9 @@ const ReportsAnalytics = () => {
               valueStyle={{ color: '#faad14', fontFamily: "'Poppins', sans-serif" }}
             />
             <div style={{ marginTop: '8px' }}>
-              <Text style={{ color: getGrowthColor(analyticsData.overview.tourGrowth), fontSize: '12px' }}>
+              <TypographyText style={{ color: getGrowthColor(analyticsData.overview.tourGrowth), fontSize: '12px' }}>
                 {getGrowthIcon(analyticsData.overview.tourGrowth)} {analyticsData.overview.tourGrowth}% vs last month
-              </Text>
+              </TypographyText>
             </div>
           </Card>
         </Col>
@@ -1051,24 +1051,24 @@ const ReportsAnalytics = () => {
             <Row gutter={[16, 16]}>
               <Col span={12}>
                 <div style={{ textAlign: 'center' }}>
-                  <Text strong>Facebook</Text>
+                  <TypographyText strong>Facebook</TypographyText>
                   <br />
-                  <Text style={{ fontSize: '18px', color: '#1890ff' }}>
+                  <TypographyText style={{ fontSize: '18px', color: '#1890ff' }}>
                     {formatNumber(analyticsData?.performance?.social?.facebook?.followers || 0)}
-                  </Text>
+                  </TypographyText>
                   <br />
-                  <Text type="secondary">{analyticsData?.performance?.social?.facebook?.engagement || 0}% engagement</Text>
+                  <TypographyText type="secondary">{analyticsData?.performance?.social?.facebook?.engagement || 0}% engagement</TypographyText>
                 </div>
               </Col>
               <Col span={12}>
                 <div style={{ textAlign: 'center' }}>
-                  <Text strong>Instagram</Text>
+                  <TypographyText strong>Instagram</TypographyText>
                   <br />
-                  <Text style={{ fontSize: '18px', color: '#e1306c' }}>
+                  <TypographyText style={{ fontSize: '18px', color: '#e1306c' }}>
                     {formatNumber(analyticsData?.performance?.social?.instagram?.followers || 0)}
-                  </Text>
+                  </TypographyText>
                   <br />
-                  <Text type="secondary">{analyticsData?.performance?.social?.instagram?.engagement || 0}% engagement</Text>
+                  <TypographyText type="secondary">{analyticsData?.performance?.social?.instagram?.engagement || 0}% engagement</TypographyText>
                 </div>
               </Col>
             </Row>
@@ -1155,7 +1155,7 @@ const ReportsAnalytics = () => {
             <div style={{ textAlign: 'center' }}>
               <BarChartOutlined style={{ fontSize: '48px', color: '#1890ff' }} />
               <br />
-              <Text type="secondary">No booking trend data available</Text>
+              <TypographyText type="secondary">No booking trend data available</TypographyText>
             </div>
           </div>
         )}
@@ -1187,7 +1187,7 @@ const ReportsAnalytics = () => {
           />
         ) : (
           <div style={{ textAlign: 'center', padding: '40px', color: '#6c757d' }}>
-            <Text type="secondary">No destination data available</Text>
+            <TypographyText type="secondary">No destination data available</TypographyText>
           </div>
         )}
       </Card>
@@ -1211,20 +1211,20 @@ const ReportsAnalytics = () => {
                   description={`${item.tour?.destination || 'Unknown'} • ${item.bookings || 0} bookings`}
                 />
                 <div style={{ textAlign: 'right' }}>
-                  <Text strong style={{ fontSize: '16px', color: '#52c41a' }}>
+                  <TypographyText strong style={{ fontSize: '16px', color: '#52c41a' }}>
                     {formatCurrency(item.revenue || 0)}
-                  </Text>
+                  </TypographyText>
                   <br />
-                  <Text type="secondary" style={{ fontSize: '12px' }}>
+                  <TypographyText type="secondary" style={{ fontSize: '12px' }}>
                     Revenue
-                  </Text>
+                  </TypographyText>
                 </div>
               </List.Item>
             )}
           />
         ) : (
           <div style={{ textAlign: 'center', padding: '40px', color: '#6c757d' }}>
-            <Text type="secondary">No package data available</Text>
+            <TypographyText type="secondary">No package data available</TypographyText>
           </div>
         )}
       </Card>
@@ -1311,7 +1311,7 @@ const ReportsAnalytics = () => {
           </div>
         ) : (
           <div style={{ textAlign: 'center', padding: '40px', color: '#6c757d' }}>
-            <Text type="secondary">No revenue trend data available</Text>
+            <TypographyText type="secondary">No revenue trend data available</TypographyText>
           </div>
         )}
       </Card>
@@ -1343,7 +1343,7 @@ const ReportsAnalytics = () => {
           />
         ) : (
           <div style={{ textAlign: 'center', padding: '40px', color: '#6c757d' }}>
-            <Text type="secondary">No destination revenue data available</Text>
+            <TypographyText type="secondary">No destination revenue data available</TypographyText>
           </div>
         )}
       </Card>
@@ -1399,7 +1399,7 @@ const ReportsAnalytics = () => {
                     description={`${item.count} customers`}
                   />
                   <div style={{ textAlign: 'right' }}>
-                    <Text strong>{item.percentage}%</Text>
+                    <TypographyText strong>{item.percentage}%</TypographyText>
                     <Progress
                       percent={item.percentage}
                       size="small"
@@ -1422,7 +1422,7 @@ const ReportsAnalytics = () => {
                     description={`${item.count} customers`}
                   />
                   <div style={{ textAlign: 'right' }}>
-                    <Text strong>{item.percentage}%</Text>
+                    <TypographyText strong>{item.percentage}%</TypographyText>
                     <Progress
                       percent={item.percentage}
                       size="small"
@@ -1456,9 +1456,9 @@ const ReportsAnalytics = () => {
           <Title level={3} style={{ margin: '0 0 8px 0', color: '#2c3e50', fontFamily: "'Poppins', sans-serif" }}>
             📊 Reports & Analytics
           </Title>
-          <Text style={{ fontSize: '14px', color: '#6c757d', fontFamily: "'Poppins', sans-serif" }}>
+          <TypographyText style={{ fontSize: '14px', color: '#6c757d', fontFamily: "'Poppins', sans-serif" }}>
             Comprehensive analytics and reporting dashboard
-          </Text>
+          </TypographyText>
         </div>
         
         <Space>
@@ -1500,7 +1500,7 @@ const ReportsAnalytics = () => {
       <Card style={{ marginBottom: '24px', borderRadius: '16px' }}>
         <Row gutter={[16, 16]} align="middle">
           <Col xs={24} sm={12} md={6}>
-            <Text strong style={{ display: 'block', marginBottom: '8px' }}>Date Range:</Text>
+            <TypographyText strong style={{ display: 'block', marginBottom: '8px' }}>Date Range:</TypographyText>
             <DatePicker.RangePicker
               style={{ width: '100%', borderRadius: '8px' }}
               value={dateRange}
@@ -1509,7 +1509,7 @@ const ReportsAnalytics = () => {
             />
           </Col>
           <Col xs={24} sm={12} md={6}>
-            <Text strong style={{ display: 'block', marginBottom: '8px' }}>Select Months:</Text>
+            <TypographyText strong style={{ display: 'block', marginBottom: '8px' }}>Select Months:</TypographyText>
             <Select
               mode="multiple"
               placeholder="Select months"
@@ -1537,7 +1537,7 @@ const ReportsAnalytics = () => {
             </Select>
           </Col>
           <Col xs={24} sm={12} md={6}>
-            <Text strong style={{ display: 'block', marginBottom: '8px' }}>Select Years:</Text>
+            <TypographyText strong style={{ display: 'block', marginBottom: '8px' }}>Select Years:</TypographyText>
             <Select
               mode="multiple"
               placeholder="Select years"
@@ -1555,7 +1555,7 @@ const ReportsAnalytics = () => {
             </Select>
           </Col>
           <Col xs={24} sm={12} md={6}>
-            <Text strong style={{ display: 'block', marginBottom: '8px' }}>Metric:</Text>
+            <TypographyText strong style={{ display: 'block', marginBottom: '8px' }}>Metric:</TypographyText>
             <Select
               value={selectedMetric}
               onChange={setSelectedMetric}
@@ -1593,12 +1593,12 @@ const ReportsAnalytics = () => {
                 Refresh Data
               </Button>
               {(appliedFilters.months.length > 0 || appliedFilters.years.length > 0 || appliedFilters.dateRange) && (
-                <Text type="secondary" style={{ fontFamily: "'Poppins', sans-serif" }}>
+                <TypographyText type="secondary" style={{ fontFamily: "'Poppins', sans-serif" }}>
                   Filters Active: 
                   {appliedFilters.months.length > 0 && ` ${appliedFilters.months.length} month(s)`}
                   {appliedFilters.years.length > 0 && ` ${appliedFilters.years.length} year(s)`}
                   {appliedFilters.dateRange && ' Date Range'}
-                </Text>
+                </TypographyText>
               )}
             </Space>
           </Col>

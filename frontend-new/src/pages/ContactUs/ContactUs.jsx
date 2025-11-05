@@ -24,7 +24,7 @@ import Header from '../landingpage/components/Header';
 import Footer from '../landingpage/components/Footer';
 import { inquiryService, tourService } from '../../services';
 
-const { Title, Text, Paragraph } = Typography;
+const { Title, Text: TypographyText, Paragraph } = Typography;
 const { TextArea } = Input;
 const { Option } = Select;
 
@@ -284,13 +284,13 @@ const ContactUs = () => {
                       <EnvironmentOutlined style={{ fontSize: '24px', color: '#ff6b35' }} />
                     </div>
                     <div>
-                      <Text strong style={{ display: 'block', marginBottom: '4px' }}>
+                      <TypographyText strong style={{ display: 'block', marginBottom: '4px' }}>
                         Office Address
-                      </Text>
-                      <Text type="secondary">
+                      </TypographyText>
+                      <TypographyText type="secondary">
                         123 Travel Street, Tourism District<br />
                         Mumbai, Maharashtra 400001, India
-                      </Text>
+                      </TypographyText>
                     </div>
                   </div>
 
@@ -311,13 +311,13 @@ const ContactUs = () => {
                       <PhoneOutlined style={{ fontSize: '24px', color: '#ff6b35' }} />
                     </div>
                     <div>
-                      <Text strong style={{ display: 'block', marginBottom: '4px' }}>
+                      <TypographyText strong style={{ display: 'block', marginBottom: '4px' }}>
                         Phone Number
-                      </Text>
-                      <Text type="secondary">
+                      </TypographyText>
+                      <TypographyText type="secondary">
                         +91 98765 43210<br />
                         +91 98765 43211
-                      </Text>
+                      </TypographyText>
                     </div>
                   </div>
 
@@ -338,13 +338,13 @@ const ContactUs = () => {
                       <MailOutlined style={{ fontSize: '24px', color: '#ff6b35' }} />
                     </div>
                     <div>
-                      <Text strong style={{ display: 'block', marginBottom: '4px' }}>
+                      <TypographyText strong style={{ display: 'block', marginBottom: '4px' }}>
                         Email Address
-                      </Text>
-                      <Text type="secondary">
+                      </TypographyText>
+                      <TypographyText type="secondary">
                         info@lisaatours.com<br />
                         support@lisaatours.com
-                      </Text>
+                      </TypographyText>
                     </div>
                   </div>
 
@@ -365,12 +365,12 @@ const ContactUs = () => {
                       <ClockCircleOutlined style={{ fontSize: '24px', color: '#ff6b35' }} />
                     </div>
                     <div>
-                      <Text strong style={{ display: 'block', marginBottom: '4px' }}>
+                      <TypographyText strong style={{ display: 'block', marginBottom: '4px' }}>
                         Working Hours
-                      </Text>
-                      <Text type="secondary">
+                      </TypographyText>
+                      <TypographyText type="secondary">
                         Monday - Sunday: 9:00 AM - 8:00 PM<br />
-                      </Text>
+                      </TypographyText>
                     </div>
                   </div>
                 </Space>

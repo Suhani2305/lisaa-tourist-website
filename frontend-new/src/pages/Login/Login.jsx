@@ -143,9 +143,9 @@ const Login = () => {
               >
                 <UserOutlined style={{ fontSize: "24px", color: "white" }} />
               </div>
-              <Text style={{ color: "white", fontSize: "14px" }}>
+              <TypographyText style={{ color: "white", fontSize: "14px" }}>
                 Easy Login
-              </Text>
+              </TypographyText>
             </div>
             <div style={{ textAlign: "center" }}>
               <div
@@ -162,9 +162,9 @@ const Login = () => {
               >
                 <LockOutlined style={{ fontSize: "24px", color: "white" }} />
               </div>
-              <Text style={{ color: "white", fontSize: "14px" }}>
+              <TypographyText style={{ color: "white", fontSize: "14px" }}>
                 Secure
-              </Text>
+              </TypographyText>
             </div>
             <div style={{ textAlign: "center" }}>
               <div
@@ -181,9 +181,9 @@ const Login = () => {
               >
                 <MailOutlined style={{ fontSize: "24px", color: "white" }} />
               </div>
-              <Text style={{ color: "white", fontSize: "14px" }}>
+              <TypographyText style={{ color: "white", fontSize: "14px" }}>
                 Email Login
-              </Text>
+              </TypographyText>
             </div>
           </div>
         </div>
@@ -210,7 +210,7 @@ const Login = () => {
             >
               Sign In
             </Title>
-            <Text
+            <TypographyText
               style={{
                 color: "#666",
                 fontSize: "16px",
@@ -218,7 +218,7 @@ const Login = () => {
               }}
             >
               Enter your credentials to access your account
-            </Text>
+            </TypographyText>
           </div>
 
           <Form
@@ -232,7 +232,7 @@ const Login = () => {
             <Form.Item
               name="email"
               label={
-                <Text
+                <TypographyText
                   style={{
                     fontFamily: "'Poppins', sans-serif",
                     fontWeight: "500",
@@ -240,7 +240,7 @@ const Login = () => {
                   }}
                 >
                   Email Address
-                </Text>
+                </TypographyText>
               }
               rules={[
                 { required: true, message: "Please enter your email!" },
@@ -261,7 +261,7 @@ const Login = () => {
             <Form.Item
               name="password"
               label={
-                <Text
+                <TypographyText
                   style={{
                     fontFamily: "'Poppins', sans-serif",
                     fontWeight: "500",
@@ -269,7 +269,7 @@ const Login = () => {
                   }}
                 >
                   Password
-                </Text>
+                </TypographyText>
               }
               rules={[{ required: true, message: "Please enter your password!" }]}
             >
@@ -339,7 +339,7 @@ const Login = () => {
             </Form.Item>
 
             <Divider style={{ color: "#ccc" }}>
-              <Text
+              <TypographyText
                 style={{
                   color: "#999",
                   fontFamily: "'Poppins', sans-serif",
@@ -347,7 +347,7 @@ const Login = () => {
                 }}
               >
                 Or continue with
-              </Text>
+              </TypographyText>
             </Divider>
 
             <Space direction="vertical" style={{ width: "100%" }}>
@@ -386,7 +386,7 @@ const Login = () => {
                 fontFamily: "'Poppins', sans-serif",
               }}
             >
-              <Text style={{ color: "#666" }}>
+              <TypographyText style={{ color: "#666" }}>
                 Don't have an account?{" "}
                 <Link
                   to="/register"
@@ -398,7 +398,7 @@ const Login = () => {
                 >
                   Sign Up
                 </Link>
-              </Text>
+              </TypographyText>
             </div>
 
             {/* Info Note */}

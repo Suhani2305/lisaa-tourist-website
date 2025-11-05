@@ -295,15 +295,15 @@ const UserDashboard = () => {
                 {user?.name || 'User'}
               </Title>
               <Space direction="vertical" size="small">
-                <Text>
+                <TypographyText>
                   <MailOutlined style={{ marginRight: '8px', color: '#ff6b35' }} />
                   {user?.email}
-                </Text>
+                </TypographyText>
                 {user?.phone && (
-                  <Text>
+                  <TypographyText>
                     <PhoneOutlined style={{ marginRight: '8px', color: '#ff6b35' }} />
                     {user?.phone}
-                  </Text>
+                  </TypographyText>
                 )}
                 <Tag color={user?.role === 'admin' ? 'gold' : 'blue'}>
                   {user?.role === 'admin' ? 'Admin' : 'User'}
@@ -339,14 +339,14 @@ const UserDashboard = () => {
               {
                 key: 'bookings',
                 label: (
-                  <span>
-                    <BookOutlined />
-                    My Bookings
-                  </span>
+                <span>
+                  <BookOutlined />
+                  My Bookings
+                </span>
                 ),
                 children: (
                   <>
-                    {bookings && bookings.length > 0 ? (
+              {bookings && bookings.length > 0 ? (
                 <Row gutter={[16, 16]}>
                   {bookings.map((booking) => (
                     <Col xs={24} md={12} key={booking._id}>
@@ -416,7 +416,7 @@ const UserDashboard = () => {
                     Explore Tours
                   </Button>
                 </Empty>
-                    )}
+              )}
                   </>
                 ),
               },
@@ -569,13 +569,13 @@ const UserDashboard = () => {
               {
                 key: 'settings',
                 label: (
-                  <span>
-                    <SettingOutlined />
-                    Profile Settings
-                  </span>
+                <span>
+                  <SettingOutlined />
+                  Profile Settings
+                </span>
                 ),
                 children: (
-                  <Card>
+              <Card>
                 <Title level={4}>Personal Information</Title>
                 <Space direction="vertical" size="large" style={{ width: '100%' }}>
                   <div>
@@ -605,7 +605,7 @@ const UserDashboard = () => {
                     Edit Profile
                   </Button>
                 </Space>
-                  </Card>
+              </Card>
                 ),
               }
             ]}
