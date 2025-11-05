@@ -19,6 +19,7 @@ import {
   UserOutlined,
   EyeOutlined,
   HeartOutlined,
+  HeartFilled,
   ShareAltOutlined,
   ClockCircleOutlined
 } from '@ant-design/icons';
@@ -26,7 +27,7 @@ import { articleService } from '../../services';
 import Header from '../landingpage/components/Header';
 import Footer from '../landingpage/components/Footer';
 
-const { Title, Paragraph, Text } = Typography;
+const { Title, Paragraph, Text: TypographyText } = Typography;
 
 const ArticleDetail = () => {
   const { articleId } = useParams();
@@ -34,6 +35,19 @@ const ArticleDetail = () => {
   const [article, setArticle] = useState(null);
   const [loading, setLoading] = useState(true);
   const [relatedArticles, setRelatedArticles] = useState([]);
+  const [likedArticles, setLikedArticles] = useState(new Set());
+
+  // Load liked articles from localStorage on component mount
+  useEffect(() => {
+    const savedLikes = localStorage.getItem('likedArticles');
+    if (savedLikes) {
+      try {
+        setLikedArticles(new Set(JSON.parse(savedLikes)));
+      } catch (error) {
+        console.error('Error loading liked articles:', error);
+      }
+    }
+  }, []);
 
   // Scroll to top IMMEDIATELY when component mounts (before rendering)
   React.useLayoutEffect(() => {
@@ -51,6 +65,12 @@ const ArticleDetail = () => {
       console.log('🔄 Fetching article:', articleId);
       const data = await articleService.getArticleById(articleId);
       console.log('✅ Article loaded:', data);
+      
+      // Check if article is liked
+      const savedLikes = localStorage.getItem('likedArticles');
+      const likedSet = savedLikes ? new Set(JSON.parse(savedLikes)) : new Set();
+      data.isLiked = likedSet.has(articleId);
+      
       setArticle(data);
     } catch (error) {
       console.error('❌ Failed to fetch article:', error);
@@ -75,12 +95,54 @@ const ArticleDetail = () => {
 
   const handleLike = async () => {
     try {
-      await articleService.likeArticle(articleId);
-      setArticle({ ...article, likes: (article.likes || 0) + 1 });
-      message.success('Thank you for liking! ❤️');
+      const isCurrentlyLiked = likedArticles.has(articleId);
+      
+      if (isCurrentlyLiked) {
+        // Unlike
+        const newLikedSet = new Set(likedArticles);
+        newLikedSet.delete(articleId);
+        setLikedArticles(newLikedSet);
+        localStorage.setItem('likedArticles', JSON.stringify([...newLikedSet]));
+        
+        // Update local state
+        setArticle({ 
+          ...article, 
+          isLiked: false,
+          likes: Math.max(0, (article.likes || 0) - 1)
+        });
+        
+        message.success('Removed like');
+      } else {
+        // Like
+        const newLikedSet = new Set(likedArticles);
+        newLikedSet.add(articleId);
+        setLikedArticles(newLikedSet);
+        localStorage.setItem('likedArticles', JSON.stringify([...newLikedSet]));
+        
+        // Update local state
+        setArticle({ 
+          ...article, 
+          isLiked: true,
+          likes: (article.likes || 0) + 1
+        });
+        
+        // Call API to increment likes
+        try {
+          await articleService.likeArticle(articleId);
+        } catch (error) {
+          console.error('Like API error:', error);
+        }
+        
+        message.success('Liked! ❤️');
+      }
     } catch (error) {
       console.error('❌ Like error:', error);
+      message.error('Failed to like/unlike');
     }
+  };
+
+  const isLiked = (articleId) => {
+    return likedArticles.has(articleId);
   };
 
   const handleShare = async () => {
@@ -148,31 +210,55 @@ const ArticleDetail = () => {
       <Header />
       
       <div style={{ backgroundColor: '#f8f9fa', minHeight: '100vh' }}>
-        {/* Back Button */}
-        <div style={{ 
-          maxWidth: '1200px', 
-          margin: '0 auto',
-          padding: '20px'
-        }}>
-          <Button 
-            icon={<ArrowLeftOutlined />}
-            onClick={() => {
-              // Set flag to scroll to articles section
-              sessionStorage.setItem('scrollToArticles', 'true');
-              navigate('/');
-            }}
-            style={{ marginBottom: '20px' }}
-          >
-            Back to Articles
-          </Button>
-        </div>
-
         {/* Article Content */}
         <div style={{ 
           maxWidth: '900px', 
           margin: '0 auto',
           padding: '0 20px 60px 20px'
         }}>
+          {/* Breadcrumb Navigation */}
+          <div style={{ 
+            fontSize: window.innerWidth <= 768 ? '11px' : '14px', 
+            color: '#6c757d',
+            marginBottom: '20px',
+            fontFamily: 'Poppins, sans-serif'
+          }}>
+            <span 
+              onClick={() => {
+                sessionStorage.setItem('scrollToArticles', 'true');
+                navigate('/');
+              }}
+              style={{ 
+                cursor: 'pointer',
+                color: '#6c757d',
+                transition: 'color 0.2s ease'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.color = '#ff6b35'}
+              onMouseLeave={(e) => e.currentTarget.style.color = '#6c757d'}
+            >
+              Home
+            </span>
+            <span style={{ margin: '0 8px', color: '#6c757d' }}> &gt; </span>
+            <span 
+              onClick={() => navigate('/articles')}
+              style={{ 
+                cursor: 'pointer',
+                color: '#6c757d',
+                transition: 'color 0.2s ease'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.color = '#ff6b35'}
+              onMouseLeave={(e) => e.currentTarget.style.color = '#6c757d'}
+            >
+              Travel Articles
+            </span>
+            {article && (
+              <>
+                <span style={{ margin: '0 8px', color: '#6c757d' }}> &gt; </span>
+                <span style={{ color: '#212529' }}>{article.title}</span>
+              </>
+            )}
+          </div>
+
           {/* Hero Image */}
           {article.featuredImage && (
             <div style={{
@@ -208,9 +294,12 @@ const ArticleDetail = () => {
 
           {/* Title */}
           <Title level={1} style={{ 
-            fontSize: '2.5rem',
-            marginBottom: '20px',
-            lineHeight: '1.3'
+            fontSize: window.innerWidth <= 768 ? '1.5rem' : '2rem',
+            fontWeight: '700',
+            color: '#212529',
+            marginBottom: '24px',
+            lineHeight: '1.3',
+            fontFamily: 'Poppins, sans-serif'
           }}>
             {article.title}
           </Title>
@@ -221,8 +310,7 @@ const ArticleDetail = () => {
             flexWrap: 'wrap',
             gap: '24px',
             marginBottom: '30px',
-            paddingBottom: '30px',
-            borderBottom: '2px solid #e9ecef'
+            paddingBottom: '30px'
           }}>
             <Space>
               <Avatar icon={<UserOutlined />} style={{ backgroundColor: '#FF6B35' }} />
@@ -258,27 +346,28 @@ const ArticleDetail = () => {
             <Space size="large">
               <Space>
                 <EyeOutlined style={{ fontSize: '18px', color: '#6c757d' }} />
-                <Text>{article.views || 0} views</Text>
+                <TypographyText>{article.views || 0} views</TypographyText>
               </Space>
               <Space>
                 <HeartOutlined style={{ fontSize: '18px', color: '#FF6B35' }} />
-                <Text>{article.likes || 0} likes</Text>
+                <TypographyText>{article.likes || 0} likes</TypographyText>
               </Space>
               <Space>
                 <ShareAltOutlined style={{ fontSize: '18px', color: '#6c757d' }} />
-                <Text>{article.shares || 0} shares</Text>
+                <TypographyText>{article.shares || 0} shares</TypographyText>
               </Space>
             </Space>
             <Space>
               <Button 
-                icon={<HeartOutlined />}
+                icon={article.isLiked ? <HeartFilled /> : <HeartOutlined />}
                 onClick={handleLike}
                 style={{
-                  borderColor: '#FF6B35',
-                  color: '#FF6B35'
+                  borderColor: '#ff6b35',
+                  color: article.isLiked ? '#ffffff' : '#ff6b35',
+                  backgroundColor: article.isLiked ? '#ff6b35' : 'transparent'
                 }}
               >
-                Like
+                {article.isLiked ? 'Liked' : 'Like'}
               </Button>
               <Button 
                 type="primary"

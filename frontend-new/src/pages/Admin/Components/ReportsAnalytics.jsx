@@ -293,8 +293,9 @@ const ReportsAnalytics = () => {
   const [analyticsData, setAnalyticsData] = useState(null);
   const [revenueTrends, setRevenueTrends] = useState([]);
   const [bookingTrends, setBookingTrends] = useState([]);
-  const [popularDestinations, setPopularDestinations] = useState([]);
+      const [popularDestinations, setPopularDestinations] = useState([]);
   const [customerDemographics, setCustomerDemographics] = useState(null);
+  const [topPackages, setTopPackages] = useState([]);
   
   // Filter states
   const [selectedMonths, setSelectedMonths] = useState([]);
@@ -328,6 +329,45 @@ const ReportsAnalytics = () => {
         analyticsService.getCustomerDemographics()
       ]);
       
+      // Calculate growth percentages from trends
+      const calculateGrowth = (currentData, previousData) => {
+        if (!currentData || !previousData || previousData === 0) return 0;
+        return ((currentData - previousData) / previousData) * 100;
+      };
+
+      // Calculate booking growth from trends
+      let bookingGrowth = 0;
+      if (bookings && bookings.length >= 2) {
+        const currentMonth = bookings[bookings.length - 1]?.count || 0;
+        const previousMonth = bookings[bookings.length - 2]?.count || 0;
+        bookingGrowth = calculateGrowth(currentMonth, previousMonth);
+      }
+
+      // Calculate revenue growth from trends
+      let revenueGrowth = 0;
+      if (revenue && revenue.length >= 2) {
+        const currentMonthRevenue = revenue[revenue.length - 1]?.revenue || 0;
+        const previousMonthRevenue = revenue[revenue.length - 2]?.revenue || 0;
+        revenueGrowth = calculateGrowth(currentMonthRevenue, previousMonthRevenue);
+      }
+
+      // Calculate new vs returning customers
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      // This would need additional API call, for now estimate based on bookings
+      const newCustomers = 0; // TODO: Calculate from user registration dates
+      const returningCustomers = dashboard.overview?.totalCustomers || 0;
+
+      // Transform destinations data
+      const transformedDestinations = destinations.map(dest => ({
+        destination: dest._id || 'Unknown',
+        bookings: dest.bookings || 0,
+        revenue: dest.revenue || 0
+      }));
+
+      // Store top packages from dashboard
+      setTopPackages(dashboard.topTours || []);
+
       // Transform API data to match component format
       setAnalyticsData({
         overview: {
@@ -335,23 +375,24 @@ const ReportsAnalytics = () => {
           totalRevenue: dashboard.overview?.totalRevenue || 0,
           totalCustomers: dashboard.overview?.totalCustomers || 0,
           totalTours: dashboard.overview?.totalTours || 0,
-          bookingGrowth: 0, // Calculate from trends
-          revenueGrowth: 0, // Calculate from trends
-          customerGrowth: 0,
-          tourGrowth: 0
+          bookingGrowth: parseFloat(bookingGrowth.toFixed(1)),
+          revenueGrowth: parseFloat(revenueGrowth.toFixed(1)),
+          customerGrowth: 0, // Would need user registration trends
+          tourGrowth: 0 // Would need tour creation trends
         },
         bookings: {
           total: dashboard.overview?.totalBookings || 0,
           confirmed: dashboard.bookingStatus?.confirmed || 0,
           pending: dashboard.bookingStatus?.pending || 0,
           cancelled: dashboard.bookingStatus?.cancelled || 0,
-          byMonth: revenue || [],
-          byDestination: destinations || []
+          completed: dashboard.bookingStatus?.completed || 0,
+          byMonth: bookings || [],
+          byDestination: transformedDestinations || []
         },
         customers: {
           total: dashboard.overview?.totalCustomers || 0,
-          new: 0,
-          returning: 0,
+          new: newCustomers,
+          returning: returningCustomers,
           byAge: demographics?.byAge || [],
           byGender: demographics?.byGender || [],
           byLocation: demographics?.byLocation || []
@@ -361,7 +402,7 @@ const ReportsAnalytics = () => {
           monthly: dashboard.overview?.monthlyRevenue || 0,
           yearly: dashboard.overview?.yearlyRevenue || 0,
           byMonth: revenue || [],
-          byDestination: destinations || []
+          byDestination: transformedDestinations || []
         },
         performance: {
           website: {
@@ -433,7 +474,7 @@ const ReportsAnalytics = () => {
 
       setRevenueTrends(filteredRevenue);
       setBookingTrends(filteredBookings);
-      setPopularDestinations(destinations || []);
+      setPopularDestinations(transformedDestinations || []);
       setCustomerDemographics(demographics || null);
     } catch (error) {
       console.error('Failed to fetch analytics:', error);
@@ -1073,38 +1114,119 @@ const ReportsAnalytics = () => {
         </Col>
       </Row>
 
-      {/* Monthly Bookings Chart Placeholder */}
+      {/* Monthly Bookings Trend */}
       <Card title="Monthly Bookings Trend" style={{ borderRadius: '16px', marginBottom: '24px' }}>
-        <div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f5f5f5', borderRadius: '8px' }}>
-          <div style={{ textAlign: 'center' }}>
-            <BarChartOutlined style={{ fontSize: '48px', color: '#1890ff' }} />
-            <br />
-            <Text type="secondary">Chart visualization would be implemented here</Text>
+        {bookingTrends && bookingTrends.length > 0 ? (
+          <div style={{ padding: '20px' }}>
+            <Table
+              dataSource={bookingTrends.map((item, idx) => ({ ...item, key: idx }))}
+              columns={[
+                {
+                  title: 'Period',
+                  dataIndex: '_id',
+                  key: 'period',
+                  render: (text) => text || 'N/A'
+                },
+                {
+                  title: 'Total Bookings',
+                  dataIndex: 'count',
+                  key: 'count',
+                  render: (count) => count || 0
+                },
+                {
+                  title: 'Confirmed',
+                  dataIndex: 'confirmed',
+                  key: 'confirmed',
+                  render: (confirmed) => confirmed || 0
+                },
+                {
+                  title: 'Cancelled',
+                  dataIndex: 'cancelled',
+                  key: 'cancelled',
+                  render: (cancelled) => cancelled || 0
+                }
+              ]}
+              pagination={false}
+              size="small"
+            />
           </div>
-        </div>
+        ) : (
+          <div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f5f5f5', borderRadius: '8px' }}>
+            <div style={{ textAlign: 'center' }}>
+              <BarChartOutlined style={{ fontSize: '48px', color: '#1890ff' }} />
+              <br />
+              <Text type="secondary">No booking trend data available</Text>
+            </div>
+          </div>
+        )}
       </Card>
 
       {/* Top Destinations */}
-      <Card title="Top Destinations by Bookings" style={{ borderRadius: '16px' }}>
-        <List
-          dataSource={analyticsData.bookings.byDestination}
-          renderItem={(item, index) => (
-            <List.Item>
-              <List.Item.Meta
-                avatar={<Avatar style={{ backgroundColor: '#ff6b35' }}>{index + 1}</Avatar>}
-                title={item.destination}
-                description={`${item.bookings} bookings • ${formatCurrency(item.revenue)} revenue`}
-              />
-              <div style={{ textAlign: 'right' }}>
-                <Progress
-                  percent={Math.round((item.bookings / analyticsData.bookings.byDestination[0].bookings) * 100)}
-                  size="small"
-                  style={{ width: '100px' }}
+      <Card title="Top Destinations by Bookings" style={{ borderRadius: '16px', marginBottom: '24px' }}>
+        {analyticsData.bookings.byDestination && analyticsData.bookings.byDestination.length > 0 ? (
+          <List
+            dataSource={analyticsData.bookings.byDestination}
+            renderItem={(item, index) => (
+              <List.Item>
+                <List.Item.Meta
+                  avatar={<Avatar style={{ backgroundColor: '#ff6b35' }}>{index + 1}</Avatar>}
+                  title={item.destination || 'Unknown'}
+                  description={`${item.bookings || 0} bookings • ${formatCurrency(item.revenue || 0)} revenue`}
                 />
-              </div>
-            </List.Item>
-          )}
-        />
+                <div style={{ textAlign: 'right' }}>
+                  {analyticsData.bookings.byDestination[0]?.bookings > 0 && (
+                    <Progress
+                      percent={Math.round(((item.bookings || 0) / analyticsData.bookings.byDestination[0].bookings) * 100)}
+                      size="small"
+                      style={{ width: '100px' }}
+                    />
+                  )}
+                </div>
+              </List.Item>
+            )}
+          />
+        ) : (
+          <div style={{ textAlign: 'center', padding: '40px', color: '#6c757d' }}>
+            <Text type="secondary">No destination data available</Text>
+          </div>
+        )}
+      </Card>
+
+      {/* Popular Packages */}
+      <Card title="Popular Packages" style={{ borderRadius: '16px' }}>
+        {topPackages && topPackages.length > 0 ? (
+          <List
+            dataSource={topPackages}
+            renderItem={(item, index) => (
+              <List.Item>
+                <List.Item.Meta
+                  avatar={
+                    <Avatar 
+                      src={item.tour?.images?.[0]} 
+                      icon={<BookIcon />}
+                      style={{ backgroundColor: '#ff6b35' }}
+                    />
+                  }
+                  title={item.tour?.title || 'Unknown Package'}
+                  description={`${item.tour?.destination || 'Unknown'} • ${item.bookings || 0} bookings`}
+                />
+                <div style={{ textAlign: 'right' }}>
+                  <Text strong style={{ fontSize: '16px', color: '#52c41a' }}>
+                    {formatCurrency(item.revenue || 0)}
+                  </Text>
+                  <br />
+                  <Text type="secondary" style={{ fontSize: '12px' }}>
+                    Revenue
+                  </Text>
+                </div>
+              </List.Item>
+            )}
+          />
+        ) : (
+          <div style={{ textAlign: 'center', padding: '40px', color: '#6c757d' }}>
+            <Text type="secondary">No package data available</Text>
+          </div>
+        )}
       </Card>
     </div>
   );
@@ -1157,24 +1279,73 @@ const ReportsAnalytics = () => {
         </Col>
       </Row>
 
-      {/* Revenue Sources */}
-      <Card title="Revenue by Source" style={{ borderRadius: '16px' }}>
-        <List
-          dataSource={analyticsData.revenue.bySource}
-          renderItem={(item) => (
-            <List.Item>
-              <List.Item.Meta
-                title={item.source}
-                description={`${formatCurrency(item.revenue)} (${item.percentage}%)`}
-              />
-              <Progress
-                percent={item.percentage}
-                size="small"
-                style={{ width: '200px' }}
-              />
-            </List.Item>
-          )}
-        />
+      {/* Revenue Trends */}
+      <Card title="Revenue Trends" style={{ borderRadius: '16px', marginBottom: '24px' }}>
+        {revenueTrends && revenueTrends.length > 0 ? (
+          <div style={{ padding: '20px' }}>
+            <Table
+              dataSource={revenueTrends.map((item, idx) => ({ ...item, key: idx }))}
+              columns={[
+                {
+                  title: 'Period',
+                  dataIndex: '_id',
+                  key: 'period',
+                  render: (text) => text || 'N/A'
+                },
+                {
+                  title: 'Revenue',
+                  dataIndex: 'revenue',
+                  key: 'revenue',
+                  render: (revenue) => formatCurrency(revenue || 0)
+                },
+                {
+                  title: 'Bookings',
+                  dataIndex: 'bookings',
+                  key: 'bookings',
+                  render: (bookings) => bookings || item.count || 0
+                }
+              ]}
+              pagination={false}
+              size="small"
+            />
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', padding: '40px', color: '#6c757d' }}>
+            <Text type="secondary">No revenue trend data available</Text>
+          </div>
+        )}
+      </Card>
+
+      {/* Revenue by Destination */}
+      <Card title="Revenue by Destination" style={{ borderRadius: '16px' }}>
+        {analyticsData.revenue.byDestination && analyticsData.revenue.byDestination.length > 0 ? (
+          <List
+            dataSource={analyticsData.revenue.byDestination}
+            renderItem={(item, index) => (
+              <List.Item>
+                <List.Item.Meta
+                  avatar={<Avatar style={{ backgroundColor: '#52c41a' }}>{index + 1}</Avatar>}
+                  title={item.destination || 'Unknown'}
+                  description={`${formatCurrency(item.revenue || 0)} revenue`}
+                />
+                <div style={{ textAlign: 'right' }}>
+                  {analyticsData.revenue.byDestination[0]?.revenue > 0 && (
+                    <Progress
+                      percent={Math.round(((item.revenue || 0) / analyticsData.revenue.byDestination[0].revenue) * 100)}
+                      size="small"
+                      style={{ width: '100px' }}
+                      strokeColor="#52c41a"
+                    />
+                  )}
+                </div>
+              </List.Item>
+            )}
+          />
+        ) : (
+          <div style={{ textAlign: 'center', padding: '40px', color: '#6c757d' }}>
+            <Text type="secondary">No destination revenue data available</Text>
+          </div>
+        )}
       </Card>
     </div>
   );

@@ -52,9 +52,9 @@ const offerService = {
   },
 
   // Validate offer code
-  validateOffer: async (code, amount, userId) => {
+  validateOffer: async (code, amount, userId, tourId) => {
     try {
-      const response = await api.post(`/offers/validate/${code}`, { amount, userId });
+      const response = await api.post(`/offers/validate/${code}`, { amount, userId, tourId });
       return response.data;
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Invalid offer code');

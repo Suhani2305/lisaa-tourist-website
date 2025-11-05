@@ -128,7 +128,7 @@ router.delete('/:id', async (req, res) => {
 router.post('/validate/:code', async (req, res) => {
   try {
     const { code } = req.params;
-    const { amount, userId } = req.body;
+    const { amount, userId, tourId } = req.body;
     
     const offer = await Offer.findOne({ code: code.toUpperCase() });
     
@@ -152,6 +152,18 @@ router.post('/validate/:code', async (req, res) => {
       return res.status(400).json({ 
         message: `Minimum amount of ₹${offer.minAmount} required for this offer` 
       });
+    }
+    
+    // Check if tour is applicable (if applicableTours is specified)
+    if (tourId && offer.applicableTours && offer.applicableTours.length > 0) {
+      const isTourApplicable = offer.applicableTours.some(
+        tour => tour.toString() === tourId || tour._id?.toString() === tourId
+      );
+      if (!isTourApplicable) {
+        return res.status(400).json({ 
+          message: 'This offer is not applicable to the selected tour' 
+        });
+      }
     }
     
     // Check usage limit

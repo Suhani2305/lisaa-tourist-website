@@ -42,6 +42,10 @@ import StatePage from './pages/state/StatePage'
 import CityPage from './pages/state/CityPage'
 // Trending Destinations Page
 import TrendingDestinationsPage from './pages/TrendingDestinations/TrendingDestinationsPage'
+// Media Gallery Page
+import MediaGallery from './pages/MediaGallery/MediaGallery'
+// All Articles Page
+import AllArticles from './pages/Articles/AllArticles'
 import './App.css'
 
 function App() {
@@ -93,6 +97,13 @@ function App() {
           
           {/* Trending Destinations Page */}
           <Route path="/trending-destinations" element={<TrendingDestinationsPage />} />
+          
+          {/* Media Gallery Page */}
+          <Route path="/gallery" element={<MediaGallery />} />
+          <Route path="/media-gallery" element={<MediaGallery />} />
+          
+          {/* All Articles Page */}
+          <Route path="/articles" element={<AllArticles />} />
           
           {/* Dynamic State & City Routes */}
           <Route path="/state/:stateSlug" element={<StatePage />} />

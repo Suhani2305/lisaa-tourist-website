@@ -122,6 +122,28 @@ const bookingSchema = new mongoose.Schema({
       default: 0
     }
   },
+  cancellationRefund: {
+    refundable: Boolean,
+    refundAmount: Number,
+    refundPercentage: Number,
+    cancellationFee: Number,
+    totalPaid: Number,
+    cancelledAt: Date,
+    daysUntilTravel: Number
+  },
+  appliedCoupon: {
+    code: String,
+    offerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Offer'
+    },
+    discountAmount: Number,
+    discountType: {
+      type: String,
+      enum: ['percentage', 'fixed']
+    },
+    discountValue: Number
+  },
   notes: String
 }, {
   timestamps: true

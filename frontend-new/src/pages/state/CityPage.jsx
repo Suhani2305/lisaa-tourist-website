@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Spin, Card, Row, Col, message, Tag } from 'antd';
+import { ArrowLeftOutlined } from '@ant-design/icons';
 import { stateService } from '../../services';
 import Header from '../landingpage/components/Header';
 import Footer from '../landingpage/components/Footer';
@@ -97,63 +98,80 @@ const CityPage = () => {
       <Header />
       
       <div style={{ minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
-        {/* Header/Navigation */}
-        <div style={{
-          backgroundColor: 'white',
-          padding: isSmall ? '12px 0' : isMobile ? '14px 0' : '16px 0',
-          borderBottom: '1px solid #e9ecef',
-          position: 'sticky',
-          top: 0,
-          zIndex: 100,
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-        }}>
-          <div style={{
-            maxWidth: isMobile ? '100%' : '1800px',
-            margin: '0 auto',
-            padding: isSmall ? '0 8px' : isMobile ? '0 12px' : window.innerWidth <= 1024 ? '0 32px' : '0 250px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: isMobile ? '12px' : '20px',
-            flexWrap: 'wrap'
-          }}>
-            <button onClick={() => navigate(`/state/${stateSlug}`)} style={{
-              padding: isSmall ? '6px 12px' : '8px 16px',
-              backgroundColor: 'transparent',
-              color: '#FF6B35',
-              border: '2px solid #FF6B35',
-              borderRadius: isMobile ? '6px' : '8px',
-              cursor: 'pointer',
-              fontSize: isSmall ? '12px' : '14px',
-              fontWeight: '600',
-              transition: 'all 0.3s'
-            }}>
-              ← {isSmall ? 'Back' : `Back to ${stateSlug}`}
-            </button>
-            <div>
-              <div style={{ 
-                fontSize: isSmall ? '10px' : '12px', 
-                color: '#6c757d' 
-              }}>
-                Home / {stateSlug} / {city.name}
-              </div>
-              <h1 style={{ 
-                fontSize: isSmall ? '1.1rem' : isMobile ? '1.3rem' : '2rem', 
-                fontWeight: 'bold', 
-                color: '#212529',
-                margin: '4px 0 0 0'
-              }}>
-                {city.name}
-              </h1>
-            </div>
-          </div>
-        </div>
-
         {/* Hero Section */}
         <div style={{
           maxWidth: isMobile ? '100%' : '1800px',
           margin: isSmall ? '20px auto' : isMobile ? '30px auto' : '40px auto',
           padding: isSmall ? '0 8px' : isMobile ? '0 12px' : window.innerWidth <= 1024 ? '0 32px' : '0 250px'
         }}>
+          {/* Breadcrumb & Title */}
+          <div style={{ 
+            fontSize: isSmall ? '11px' : isMobile ? '12px' : '14px', 
+            color: '#6c757d',
+            marginBottom: '12px',
+            fontFamily: 'Poppins, sans-serif'
+          }}>
+            <span 
+              onClick={() => {
+                sessionStorage.setItem('scrollToStates', 'true');
+                navigate('/');
+              }}
+              style={{ 
+                cursor: 'pointer',
+                color: '#6c757d',
+                transition: 'color 0.2s ease'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.color = '#ff6b35'}
+              onMouseLeave={(e) => e.currentTarget.style.color = '#6c757d'}
+            >
+              Home
+            </span>
+            <span style={{ margin: '0 8px', color: '#6c757d' }}> &gt; </span>
+            <span 
+              onClick={() => navigate('/all-states')}
+              style={{ 
+                cursor: 'pointer',
+                color: '#6c757d',
+                transition: 'color 0.2s ease'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.color = '#ff6b35'}
+              onMouseLeave={(e) => e.currentTarget.style.color = '#6c757d'}
+            >
+              States
+            </span>
+            {state && (
+              <>
+                <span style={{ margin: '0 8px', color: '#6c757d' }}> &gt; </span>
+                <span 
+                  onClick={() => navigate(`/state/${stateSlug}`)}
+                  style={{ 
+                    cursor: 'pointer',
+                    color: '#6c757d',
+                    transition: 'color 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = '#ff6b35'}
+                  onMouseLeave={(e) => e.currentTarget.style.color = '#6c757d'}
+                >
+                  {state.name}
+                </span>
+              </>
+            )}
+            {city && (
+              <>
+                <span style={{ margin: '0 8px', color: '#6c757d' }}> &gt; </span>
+                <span style={{ color: '#212529' }}>{city.name}</span>
+              </>
+            )}
+          </div>
+          <h1 style={{ 
+            fontSize: isSmall ? '1.2rem' : isMobile ? '1.5rem' : '2rem', 
+            fontWeight: '700', 
+            color: '#212529',
+            margin: '0 0 24px 0',
+            fontFamily: 'Poppins, sans-serif'
+          }}>
+            {city.name}
+          </h1>
           <Card style={{
             borderRadius: isMobile ? '12px' : '16px',
             marginBottom: isSmall ? '20px' : isMobile ? '30px' : '40px',
@@ -183,10 +201,11 @@ const CityPage = () => {
             )}
 
             <h2 style={{
-              fontSize: isSmall ? '1.1rem' : isMobile ? '1.3rem' : '1.8rem',
-              fontWeight: 'bold',
+              fontSize: isSmall ? '1.2rem' : isMobile ? '1.5rem' : '1.75rem',
+              fontWeight: '700',
               color: '#212529',
-              marginBottom: isSmall ? '12px' : '16px'
+              marginBottom: isSmall ? '12px' : '16px',
+              fontFamily: 'Poppins, sans-serif'
             }}>
               {city.name}
             </h2>
@@ -232,10 +251,11 @@ const CityPage = () => {
           {/* Tours Section */}
           <div>
             <h2 style={{
-              fontSize: isSmall ? '1.3rem' : isMobile ? '1.5rem' : '2rem',
-              fontWeight: 'bold',
+              fontSize: isSmall ? '1.2rem' : isMobile ? '1.5rem' : '1.75rem',
+              fontWeight: '700',
               color: '#212529',
-              marginBottom: '24px'
+              marginBottom: '24px',
+              fontFamily: 'Poppins, sans-serif'
             }}>
               Tours in {city.name}
             </h2>

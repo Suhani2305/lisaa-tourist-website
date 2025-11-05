@@ -118,22 +118,49 @@ const TravelArticles = () => {
           flexWrap: 'wrap',
           gap: '10px'
         }}>
-          <h2 style={{ 
-            fontSize: window.innerWidth <= 480 ? '1.3rem' : window.innerWidth <= 768 ? '1.5rem' : '1.7rem',
-            fontWeight: 'bold',
-            color: '#212529',
-            margin: 0
-          }}>
-            Travel Articles
-          </h2>
-          <a href="#" style={{ 
-            color: '#007bff',
-            textDecoration: 'none',
-            fontSize: window.innerWidth <= 768 ? '12px' : '14px',
-            fontWeight: '600'
-          }}>
-            {window.innerWidth <= 768 ? 'See more' : 'See all'}
-          </a>
+          <div>
+            <h2 style={{ 
+              fontSize: window.innerWidth <= 480 ? "22px" : window.innerWidth <= 768 ? "26px" : "36px",
+              fontWeight: "700",
+              color: "#212529",
+              margin: "0 0 8px 0",
+              fontFamily: "Poppins, sans-serif"
+            }}>
+              Travel Articles
+            </h2>
+            <p style={{
+              margin: 0,
+              color: "#6c757d",
+              fontSize: window.innerWidth <= 768 ? "14px" : "16px"
+            }}>
+              Read our latest travel guides and stories
+            </p>
+          </div>
+          <button
+            onClick={() => navigate('/articles')}
+            style={{
+              backgroundColor: 'transparent',
+              color: '#ff6b35',
+              border: '2px solid #ff6b35',
+              borderRadius: '8px',
+              padding: window.innerWidth <= 480 ? '8px 16px' : '10px 20px',
+              fontSize: window.innerWidth <= 480 ? '14px' : '16px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              fontFamily: 'Poppins, sans-serif'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#ff6b35';
+              e.currentTarget.style.color = 'white';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.color = '#ff6b35';
+            }}
+          >
+            See all →
+          </button>
         </div>
         
         {/* Articles Grid - responsive columns */}

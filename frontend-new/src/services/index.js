@@ -5,6 +5,7 @@ import bookingService from './bookingService';
 import tourService from './tourService';
 import destinationService from './destinationService';
 import reviewService from './reviewService';
+import wishlistService from './wishlistService';
 import paymentService from './paymentService';
 import articleService from './articleService';
 import stateService from './stateService';
@@ -21,6 +22,7 @@ export {
   tourService,
   destinationService,
   reviewService,
+  wishlistService,
   paymentService,
   articleService,
   stateService,

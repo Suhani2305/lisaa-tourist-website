@@ -10,6 +10,7 @@ import {
   message,
   Space,
   Select,
+  ConfigProvider,
 } from 'antd';
 import {
   MailOutlined,
@@ -83,13 +84,18 @@ const ContactUs = () => {
       {/* Hero Section */}
       <div
         style={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          background: 'linear-gradient(135deg, #FF6B35 0%, #f15a29 100%)',
           padding: '80px 20px',
           textAlign: 'center',
           color: 'white',
         }}
       >
-        <Title level={1} style={{ color: 'white', marginBottom: '16px' }}>
+        <Title level={1} style={{ 
+          color: 'white', 
+          marginBottom: '16px',
+          fontSize: window.innerWidth <= 768 ? '1.5rem' : '2rem',
+          fontFamily: 'Poppins, sans-serif'
+        }}>
           Get In Touch
         </Title>
         <Paragraph style={{ color: 'rgba(255,255,255,0.9)', fontSize: '18px' }}>
@@ -112,12 +118,19 @@ const ContactUs = () => {
                 Send us a Message
               </Title>
 
-              <Form
-                form={form}
-                layout="vertical"
-                onFinish={onFinish}
-                size="large"
+              <ConfigProvider
+                theme={{
+                  token: {
+                    colorPrimary: '#FF6B35',
+                  },
+                }}
               >
+                <Form
+                  form={form}
+                  layout="vertical"
+                  onFinish={onFinish}
+                  size="large"
+                >
                 <Row gutter={16}>
                   <Col xs={24} sm={12}>
                     <Form.Item
@@ -235,6 +248,7 @@ const ContactUs = () => {
                   </Col>
                 </Row>
               </Form>
+              </ConfigProvider>
             </Card>
           </Col>
 

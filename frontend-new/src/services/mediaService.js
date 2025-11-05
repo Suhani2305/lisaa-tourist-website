@@ -69,6 +69,49 @@ const mediaService = {
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Failed to update like count');
     }
+  },
+
+  // Upload single file
+  uploadFile: async (file, additionalData = {}) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      // Append additional data
+      Object.keys(additionalData).forEach(key => {
+        if (additionalData[key] !== undefined && additionalData[key] !== null) {
+          formData.append(key, additionalData[key]);
+        }
+      });
+
+      const response = await api.post('/media/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to upload file');
+    }
+  },
+
+  // Upload multiple files
+  uploadMultipleFiles: async (files) => {
+    try {
+      const formData = new FormData();
+      files.forEach((file) => {
+        formData.append('files', file.originFileObj || file);
+      });
+
+      const response = await api.post('/media/upload-multiple', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to upload files');
+    }
   }
 };
 

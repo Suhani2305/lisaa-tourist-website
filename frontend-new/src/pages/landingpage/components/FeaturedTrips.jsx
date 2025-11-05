@@ -143,7 +143,7 @@ const FeaturedTrips = () => {
               margin: "0 0 8px 0",
               color: "#212529",
               fontWeight: "700",
-              fontFamily: "inherit"
+              fontFamily: "Poppins, sans-serif"
             }}>
               Featured trips
             </h2>
@@ -154,48 +154,6 @@ const FeaturedTrips = () => {
             }}>
               Your choice. Discover the best packages
             </p>
-          </div>
-
-          {/* Navigation Arrows */}
-          <div style={{ display: "flex", gap: "12px" }}>
-            <button
-              onClick={() => handleScroll('left')}
-              style={{
-                width: "44px",
-                height: "44px",
-                borderRadius: "50%",
-                border: "1px solid #dee2e6",
-                backgroundColor: "white",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "18px",
-                color: "#212529",
-                boxShadow: "0 2px 4px rgba(0,0,0,0.05)"
-              }}
-            >
-              ←
-            </button>
-            <button
-              onClick={() => handleScroll('right')}
-              style={{
-                width: "44px",
-                height: "44px",
-                borderRadius: "50%",
-                border: "1px solid #dee2e6",
-                backgroundColor: "white",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "18px",
-                color: "#212529",
-                boxShadow: "0 2px 4px rgba(0,0,0,0.05)"
-              }}
-            >
-              →
-            </button>
           </div>
         </div>
 
@@ -218,7 +176,7 @@ const FeaturedTrips = () => {
               key={trip.id}
               onClick={() => navigate(`/package/${trip.id}`)}
               style={{
-                minWidth: window.innerWidth <= 480 ? "280px" : window.innerWidth <= 768 ? "300px" : "320px",
+                minWidth: window.innerWidth <= 480 ? "280px" : window.innerWidth <= 768 ? "300px" : window.innerWidth <= 1440 ? "240px" : "280px",
                 backgroundColor: "white",
                 borderRadius: "16px",
                 overflow: "hidden",
@@ -371,6 +329,76 @@ const FeaturedTrips = () => {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Navigation Arrows - Bottom Left */}
+        <div style={{ 
+          display: "flex", 
+          gap: "22px", 
+          marginTop: window.innerWidth <= 768 ? "15px" : "20px",
+          marginBottom: window.innerWidth <= 768 ? "15px" : "20px",
+          justifyContent: "flex-start"
+        }}>
+          <button
+            onClick={() => handleScroll('left')}
+            style={{
+              width: "64px",
+              height: "64px",
+              borderRadius: "50%",
+              border: "none",
+              backgroundColor: "#ff6b35",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "18px",
+              color: "white",
+              boxShadow: "0 2px 8px rgba(255, 107, 53, 0.3)",
+              transition: "all 0.3s ease"
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = "#f15a29";
+              e.currentTarget.style.boxShadow = "0 4px 12px rgba(255, 107, 53, 0.4)";
+              e.currentTarget.style.transform = "scale(1.1)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = "#ff6b35";
+              e.currentTarget.style.boxShadow = "0 2px 8px rgba(255, 107, 53, 0.3)";
+              e.currentTarget.style.transform = "scale(1)";
+            }}
+          >
+            
+          </button>
+          <button
+            onClick={() => handleScroll('right')}
+            style={{
+              width: "64px",
+              height: "64px",
+              borderRadius: "50%",
+              border: "none",
+              backgroundColor: "#ff6b35",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "18px",
+              color: "white",
+              boxShadow: "0 2px 8px rgba(255, 107, 53, 0.3)",
+              transition: "all 0.3s ease"
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = "#f15a29";
+              e.currentTarget.style.boxShadow = "0 4px 12px rgba(255, 107, 53, 0.4)";
+              e.currentTarget.style.transform = "scale(1.1)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = "#ff6b35";
+              e.currentTarget.style.boxShadow = "0 2px 8px rgba(255, 107, 53, 0.3)";
+              e.currentTarget.style.transform = "scale(1)";
+            }}
+          >
+            
+          </button>
         </div>
 
         {/* Custom scrollbar hide */}

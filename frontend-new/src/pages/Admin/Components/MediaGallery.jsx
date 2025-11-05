@@ -375,39 +375,36 @@ const MediaGallery = () => {
   const handleModalOk = async () => {
     try {
       const values = await form.validateFields();
-      
-      // Handle file upload
-      let mediaUrl = values.url;
-      let thumbnailUrl = values.thumbnail;
       const uploadFile = values.uploadFile || form.getFieldValue('uploadFile');
       
+      // If new file is uploaded, use Cloudinary upload
       if (uploadFile && !editingMedia) {
-        // Convert file to base64
-        const base64 = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result);
-          reader.onerror = reject;
-          reader.readAsDataURL(uploadFile);
-        });
-        
-        mediaUrl = base64;
-        if (values.type === 'image') {
-          thumbnailUrl = base64;
+        try {
+          // Upload file to Cloudinary
+          const uploadResponse = await mediaService.uploadFile(uploadFile, {
+            title: values.title,
+            category: values.category,
+            alt: values.alt,
+            description: values.description,
+            tags: Array.isArray(values.tags) ? values.tags.join(',') : values.tags
+          });
+          
+          message.success('Media file uploaded successfully');
+          setModalVisible(false);
+          setEditingMedia(null);
+          form.resetFields();
+          fetchMediaFiles();
+          return;
+        } catch (uploadError) {
+          console.error('Upload error:', uploadError);
+          message.error(uploadError.message || 'Failed to upload file');
+          return;
         }
       }
       
-      // Determine file format
-      const fileName = uploadFile?.name || values.name || 'untitled';
-      const fileExtension = fileName.split('.').pop()?.toUpperCase() || '';
-      
+      // For editing or if no new file, use existing URL
       const mediaData = {
         ...values,
-        name: fileName,
-        url: mediaUrl || values.url,
-        thumbnail: thumbnailUrl || values.thumbnail || (values.type === 'image' ? mediaUrl : ''),
-        format: fileExtension || values.format || '',
-        size: uploadFile?.size || values.size || 0,
-        mimeType: uploadFile?.type || values.mimeType || '',
         uploadDate: values.uploadDate ? values.uploadDate.toISOString() : new Date().toISOString(),
         tags: values.tags || []
       };
@@ -420,7 +417,7 @@ const MediaGallery = () => {
         await mediaService.updateMedia(editingMedia.id, mediaData);
         message.success('Media file updated successfully');
       } else {
-        // Create new media
+        // Create new media (with URL or base64 fallback)
         await mediaService.createMedia(mediaData);
         message.success('Media file created successfully');
       }
@@ -443,7 +440,7 @@ const MediaGallery = () => {
     setUploadFileList([]);
   };
 
-  // Handle file upload
+  // Handle file upload using Cloudinary
   const handleFileUpload = async () => {
     if (uploadFileList.length === 0) {
       message.warning('Please select files to upload');
@@ -452,56 +449,19 @@ const MediaGallery = () => {
 
     setUploading(true);
     try {
-      const uploadPromises = uploadFileList.map(async (file) => {
-        // Convert file to base64
-        const base64 = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result);
-          reader.onerror = reject;
-          reader.readAsDataURL(file.originFileObj || file);
-        });
-
-        // Determine file type
-        const fileType = file.type?.split('/')[0] || 'document';
-        const typeMap = {
-          'image': 'image',
-          'video': 'video',
-          'audio': 'audio',
-          'application': 'document'
-        };
-        const mediaType = typeMap[fileType] || 'document';
-
-        // Get file extension
-        const fileName = file.name || 'untitled';
-        const fileExtension = fileName.split('.').pop()?.toUpperCase() || '';
-
-        // Create media data
-        const mediaData = {
-          name: fileName,
-          title: fileName.split('.')[0].replace(/[-_]/g, ' '),
-          type: mediaType,
-          category: 'Other',
-          format: fileExtension,
-          url: base64,
-          thumbnail: mediaType === 'image' ? base64 : '',
-          size: file.size || 0,
-          mimeType: file.type || '',
-          description: `Uploaded ${mediaType}`,
-          tags: [],
-          isActive: true
-        };
-
-        return mediaService.createMedia(mediaData);
-      });
-
-      await Promise.all(uploadPromises);
-      message.success(`${uploadFileList.length} file(s) uploaded successfully!`);
+      // Prepare files for upload
+      const files = uploadFileList.map(file => file.originFileObj || file);
+      
+      // Upload multiple files to Cloudinary
+      const response = await mediaService.uploadMultipleFiles(files);
+      
+      message.success(`${response.media?.length || uploadFileList.length} file(s) uploaded successfully!`);
       setUploadModalVisible(false);
       setUploadFileList([]);
       fetchMediaFiles();
     } catch (error) {
       console.error('Upload error:', error);
-      message.error('Failed to upload files');
+      message.error(error.message || 'Failed to upload files');
     } finally {
       setUploading(false);
     }

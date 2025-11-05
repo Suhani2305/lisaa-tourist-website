@@ -30,7 +30,7 @@ link.href =
 link.rel = "stylesheet";
 document.head.appendChild(link);
 
-const { Title, Text, Paragraph } = Typography;
+const { Title, Text: TypographyText, Paragraph } = Typography;
 
 const Login = () => {
   const [loading, setLoading] = useState(false);
@@ -411,7 +411,7 @@ const Login = () => {
                 border: "1px solid #e9ecef",
               }}
             >
-              <Text
+              <TypographyText
                 style={{
                   fontFamily: "'Poppins', sans-serif",
                   fontWeight: "600",
@@ -422,8 +422,8 @@ const Login = () => {
                 }}
               >
                 ℹ️ Note:
-              </Text>
-              <Text
+              </TypographyText>
+              <TypographyText
                 style={{
                   fontFamily: "'Poppins', sans-serif",
                   color: "#666",
@@ -432,7 +432,7 @@ const Login = () => {
                 }}
               >
                 This is for regular users only. Admin users should login at <a href="/admin/login" style={{ color: "#ff6b35", fontWeight: "600" }}>/admin/login</a>
-              </Text>
+              </TypographyText>
             </div>
           </Form>
         </Card>

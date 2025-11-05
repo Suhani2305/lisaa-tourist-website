@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { tourService, paymentService, authService } from '../../services';
-import { Spin, message, Tabs, Timeline, Tag, Card, Row, Col, Modal, Form, Input, InputNumber, DatePicker, Button, Collapse } from 'antd';
+import { tourService, paymentService, authService, reviewService, bookingService, wishlistService, offerService } from '../../services';
+import { Spin, message, Tabs, Timeline, Tag, Card, Row, Col, Modal, Form, Input, InputNumber, DatePicker, Button, Collapse, Rate, Avatar, Empty, Divider, Select, Alert, Typography } from 'antd';
+import Header from '../landingpage/components/Header';
+import Footer from '../landingpage/components/Footer';
 import {
   ClockCircleOutlined,
   CalendarOutlined,
@@ -13,10 +15,17 @@ import {
   HomeOutlined,
   CreditCardOutlined,
   SafetyOutlined,
+  ArrowLeftOutlined,
+  MessageOutlined,
+  EditOutlined,
+  LikeOutlined,
+  HeartOutlined,
+  HeartFilled,
 } from '@ant-design/icons';
 
-const { TabPane } = Tabs;
 const { Panel } = Collapse;
+const { Option } = Select;
+const { Text: TypographyText } = Typography;
 
 const PackageDetail = () => {
   const navigate = useNavigate();
@@ -27,14 +36,147 @@ const PackageDetail = () => {
   const [bookingModalVisible, setBookingModalVisible] = useState(false);
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [form] = Form.useForm();
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [reviewModalVisible, setReviewModalVisible] = useState(false);
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewForm] = Form.useForm();
+  const [averageRating, setAverageRating] = useState(0);
+  const [reviewCount, setReviewCount] = useState(0);
+  const [userBookings, setUserBookings] = useState([]);
+  const [bookingsLoading, setBookingsLoading] = useState(false);
+  const [isInWishlist, setIsInWishlist] = useState(false);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponError, setCouponError] = useState('');
   
   // Watch form values for price calculation (must be at top level, before any returns)
   const adultsCount = Form.useWatch('adults', form) || 1;
   const childrenCount = Form.useWatch('children', form) || 0;
+
+
+  const calculateBaseTotal = () => {
+    const adultPriceInfo = calculateDiscountedPrice(packageData);
+    const adultPrice = adultPriceInfo.hasDiscount ? adultPriceInfo.finalPrice : (packageData?.price?.adult || 0);
+    
+    let childPrice = packageData?.price?.child || 0;
+    if (adultPriceInfo.hasDiscount && childPrice > 0) {
+      if (adultPriceInfo.discountType === 'percentage') {
+        childPrice = Math.round(childPrice * (1 - (adultPriceInfo.discountValue / 100)));
+      } else if (adultPriceInfo.discountType === 'fixed') {
+        childPrice = Math.max(0, childPrice - adultPriceInfo.discountValue);
+      }
+    }
+    
+    return (adultsCount * adultPrice) + (childrenCount * childPrice);
+  };
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) {
+      setCouponError('Please enter a coupon code');
+      return;
+    }
+
+    try {
+      setCouponLoading(true);
+      setCouponError('');
+      
+      // Validate against base total (before coupon discount)
+      const baseTotal = calculateBaseTotal();
+      const user = authService.isAuthenticated() ? await authService.getProfile() : null;
+      
+      const response = await offerService.validateOffer(
+        couponCode.trim().toUpperCase(),
+        baseTotal,
+        user?._id || null,
+        packageData?._id || null
+      );
+      
+      if (response.valid && response.offer) {
+        setAppliedCoupon({
+          code: couponCode.trim().toUpperCase(),
+          offer: response.offer
+        });
+        message.success(`Coupon "${couponCode.trim().toUpperCase()}" applied successfully!`);
+        setCouponCode('');
+      } else {
+        setCouponError('Invalid coupon code');
+      }
+    } catch (error) {
+      console.error('Coupon validation error:', error);
+      setCouponError(error.message || 'Invalid coupon code');
+      setAppliedCoupon(null);
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponCode('');
+    setCouponError('');
+    message.info('Coupon removed');
+  };
   
   useEffect(() => {
     fetchPackageDetails();
   }, [packageSlug]);
+
+  useEffect(() => {
+    if (packageData && packageData._id) {
+      fetchReviews();
+      checkWishlistStatus();
+    }
+  }, [packageData]);
+
+  const checkWishlistStatus = async () => {
+    if (!authService.isAuthenticated() || !packageData?._id) {
+      setIsInWishlist(false);
+      return;
+    }
+
+    try {
+      const status = await wishlistService.checkWishlist(packageData._id);
+      setIsInWishlist(status);
+    } catch (error) {
+      console.error('Failed to check wishlist status:', error);
+      setIsInWishlist(false);
+    }
+  };
+
+  const handleWishlistToggle = async () => {
+    if (!authService.isAuthenticated()) {
+      message.warning('Please login to add packages to wishlist');
+      navigate('/login');
+      return;
+    }
+
+    if (!packageData?._id) {
+      message.error('Package information not available');
+      return;
+    }
+
+    try {
+      setWishlistLoading(true);
+      
+      if (isInWishlist) {
+        await wishlistService.removeFromWishlist(packageData._id);
+        setIsInWishlist(false);
+        message.success('Removed from wishlist');
+      } else {
+        await wishlistService.addToWishlist(packageData._id);
+        setIsInWishlist(true);
+        message.success('Added to wishlist');
+      }
+    } catch (error) {
+      console.error('Wishlist toggle error:', error);
+      message.error(error.message || 'Failed to update wishlist');
+    } finally {
+      setWishlistLoading(false);
+    }
+  };
 
   // Helper function to calculate discounted price
   const calculateDiscountedPrice = (tour) => {
@@ -104,6 +246,115 @@ const PackageDetail = () => {
     }
   };
 
+  const fetchReviews = async () => {
+    if (!packageData || !packageData._id) return;
+    
+    try {
+      setReviewsLoading(true);
+      const response = await reviewService.getTourReviews(packageData._id);
+      
+      if (response.reviews) {
+        setReviews(response.reviews);
+      }
+      
+      if (response.averageRating) {
+        setAverageRating(response.averageRating.average || 0);
+        setReviewCount(response.averageRating.count || 0);
+      } else if (response.total) {
+        setReviewCount(response.total);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching reviews:', error);
+      // Don't show error message - reviews are optional
+      setReviews([]);
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
+
+  const fetchUserBookings = async () => {
+    if (!authService.isAuthenticated()) {
+      setUserBookings([]);
+      return;
+    }
+
+    try {
+      setBookingsLoading(true);
+      const bookings = await bookingService.getMyBookings();
+      
+      // Filter bookings for this tour only
+      const tourBookings = Array.isArray(bookings) 
+        ? bookings.filter(booking => {
+            // Check if booking.tour is an object with _id or string
+            const tourId = booking.tour?._id || booking.tour;
+            return tourId === packageData._id || tourId === packageData._id?.toString();
+          })
+        : [];
+      
+      setUserBookings(tourBookings);
+    } catch (error) {
+      console.error('❌ Error fetching bookings:', error);
+      setUserBookings([]);
+    } finally {
+      setBookingsLoading(false);
+    }
+  };
+
+  const handleSubmitReview = async (values) => {
+    try {
+      // Check if user is logged in
+      if (!authService.isAuthenticated()) {
+        message.error('Please login to submit a review');
+        navigate('/login');
+        return;
+      }
+
+      // Check if booking is required
+      if (!values.bookingId && userBookings.length > 0) {
+        message.error('Please select a booking for this review');
+        return;
+      }
+
+      setReviewSubmitting(true);
+      
+      const reviewData = {
+        tourId: packageData._id,
+        bookingId: values.bookingId || null,
+        rating: values.rating,
+        title: values.title,
+        comment: values.comment,
+        images: values.images || []
+      };
+
+      const response = await reviewService.createReview(reviewData);
+
+      if (response.review) {
+        message.success('Review submitted successfully!');
+        setReviewModalVisible(false);
+        reviewForm.resetFields();
+        // Refresh reviews
+        await fetchReviews();
+      } else {
+        message.error(response.message || 'Failed to submit review');
+      }
+    } catch (error) {
+      console.error('❌ Error submitting review:', error);
+      message.error(error.message || 'Failed to submit review. Please try again.');
+    } finally {
+      setReviewSubmitting(false);
+    }
+  };
+
+  const handleReviewModalOpen = () => {
+    if (!authService.isAuthenticated()) {
+      message.error('Please login to submit a review');
+      navigate('/login');
+      return;
+    }
+    setReviewModalVisible(true);
+    fetchUserBookings();
+  };
+
   const handleBookNow = async (values) => {
     try {
       setPaymentLoading(true);
@@ -133,7 +384,20 @@ const PackageDetail = () => {
         }
       }
       
-      const totalAmount = (adults * adultPrice) + (children * childPrice);
+      const baseTotal = (adults * adultPrice) + (children * childPrice);
+      
+      // Apply coupon discount if available
+      let totalAmount = baseTotal;
+      let couponDiscount = 0;
+      let appliedCouponCode = null;
+      let appliedOfferId = null;
+      
+      if (appliedCoupon && appliedCoupon.offer) {
+        couponDiscount = appliedCoupon.offer.discount || 0;
+        totalAmount = Math.max(0, baseTotal - couponDiscount);
+        appliedCouponCode = appliedCoupon.code;
+        appliedOfferId = appliedCoupon.offer.id;
+      }
 
       // Load Razorpay script
       const isLoaded = await paymentService.loadRazorpayScript();
@@ -149,7 +413,10 @@ const PackageDetail = () => {
         tourTitle: packageData.title,
         customerName: values.name || user.name,
         customerEmail: values.email || user.email,
-        customerPhone: values.phone || user.phone
+        customerPhone: values.phone || user.phone,
+        couponCode: appliedCouponCode,
+        couponDiscount: couponDiscount,
+        baseAmount: baseTotal
       };
 
       const orderResponse = await paymentService.createOrder(orderData);
@@ -180,7 +447,10 @@ const PackageDetail = () => {
                 bookingDate: values.travelDate,
                 totalAmount: totalAmount,
                 specialRequests: values.specialRequests || ''
-              }
+              },
+              couponCode: appliedCouponCode,
+              couponDiscount: couponDiscount,
+              baseAmount: baseTotal
             };
 
             const verifyResponse = await paymentService.verifyPayment(verificationData);
@@ -256,25 +526,31 @@ const PackageDetail = () => {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
+      <>
+        <Header />
+        <div style={{ minHeight: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px', padding: '40px' }}>
         <Spin size="large" />
-        <div style={{ color: '#6c757d', fontSize: '16px' }}>Loading package details...</div>
+          <div style={{ color: '#6c757d', fontSize: '16px', fontFamily: 'Poppins, sans-serif' }}>Loading package details...</div>
       </div>
+        <Footer />
+      </>
     );
   }
 
   if (!packageData) {
     return (
+      <>
+        <Header />
       <div style={{ 
-        minHeight: '100vh', 
-        backgroundColor: '#f8f9fa',
+          minHeight: '60vh', 
+          backgroundColor: '#ffffff',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         flexDirection: 'column',
         padding: '40px'
       }}>
-        <h1 style={{ color: '#dc3545', marginBottom: '16px' }}>Package Not Found</h1>
+          <h1 style={{ color: '#dc3545', marginBottom: '16px', fontFamily: 'Poppins, sans-serif' }}>Package Not Found</h1>
         <button 
           onClick={() => navigate('/package')}
           style={{
@@ -285,12 +561,24 @@ const PackageDetail = () => {
             borderRadius: '25px',
             fontSize: '14px',
             fontWeight: '600',
-            cursor: 'pointer'
+              cursor: 'pointer',
+              fontFamily: 'Poppins, sans-serif',
+              transition: 'all 0.3s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = '#f15a29';
+              e.target.style.transform = 'translateY(-2px)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = '#FF6B35';
+              e.target.style.transform = 'translateY(0)';
           }}
         >
           Back to Packages
         </button>
       </div>
+        <Footer />
+      </>
     );
   }
 
@@ -298,56 +586,101 @@ const PackageDetail = () => {
   const isSmall = window.innerWidth <= 480;
 
   return (
-    <div style={{ backgroundColor: '#f8f9fa', minHeight: '100vh' }}>
-      {/* Header */}
+    <>
+      <Header />
+      
+      <div style={{ backgroundColor: '#ffffff', minHeight: '100vh' }}>
+        {/* Main Content */}
       <div style={{
-        backgroundColor: 'white',
-        padding: isSmall ? '12px 0' : '16px 0',
-        borderBottom: '1px solid #e9ecef',
-        position: 'sticky',
-        top: 0,
-        zIndex: 100,
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-      }}>
-        <div style={{
-          maxWidth: isMobile ? '100%' : '1800px',
+          maxWidth: '1400px',
           margin: '0 auto',
-          padding: isSmall ? '0 8px' : isMobile ? '0 12px' : '0 250px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: isMobile ? '12px' : '20px'
+          padding: isSmall ? '24px 16px' : isMobile ? '30px 20px' : '40px 120px'
         }}>
-          <button onClick={() => navigate('/package')} style={{
-            padding: isSmall ? '6px 12px' : '8px 16px',
-            backgroundColor: 'transparent',
-            color: '#FF6B35',
-            border: '2px solid #FF6B35',
-            borderRadius: isMobile ? '6px' : '8px',
-            cursor: 'pointer',
-            fontSize: isSmall ? '12px' : '14px',
-            fontWeight: '600'
+          {/* Breadcrumb & Title */}
+        <div style={{
+            fontSize: isSmall ? '11px' : isMobile ? '12px' : '14px', 
+            color: '#6c757d',
+            marginBottom: '12px',
+            fontFamily: 'Poppins, sans-serif'
           }}>
-            ← Back
-          </button>
-          <div>
+            <span 
+              onClick={() => navigate('/')}
+              style={{ 
+            cursor: 'pointer',
+                color: '#6c757d',
+                transition: 'color 0.2s ease'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.color = '#ff6b35'}
+              onMouseLeave={(e) => e.currentTarget.style.color = '#6c757d'}
+            >
+              Home
+            </span>
+            <span style={{ margin: '0 8px', color: '#6c757d' }}> &gt; </span>
+            <span 
+              onClick={() => navigate('/package')}
+              style={{ 
+                cursor: 'pointer',
+                color: '#6c757d',
+                transition: 'color 0.2s ease'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.color = '#ff6b35'}
+              onMouseLeave={(e) => e.currentTarget.style.color = '#6c757d'}
+            >
+              Tours
+            </span>
+            {packageData && (
+              <>
+                <span style={{ margin: '0 8px', color: '#6c757d' }}> &gt; </span>
+                <span style={{ color: '#212529' }}>{packageData.title}</span>
+              </>
+            )}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
             <h1 style={{ 
-              fontSize: isSmall ? '1.1rem' : isMobile ? '1.3rem' : '1.8rem', 
-              fontWeight: 'bold', 
+              fontSize: isSmall ? '1.2rem' : isMobile ? '1.5rem' : '2rem', 
+              fontWeight: '700', 
               color: '#212529',
-              margin: '0'
+              margin: 0,
+              fontFamily: 'Poppins, sans-serif',
+              lineHeight: '1.3',
+              flex: 1
             }}>
               {packageData.title}
             </h1>
+            <Button
+              type="default"
+              icon={isInWishlist ? <HeartFilled /> : <HeartOutlined />}
+              onClick={handleWishlistToggle}
+              loading={wishlistLoading}
+              size="large"
+              style={{
+                borderColor: isInWishlist ? '#FF6B35' : '#d9d9d9',
+                color: isInWishlist ? '#FF6B35' : '#595959',
+                backgroundColor: isInWishlist ? '#fff5f5' : '#fff',
+                fontFamily: 'Poppins, sans-serif',
+                fontWeight: '500',
+                height: isMobile ? '40px' : '48px',
+                padding: isMobile ? '0 16px' : '0 24px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+              onMouseEnter={(e) => {
+                if (!isInWishlist) {
+                  e.currentTarget.style.borderColor = '#FF6B35';
+                  e.currentTarget.style.color = '#FF6B35';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isInWishlist) {
+                  e.currentTarget.style.borderColor = '#d9d9d9';
+                  e.currentTarget.style.color = '#595959';
+                }
+              }}
+            >
+              {isInWishlist ? 'In Wishlist' : 'Add to Wishlist'}
+            </Button>
           </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div style={{
-        maxWidth: isMobile ? '100%' : '1800px',
-        margin: '0 auto',
-        padding: isSmall ? '16px 8px' : isMobile ? '20px 12px' : '24px 250px'
-      }}>
         <div style={{
           display: 'grid',
           gridTemplateColumns: isMobile ? '1fr' : '1fr 380px',
@@ -356,20 +689,20 @@ const PackageDetail = () => {
           {/* Left Content */}
           <div>
             {/* Quick Info Bar */}
-            <Card style={{ marginBottom: '20px', borderRadius: '12px' }}>
+            <Card style={{ marginBottom: '24px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
               <Row gutter={[16, 16]}>
                 <Col xs={12} sm={6}>
                   <div style={{ textAlign: 'center' }}>
                     <EnvironmentOutlined style={{ fontSize: '24px', color: '#FF6B35', marginBottom: '8px' }} />
-                    <div style={{ fontSize: '12px', color: '#6c757d' }}>Destination</div>
-                    <div style={{ fontWeight: '600', fontSize: '14px' }}>{packageData.destination}</div>
+                    <div style={{ fontSize: '12px', color: '#6c757d', fontFamily: 'Poppins, sans-serif' }}>Destination</div>
+                    <div style={{ fontWeight: '600', fontSize: '14px', fontFamily: 'Poppins, sans-serif', color: '#212529' }}>{packageData.destination}</div>
                 </div>
                 </Col>
                 <Col xs={12} sm={6}>
                   <div style={{ textAlign: 'center' }}>
                     <ClockCircleOutlined style={{ fontSize: '24px', color: '#FF6B35', marginBottom: '8px' }} />
-                    <div style={{ fontSize: '12px', color: '#6c757d' }}>Duration</div>
-                    <div style={{ fontWeight: '600', fontSize: '14px' }}>
+                    <div style={{ fontSize: '12px', color: '#6c757d', fontFamily: 'Poppins, sans-serif' }}>Duration</div>
+                    <div style={{ fontWeight: '600', fontSize: '14px', fontFamily: 'Poppins, sans-serif', color: '#212529' }}>
                       {packageData.duration?.days}D/{packageData.duration?.nights}N
                 </div>
               </div>
@@ -377,8 +710,8 @@ const PackageDetail = () => {
                 <Col xs={12} sm={6}>
                   <div style={{ textAlign: 'center' }}>
                     <UserOutlined style={{ fontSize: '24px', color: '#FF6B35', marginBottom: '8px' }} />
-                    <div style={{ fontSize: '12px', color: '#6c757d' }}>Group Size</div>
-                    <div style={{ fontWeight: '600', fontSize: '14px' }}>
+                    <div style={{ fontSize: '12px', color: '#6c757d', fontFamily: 'Poppins, sans-serif' }}>Group Size</div>
+                    <div style={{ fontWeight: '600', fontSize: '14px', fontFamily: 'Poppins, sans-serif', color: '#212529' }}>
                       Max {packageData.groupSize?.max || 20}
               </div>
             </div>
@@ -386,9 +719,14 @@ const PackageDetail = () => {
                 <Col xs={12} sm={6}>
                   <div style={{ textAlign: 'center' }}>
                     <StarFilled style={{ fontSize: '24px', color: '#ffc107', marginBottom: '8px' }} />
-                    <div style={{ fontSize: '12px', color: '#6c757d' }}>Rating</div>
-                    <div style={{ fontWeight: '600', fontSize: '14px' }}>
-                      {packageData.rating?.average || 4.5}/5
+                    <div style={{ fontSize: '12px', color: '#6c757d', fontFamily: 'Poppins, sans-serif' }}>Rating</div>
+                    <div style={{ fontWeight: '600', fontSize: '14px', fontFamily: 'Poppins, sans-serif', color: '#212529' }}>
+                      {(averageRating || packageData.rating?.average || 0).toFixed(1)}/5
+                      {reviewCount > 0 && (
+                        <span style={{ fontSize: '11px', color: '#6c757d', marginLeft: '4px' }}>
+                          ({reviewCount})
+                        </span>
+                      )}
                     </div>
                   </div>
                 </Col>
@@ -396,18 +734,7 @@ const PackageDetail = () => {
             </Card>
 
             {/* Image Gallery */}
-            <div style={{
-              backgroundColor: 'white',
-              padding: isSmall ? '16px' : isMobile ? '20px' : '30px',
-              borderRadius: '12px',
-              marginBottom: '20px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
-            }}>
-              <div style={{
-                borderRadius: '12px',
-                overflow: 'hidden',
-                marginBottom: '16px'
-              }}>
+            <Card style={{ marginBottom: '24px', borderRadius: '12px', padding: 0, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
                 <img
                   src={
                     packageData.images && packageData.images.length > 0
@@ -421,17 +748,16 @@ const PackageDetail = () => {
                     height: isSmall ? '250px' : isMobile ? '300px' : '450px',
                     objectFit: 'cover',
                     imageRendering: 'high-quality',
-                    WebkitImageRendering: 'high-quality'
+                  WebkitImageRendering: 'high-quality',
+                  borderRadius: '12px 12px 0 0'
                   }}
                 />
-              </div>
-
-              {/* Thumbnails */}
               {packageData.images && packageData.images.length > 1 && (
                 <div style={{
                   display: 'grid',
                   gridTemplateColumns: `repeat(${isSmall ? 3 : 4}, 1fr)`,
-                  gap: isSmall ? '8px' : '12px'
+                  gap: isSmall ? '8px' : '12px',
+                  padding: '16px'
                 }}>
                   {packageData.images.map((img, idx) => (
                     <div
@@ -441,7 +767,18 @@ const PackageDetail = () => {
                         borderRadius: '8px',
                         overflow: 'hidden',
                         cursor: 'pointer',
-                        border: selectedImage === idx ? '3px solid #FF6B35' : '3px solid transparent'
+                        border: selectedImage === idx ? '3px solid #FF6B35' : '3px solid transparent',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (selectedImage !== idx) {
+                          e.currentTarget.style.borderColor = '#ff6b3590';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (selectedImage !== idx) {
+                          e.currentTarget.style.borderColor = 'transparent';
+                        }
                       }}
                     >
                       <img
@@ -460,23 +797,29 @@ const PackageDetail = () => {
                   ))}
                 </div>
               )}
-            </div>
+            </Card>
 
             {/* Tabs for Details */}
-            <Card style={{ borderRadius: '12px' }}>
-              <Tabs defaultActiveKey="1" size="large">
-                <TabPane tab="📝 Overview" key="1">
+            <Card style={{ borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+              <Tabs 
+                defaultActiveKey="1" 
+                size="large"
+                items={[
+                  {
+                    key: '1',
+                    label: '📝 Overview',
+                    children: (
                   <div style={{ padding: '16px 0' }}>
-                    <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '12px', color: '#212529' }}>
+                    <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '12px', color: '#212529', fontFamily: 'Poppins, sans-serif' }}>
                       Package Description
                     </h3>
-                    <p style={{ fontSize: '15px', color: '#495057', lineHeight: '1.7' }}>
+                    <p style={{ fontSize: '15px', color: '#495057', lineHeight: '1.7', fontFamily: 'Poppins, sans-serif' }}>
                       {packageData.description}
                     </p>
 
                     {packageData.highlights && packageData.highlights.length > 0 && (
                       <>
-                        <h3 style={{ fontSize: '18px', fontWeight: '700', marginTop: '24px', marginBottom: '12px', color: '#212529' }}>
+                        <h3 style={{ fontSize: '18px', fontWeight: '700', marginTop: '24px', marginBottom: '12px', color: '#212529', fontFamily: 'Poppins, sans-serif' }}>
                           ✨ Package Highlights
                         </h3>
                         <Row gutter={[12, 12]}>
@@ -486,23 +829,26 @@ const PackageDetail = () => {
                     display: 'flex',
                                 alignItems: 'flex-start',
                     gap: '8px',
-                                padding: '8px',
+                                padding: '12px',
                   backgroundColor: '#f8f9fa',
                                 borderRadius: '8px'
                               }}>
                                 <StarFilled style={{ color: '#FF6B35', marginTop: '4px', flexShrink: 0 }} />
-                                <span style={{ fontSize: '14px', color: '#495057' }}>{highlight}</span>
+                                <span style={{ fontSize: '14px', color: '#495057', fontFamily: 'Poppins, sans-serif' }}>{highlight}</span>
                   </div>
                             </Col>
                           ))}
                         </Row>
                       </>
-                )}
-              </div>
-                </TabPane>
-
-                <TabPane tab="📅 Itinerary" key="2">
-                  <div style={{ padding: '16px 0' }}>
+                    )}
+                      </div>
+                    ),
+                  },
+                  {
+                    key: '2',
+                    label: '📅 Itinerary',
+                    children: (
+                      <div style={{ padding: '16px 0' }}>
                     {packageData.itinerary && packageData.itinerary.length > 0 ? (
                       <Timeline mode="left">
                         {packageData.itinerary.map((day, index) => (
@@ -533,16 +879,16 @@ const PackageDetail = () => {
                                 boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
                               }}
                             >
-                              <h4 style={{ fontSize: '16px', fontWeight: '700', color: '#212529', marginBottom: '8px' }}>
+                              <h4 style={{ fontSize: '16px', fontWeight: '700', color: '#212529', marginBottom: '8px', fontFamily: 'Poppins, sans-serif' }}>
                                 Day {day.day}: {day.title}
                               </h4>
-                              <p style={{ fontSize: '14px', color: '#6c757d', marginBottom: '12px', lineHeight: '1.6' }}>
+                              <p style={{ fontSize: '14px', color: '#6c757d', marginBottom: '12px', lineHeight: '1.6', fontFamily: 'Poppins, sans-serif' }}>
                                 {day.description}
                               </p>
 
                               {day.activities && day.activities.length > 0 && (
                                 <div style={{ marginBottom: '12px' }}>
-                                  <div style={{ fontSize: '13px', fontWeight: '600', color: '#495057', marginBottom: '8px' }}>
+                                  <div style={{ fontSize: '13px', fontWeight: '600', color: '#495057', marginBottom: '8px', fontFamily: 'Poppins, sans-serif' }}>
                                     Activities:
                         </div>
                                   {day.activities.map((activity, idx) => (
@@ -553,7 +899,7 @@ const PackageDetail = () => {
                           marginBottom: '4px'
                         }}>
                                       <CheckCircleOutlined style={{ color: '#28a745', marginTop: '4px', flexShrink: 0 }} />
-                                      <span style={{ fontSize: '13px', color: '#495057' }}>{activity}</span>
+                                      <span style={{ fontSize: '13px', color: '#495057', fontFamily: 'Poppins, sans-serif' }}>{activity}</span>
                         </div>
                                   ))}
               </div>
@@ -587,16 +933,181 @@ const PackageDetail = () => {
                       <div style={{ textAlign: 'center', padding: '40px 20px', color: '#6c757d' }}>
                         <CalendarOutlined style={{ fontSize: '48px', marginBottom: '16px' }} />
                         <p>Detailed itinerary will be shared upon booking</p>
-              </div>
-            )}
-                  </div>
-                </TabPane>
+                      </div>
+                    )}
+                      </div>
+                    ),
+                  },
+                  {
+                    key: '4',
+                    label: '⭐ Reviews',
+                    children: (
+                      <div style={{ padding: '16px 0' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                      <div>
+                        <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '8px', color: '#212529', fontFamily: 'Poppins, sans-serif' }}>
+                          Customer Reviews
+                        </h3>
+                        {reviewCount > 0 && (
+                          <div style={{ fontSize: '14px', color: '#6c757d', fontFamily: 'Poppins, sans-serif' }}>
+                            {averageRating.toFixed(1)} out of 5 ({reviewCount} {reviewCount === 1 ? 'review' : 'reviews'})
+                          </div>
+                        )}
+                      </div>
+                      <Button
+                        type="primary"
+                        icon={<EditOutlined />}
+                        onClick={handleReviewModalOpen}
+                        style={{
+                          backgroundColor: '#FF6B35',
+                          borderColor: '#FF6B35',
+                          fontFamily: 'Poppins, sans-serif'
+                        }}
+                      >
+                        Write a Review
+                      </Button>
+                    </div>
 
-                <TabPane tab="✅ Inclusions" key="3">
-                  <div style={{ padding: '16px 0' }}>
+                    {reviewsLoading ? (
+                      <div style={{ textAlign: 'center', padding: '40px' }}>
+                        <Spin size="large" />
+                      </div>
+                    ) : reviews.length === 0 ? (
+                      <Empty
+                        description={
+                          <span style={{ fontFamily: 'Poppins, sans-serif', color: '#6c757d' }}>
+                            No reviews yet. Be the first to review this package!
+                          </span>
+                        }
+                        image={Empty.PRESENTED_IMAGE_SIMPLE}
+                      >
+                        <Button
+                          type="primary"
+                          icon={<EditOutlined />}
+                          onClick={handleReviewModalOpen}
+                          style={{
+                            backgroundColor: '#FF6B35',
+                            borderColor: '#FF6B35',
+                            fontFamily: 'Poppins, sans-serif'
+                          }}
+                        >
+                          Write the First Review
+                        </Button>
+                      </Empty>
+                    ) : (
+                      <div>
+                        {reviews.map((review, index) => (
+                          <Card
+                            key={review._id || index}
+                            style={{
+                              marginBottom: '16px',
+                              borderRadius: '12px',
+                              boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+                            }}
+                          >
+                            <div style={{ display: 'flex', gap: '16px' }}>
+                              <Avatar
+                                size={48}
+                                src={review.user?.profileImage}
+                                icon={<UserOutlined />}
+                                style={{ backgroundColor: '#FF6B35', flexShrink: 0 }}
+                              />
+                              <div style={{ flex: 1 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                                  <div>
+                                    <div style={{ fontWeight: '600', fontSize: '16px', color: '#212529', fontFamily: 'Poppins, sans-serif', marginBottom: '4px' }}>
+                                      {review.user?.name || 'Anonymous'}
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                                      <Rate disabled defaultValue={review.rating} style={{ fontSize: '14px' }} />
+                                      <span style={{ fontSize: '12px', color: '#6c757d', fontFamily: 'Poppins, sans-serif' }}>
+                                        {new Date(review.createdAt || review.updatedAt).toLocaleDateString('en-US', {
+                                          year: 'numeric',
+                                          month: 'long',
+                                          day: 'numeric'
+                                        })}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  {review.isVerified && (
+                                    <Tag color="green" icon={<CheckCircleOutlined />}>
+                                      Verified
+                                    </Tag>
+                                  )}
+                                </div>
+                                {review.title && (
+                                  <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#212529', marginBottom: '8px', fontFamily: 'Poppins, sans-serif' }}>
+                                    {review.title}
+                                  </h4>
+                                )}
+                                <p style={{ fontSize: '14px', color: '#495057', lineHeight: '1.6', fontFamily: 'Poppins, sans-serif', marginBottom: '12px' }}>
+                                  {review.comment}
+                                </p>
+                                {review.images && review.images.length > 0 && (
+                                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
+                                    {review.images.map((img, idx) => (
+                                      <img
+                                        key={idx}
+                                        src={img.url}
+                                        alt={img.alt || 'Review image'}
+                                        style={{
+                                          width: '80px',
+                                          height: '80px',
+                                          objectFit: 'cover',
+                                          borderRadius: '8px',
+                                          cursor: 'pointer'
+                                        }}
+                                        onClick={() => {
+                                          // Could open in a modal for full view
+                                          window.open(img.url, '_blank');
+                                        }}
+                                      />
+                                    ))}
+                                  </div>
+                                )}
+                                {review.response && review.response.text && (
+                                  <div style={{
+                                    marginTop: '12px',
+                                    padding: '12px',
+                                    backgroundColor: '#f8f9fa',
+                                    borderRadius: '8px',
+                                    borderLeft: '3px solid #FF6B35'
+                                  }}>
+                                    <div style={{ fontSize: '12px', fontWeight: '600', color: '#FF6B35', marginBottom: '4px', fontFamily: 'Poppins, sans-serif' }}>
+                                      Response from Lisaa Tours & Travels:
+                                    </div>
+                                    <p style={{ fontSize: '13px', color: '#495057', margin: 0, fontFamily: 'Poppins, sans-serif' }}>
+                                      {review.response.text}
+                                    </p>
+                                  </div>
+                                )}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginTop: '12px' }}>
+                                  <Button
+                                    type="text"
+                                    icon={<LikeOutlined />}
+                                    size="small"
+                                    style={{ color: '#6c757d', fontFamily: 'Poppins, sans-serif' }}
+                                  >
+                                    Helpful ({review.helpful?.count || 0})
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
+                      </div>
+                    ),
+                  },
+                  {
+                    key: '3',
+                    label: '✅ Inclusions',
+                    children: (
+                      <div style={{ padding: '16px 0' }}>
                     <Row gutter={[24, 24]}>
                       <Col xs={24} md={12}>
-                        <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '16px', color: '#28a745' }}>
+                        <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '16px', color: '#28a745', fontFamily: 'Poppins, sans-serif' }}>
                           <CheckCircleOutlined style={{ marginRight: '8px' }} />
                           What's Included
                         </h3>
@@ -614,17 +1125,17 @@ const PackageDetail = () => {
                                 border: '1px solid #c3e6cb'
                               }}>
                                 <CheckCircleOutlined style={{ color: '#28a745', marginTop: '2px', flexShrink: 0 }} />
-                                <span style={{ fontSize: '14px', color: '#155724' }}>{item}</span>
+                                <span style={{ fontSize: '14px', color: '#155724', fontFamily: 'Poppins, sans-serif' }}>{item}</span>
                       </div>
                             ))}
                 </div>
                         ) : (
-                          <p style={{ color: '#6c757d' }}>Details will be shared upon inquiry</p>
+                          <p style={{ color: '#6c757d', fontFamily: 'Poppins, sans-serif' }}>Details will be shared upon inquiry</p>
                         )}
                       </Col>
 
                       <Col xs={24} md={12}>
-                        <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '16px', color: '#dc3545' }}>
+                        <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '16px', color: '#dc3545', fontFamily: 'Poppins, sans-serif' }}>
                           <CloseCircleOutlined style={{ marginRight: '8px' }} />
                           What's Not Included
                         </h3>
@@ -642,36 +1153,36 @@ const PackageDetail = () => {
                                 border: '1px solid #f5c6cb'
                               }}>
                                 <CloseCircleOutlined style={{ color: '#dc3545', marginTop: '2px', flexShrink: 0 }} />
-                                <span style={{ fontSize: '14px', color: '#721c24' }}>{item}</span>
+                                <span style={{ fontSize: '14px', color: '#721c24', fontFamily: 'Poppins, sans-serif' }}>{item}</span>
                           </div>
                             ))}
                           </div>
                         ) : (
-                          <p style={{ color: '#6c757d' }}>Details will be shared upon inquiry</p>
+                          <p style={{ color: '#6c757d', fontFamily: 'Poppins, sans-serif' }}>Details will be shared upon inquiry</p>
                         )}
                       </Col>
                     </Row>
-              </div>
-                </TabPane>
-              </Tabs>
+                      </div>
+                    ),
+                  }
+                ]}
+              />
             </Card>
           </div>
 
           {/* Right Sidebar - Booking Card */}
           <div>
-            <div style={{
-              backgroundColor: 'white',
-              padding: isSmall ? '20px' : '24px',
+            <Card style={{
               borderRadius: '12px',
               boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
               position: isMobile ? 'relative' : 'sticky',
-              top: isMobile ? '0' : '100px'
+              top: isMobile ? '0' : '100px',
+              fontFamily: 'Poppins, sans-serif'
             }}>
               <div style={{
                 textAlign: 'center',
                 marginBottom: '20px',
-                paddingBottom: '20px',
-                borderBottom: '2px solid #e9ecef'
+                paddingBottom: '20px'
               }}>
                 <Tag color={packageData.category === 'spiritual' ? 'blue' : packageData.category === 'adventure' ? 'red' : 'orange'} style={{ marginBottom: '12px' }}>
                   {packageData.category?.toUpperCase()}
@@ -679,7 +1190,8 @@ const PackageDetail = () => {
                 <div style={{
                   fontSize: '14px',
                   color: '#6c757d',
-                  marginBottom: '8px'
+                  marginBottom: '8px',
+                  fontFamily: 'Poppins, sans-serif'
                 }}>
                   Starting From
                 </div>
@@ -714,14 +1226,16 @@ const PackageDetail = () => {
                           fontSize: '1.2rem',
                           fontWeight: '500',
                           color: '#6c757d',
-                          textDecoration: 'line-through'
+                          textDecoration: 'line-through',
+                          fontFamily: 'Poppins, sans-serif'
                         }}>
                           ₹{priceInfo.originalPrice.toLocaleString()}
                         </div>
                         <div style={{
                           fontSize: '2.2rem',
                           fontWeight: '700',
-                          color: '#FF6B35'
+                          color: '#FF6B35',
+                          fontFamily: 'Poppins, sans-serif'
                         }}>
                           ₹{priceInfo.finalPrice.toLocaleString()}
                         </div>
@@ -730,7 +1244,8 @@ const PackageDetail = () => {
                       <div style={{
                         fontSize: '2.2rem',
                         fontWeight: '700',
-                        color: '#FF6B35'
+                        color: '#FF6B35',
+                        fontFamily: 'Poppins, sans-serif'
                       }}>
                         ₹{packageData.price?.adult?.toLocaleString()}
                       </div>
@@ -739,7 +1254,8 @@ const PackageDetail = () => {
                 </div>
                 <div style={{
                   fontSize: '12px',
-                  color: '#6c757d'
+                  color: '#6c757d',
+                  fontFamily: 'Poppins, sans-serif'
                 }}>
                   per person
               </div>
@@ -780,10 +1296,10 @@ const PackageDetail = () => {
                 </div>
 
               <div style={{ marginBottom: '20px' }}>
-                <div style={{ fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
+                <div style={{ fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#495057', fontFamily: 'Poppins, sans-serif' }}>
                   Package Details:
                 </div>
-                <div style={{ fontSize: '13px', color: '#6c757d', lineHeight: '1.8' }}>
+                <div style={{ fontSize: '13px', color: '#6c757d', lineHeight: '1.8', fontFamily: 'Poppins, sans-serif' }}>
                   <div>📅 Duration: {packageData.duration?.days} Days / {packageData.duration?.nights} Nights</div>
                   <div>👥 Max Group: {packageData.groupSize?.max || 20} People</div>
                   <div>🎯 Difficulty: {packageData.difficulty || 'Moderate'}</div>
@@ -843,7 +1359,8 @@ const PackageDetail = () => {
                 fontSize: '12px',
                 color: '#6c757d',
                 textAlign: 'center',
-                marginBottom: '16px'
+                marginBottom: '16px',
+                fontFamily: 'Poppins, sans-serif'
               }}>
                 ✓ Instant Confirmation<br />
                 ✓ Free Cancellation Available
@@ -875,12 +1392,13 @@ const PackageDetail = () => {
                 </div>
                 <div style={{
                   fontSize: '12px',
-                  color: '#6c757d'
+                  color: '#6c757d',
+                  fontFamily: 'Poppins, sans-serif'
                 }}>
                   📧 Lsiaatech@gmail.com
               </div>
             </div>
-          </div>
+            </Card>
         </div>
       </div>
       </div>
@@ -897,6 +1415,9 @@ const PackageDetail = () => {
         onCancel={() => {
           setBookingModalVisible(false);
           form.resetFields();
+          setAppliedCoupon(null);
+          setCouponCode('');
+          setCouponError('');
         }}
         footer={null}
         width={600}
@@ -991,6 +1512,73 @@ const PackageDetail = () => {
             <Input.TextArea rows={3} placeholder="Any special requirements or requests..." />
           </Form.Item>
 
+          {/* Coupon Code Section */}
+          <Card style={{ marginBottom: '16px', backgroundColor: '#f8f9fa', border: '1px solid #e8e8e8' }}>
+            <div style={{ marginBottom: '12px' }}>
+              <TypographyText strong style={{ fontSize: '14px', fontFamily: 'Poppins, sans-serif' }}>
+                Have a Coupon Code?
+              </TypographyText>
+            </div>
+            {appliedCoupon ? (
+              <div style={{
+                padding: '12px',
+                backgroundColor: '#d4edda',
+                borderRadius: '8px',
+                border: '1px solid #c3e6cb'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontWeight: '600', color: '#155724', fontFamily: 'Poppins, sans-serif' }}>
+                      ✓ Coupon Applied: {appliedCoupon.code}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#155724', marginTop: '4px' }}>
+                      Discount: ₹{appliedCoupon.offer.discount.toLocaleString()}
+                    </div>
+                  </div>
+                  <Button
+                    type="link"
+                    danger
+                    onClick={handleRemoveCoupon}
+                    style={{ padding: '0', fontFamily: 'Poppins, sans-serif' }}
+                  >
+                    Remove
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <Input
+                  placeholder="Enter coupon code"
+                  value={couponCode}
+                  onChange={(e) => {
+                    setCouponCode(e.target.value.toUpperCase());
+                    setCouponError('');
+                  }}
+                  onPressEnter={handleApplyCoupon}
+                  style={{ flex: 1, fontFamily: 'Poppins, sans-serif' }}
+                  maxLength={20}
+                />
+                <Button
+                  type="primary"
+                  onClick={handleApplyCoupon}
+                  loading={couponLoading}
+                  style={{
+                    backgroundColor: '#FF6B35',
+                    borderColor: '#FF6B35',
+                    fontFamily: 'Poppins, sans-serif'
+                  }}
+                >
+                  Apply
+                </Button>
+              </div>
+            )}
+            {couponError && (
+              <div style={{ marginTop: '8px', color: '#ff4d4f', fontSize: '12px', fontFamily: 'Poppins, sans-serif' }}>
+                {couponError}
+              </div>
+            )}
+          </Card>
+
           <Card style={{ marginBottom: '16px', backgroundColor: '#fff9f5', border: '2px solid #FF6B35' }}>
             <Row justify="space-between" align="middle">
               <Col>
@@ -1008,21 +1596,39 @@ const PackageDetail = () => {
                     }
                   }
                   
-                  const totalAmount = (adultsCount * adultPrice) + (childrenCount * childPrice);
+                  const baseTotal = (adultsCount * adultPrice) + (childrenCount * childPrice);
                   const originalTotal = (adultsCount * (packageData?.price?.adult || 0)) + 
                                        (childrenCount * (packageData?.price?.child || 0));
                   
+                  // Apply coupon discount
+                  let finalAmount = baseTotal;
+                  let couponDiscount = 0;
+                  if (appliedCoupon && appliedCoupon.offer) {
+                    couponDiscount = appliedCoupon.offer.discount || 0;
+                    finalAmount = Math.max(0, baseTotal - couponDiscount);
+                  }
+                  
                   return (
                     <>
-                      {adultPriceInfo.hasDiscount && (
+                      {(adultPriceInfo.hasDiscount || couponDiscount > 0) && (
                         <div style={{ fontSize: '12px', color: '#6c757d', textDecoration: 'line-through', marginBottom: '4px' }}>
                           ₹{originalTotal.toLocaleString()}
                         </div>
                       )}
+                      {baseTotal !== originalTotal && baseTotal !== finalAmount && (
+                        <div style={{ fontSize: '14px', color: '#6c757d', marginBottom: '4px' }}>
+                          Base: ₹{baseTotal.toLocaleString()}
+                        </div>
+                      )}
+                      {couponDiscount > 0 && (
+                        <div style={{ fontSize: '12px', color: '#28a745', fontWeight: '600', marginBottom: '4px' }}>
+                          Coupon Discount: -₹{couponDiscount.toLocaleString()}
+                        </div>
+                      )}
                       <div style={{ fontSize: '24px', fontWeight: '700', color: '#FF6B35' }}>
-                        ₹{totalAmount.toLocaleString()}
+                        ₹{finalAmount.toLocaleString()}
                       </div>
-                      {adultPriceInfo.hasDiscount && (
+                      {adultPriceInfo.hasDiscount && !couponDiscount && (
                         <div style={{ fontSize: '12px', color: '#28a745', fontWeight: '600', marginTop: '4px' }}>
                           {adultPriceInfo.discountType === 'percentage' 
                             ? `${adultPriceInfo.discountValue}% OFF` 
@@ -1116,7 +1722,146 @@ const PackageDetail = () => {
           </div>
         </Form>
       </Modal>
+
+      {/* Review Submission Modal */}
+      <Modal
+        title={
+          <div style={{ textAlign: 'center' }}>
+            <EditOutlined style={{ fontSize: '24px', color: '#FF6B35', marginBottom: '8px' }} />
+            <h3 style={{ margin: '8px 0 0 0', fontFamily: 'Poppins, sans-serif' }}>Write a Review</h3>
     </div>
+        }
+        open={reviewModalVisible}
+        onCancel={() => {
+          setReviewModalVisible(false);
+          reviewForm.resetFields();
+        }}
+        footer={null}
+        width={600}
+      >
+        <Form
+          form={reviewForm}
+          layout="vertical"
+          onFinish={handleSubmitReview}
+        >
+          <Card style={{ marginBottom: '16px', backgroundColor: '#f8f9fa' }}>
+            <h4 style={{ margin: '0 0 8px 0', fontSize: '16px', fontFamily: 'Poppins, sans-serif' }}>Reviewing Package</h4>
+            <div style={{ fontSize: '14px', color: '#6c757d', fontFamily: 'Poppins, sans-serif' }}>
+              <div><strong>{packageData?.title}</strong></div>
+              <div>📍 {packageData?.destination}</div>
+            </div>
+          </Card>
+
+          {bookingsLoading ? (
+            <div style={{ textAlign: 'center', padding: '16px' }}>
+              <Spin size="small" />
+              <div style={{ marginTop: '8px', fontSize: '12px', color: '#6c757d' }}>Loading your bookings...</div>
+            </div>
+          ) : userBookings.length > 0 ? (
+            <Form.Item
+              name="bookingId"
+              label="Select Booking"
+              rules={[{ required: true, message: 'Please select a booking' }]}
+            >
+              <Select
+                placeholder="Select the booking you want to review"
+                loading={bookingsLoading}
+                style={{ fontFamily: 'Poppins, sans-serif' }}
+              >
+                {userBookings.map((booking) => (
+                  <Option key={booking._id} value={booking._id}>
+                    {booking.bookingNumber || booking._id} - 
+                    {booking.travelDates?.startDate 
+                      ? ` Booked for ${new Date(booking.travelDates.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+                      : ` Created on ${new Date(booking.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+                    }
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+          ) : (
+            <Alert
+              message="No Bookings Found"
+              description="You need to book this package before you can review it. Please book the package first and then come back to leave a review."
+              type="info"
+              showIcon
+              style={{ marginBottom: '16px', fontFamily: 'Poppins, sans-serif' }}
+            />
+          )}
+
+          <Form.Item
+            name="rating"
+            label="Rating"
+            rules={[{ required: true, message: 'Please provide a rating' }]}
+          >
+            <Rate style={{ fontSize: '24px' }} />
+          </Form.Item>
+
+          <Form.Item
+            name="title"
+            label="Review Title"
+            rules={[
+              { required: true, message: 'Please enter a review title' },
+              { max: 100, message: 'Title cannot exceed 100 characters' }
+            ]}
+          >
+            <Input
+              placeholder="Give your review a title"
+              maxLength={100}
+              showCount
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="comment"
+            label="Your Review"
+            rules={[
+              { required: true, message: 'Please write your review' },
+              { max: 1000, message: 'Review cannot exceed 1000 characters' }
+            ]}
+          >
+            <Input.TextArea
+              rows={6}
+              placeholder="Share your experience with this package..."
+              maxLength={1000}
+              showCount
+            />
+          </Form.Item>
+
+          <div style={{ marginBottom: '16px', textAlign: 'center', fontSize: '12px', color: '#6c757d', fontFamily: 'Poppins, sans-serif' }}>
+            <MessageOutlined /> Your review will help other travelers make informed decisions
+          </div>
+
+          <Form.Item>
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={reviewSubmitting}
+              size="large"
+              disabled={userBookings.length === 0}
+              style={{
+                width: '100%',
+                height: '48px',
+                backgroundColor: '#FF6B35',
+                borderColor: '#FF6B35',
+                fontSize: '16px',
+                fontWeight: '600',
+                fontFamily: 'Poppins, sans-serif'
+              }}
+            >
+              <EditOutlined /> Submit Review
+            </Button>
+          </Form.Item>
+
+          <div style={{ textAlign: 'center', fontSize: '11px', color: '#6c757d', fontFamily: 'Poppins, sans-serif' }}>
+            By submitting, you agree that your review is based on genuine experience
+          </div>
+        </Form>
+      </Modal>
+      </div>
+      
+      <Footer />
+    </>
   );
 };
 

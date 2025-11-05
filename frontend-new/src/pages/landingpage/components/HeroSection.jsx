@@ -35,7 +35,7 @@ const HeroSection = () => {
           fontWeight: '500',
           lineHeight: '1.4'
         }}>
-          Search, compare and book 15,000+ tours, worldwide all over the world.
+          Discover the beauty of India with Lisaa Tours & Travels. 
         </p>
         <h1 style={{ 
           fontSize: window.innerWidth <= 480 ? '1.8rem' : window.innerWidth <= 768 ? '2.5rem' : '3.5rem', 
@@ -45,8 +45,8 @@ const HeroSection = () => {
           fontFamily: "'Poppins', sans-serif",
           lineHeight: '1.2'
         }}>
-          Tours and Trip packages,
-          <br />Globally
+          Explore Incredible India
+          <br />with Lisaa Tours & Travels
         </h1>
       </div>
       
@@ -91,7 +91,7 @@ const HeroSection = () => {
             </label>
             <input 
               type="text" 
-              placeholder="Search destinations"
+              placeholder="Search destinations in India"
               style={{
                 width: '100%',
                 border: 'none',
@@ -183,17 +183,12 @@ const HeroSection = () => {
                 cursor: 'pointer'
               }}
             >
-              <option value="">All tour</option>
-              <option value="adventure">Adventure Tours</option>
-              <option value="cultural">Cultural Tours</option>
-              <option value="beach">Beach Tours</option>
-              <option value="mountain">Mountain Tours</option>
-              <option value="city">City Tours</option>
-              <option value="wildlife">Wildlife Tours</option>
-              <option value="religious">Religious Tours</option>
-              <option value="food">Food Tours</option>
-              <option value="photography">Photography Tours</option>
-              <option value="luxury">Luxury Tours</option>
+              <option value="">All Tours</option>
+              <option value="destinations">Destinations</option>
+              <option value="tours">Tours</option>
+              <option value="events">Events</option>
+              <option value="testimonials">Testimonials</option>
+              <option value="marketing">Marketing</option>
             </select>
           </div>
 

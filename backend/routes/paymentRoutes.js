@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const Booking = require('../models/Booking');
 const User = require('../models/User');
 const Tour = require('../models/Tour');
+const Offer = require('../models/Offer');
 const emailService = require('../services/emailService');
 const smsService = require('../services/smsService');
 const whatsappService = require('../services/whatsappService');
@@ -78,7 +79,10 @@ router.post('/verify-payment', async (req, res) => {
       razorpay_order_id,
       razorpay_payment_id,
       razorpay_signature,
-      bookingDetails
+      bookingDetails,
+      couponCode,
+      couponDiscount,
+      baseAmount
     } = req.body;
 
     console.log('🔐 Verifying payment:', razorpay_payment_id);
@@ -104,6 +108,30 @@ router.post('/verify-payment', async (req, res) => {
         });
       }
 
+      // Handle coupon if applied
+      let appliedCouponData = null;
+      if (couponCode && couponDiscount > 0) {
+        const offer = await Offer.findOne({ code: couponCode.toUpperCase() });
+        if (offer) {
+          appliedCouponData = {
+            code: couponCode.toUpperCase(),
+            offerId: offer._id,
+            discountAmount: couponDiscount,
+            discountType: offer.type,
+            discountValue: offer.value
+          };
+          
+          // Increment offer usage count
+          offer.usedCount = (offer.usedCount || 0) + 1;
+          await offer.save();
+        }
+      }
+
+      // Calculate pricing with coupon
+      const basePrice = baseAmount || bookingDetails.totalAmount;
+      const couponDiscountAmount = couponDiscount || 0;
+      const finalAmount = Math.max(0, basePrice - couponDiscountAmount);
+
       // Create booking in database
       const booking = new Booking({
         user: bookingDetails.userId,
@@ -125,11 +153,11 @@ router.post('/verify-payment', async (req, res) => {
           endDate: new Date(new Date(bookingDetails.bookingDate).getTime() + (tour.duration?.days || 1) * 24 * 60 * 60 * 1000)
         },
         pricing: {
-          basePrice: bookingDetails.totalAmount,
-          totalAmount: bookingDetails.totalAmount,
-          discount: 0,
+          basePrice: basePrice,
+          totalAmount: basePrice,
+          discount: couponDiscountAmount,
           taxes: 0,
-          finalAmount: bookingDetails.totalAmount
+          finalAmount: finalAmount
         },
         payment: {
           status: 'paid',
@@ -138,7 +166,8 @@ router.post('/verify-payment', async (req, res) => {
           paymentDate: new Date()
         },
         status: 'confirmed',
-        specialRequests: bookingDetails.specialRequests || ''
+        specialRequests: bookingDetails.specialRequests || '',
+        appliedCoupon: appliedCouponData
       });
 
       await booking.save();

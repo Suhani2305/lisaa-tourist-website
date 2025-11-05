@@ -145,22 +145,57 @@ const PopularTours = () => {
         padding: window.innerWidth <= 480 ? '0 8px' : window.innerWidth <= 768 ? '0 12px' : window.innerWidth <= 1024 ? '0 32px' : '0 250px' 
       }}>
         {/* Header Section */}
-        <div style={{ marginBottom: window.innerWidth <= 768 ? '20px' : '40px' }}>
-          <h2 style={{
-            fontSize: window.innerWidth <= 480 ? '24px' : window.innerWidth <= 768 ? '28px' : '36px',
-            fontWeight: '700',
-            color: '#212529',
-            marginBottom: window.innerWidth <= 768 ? '8px' : '12px'
-          }}>
-            Popular Indian Tours
-          </h2>
-          <p style={{
-            color: '#6c757d',
-            fontSize: window.innerWidth <= 768 ? '14px' : '16px',
-            margin: 0
-          }}>
-            Explore the rich cultural heritage and spiritual destinations of India
-          </p>
+        <div style={{ 
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: window.innerWidth <= 768 ? '20px' : '40px',
+          flexWrap: 'wrap',
+          gap: '16px'
+        }}>
+          <div>
+            <h2 style={{
+              fontSize: window.innerWidth <= 480 ? "22px" : window.innerWidth <= 768 ? "26px" : "36px",
+              fontWeight: "700",
+              color: "#212529",
+              margin: "0 0 8px 0",
+              fontFamily: "Poppins, sans-serif"
+            }}>
+              Popular Indian Tours
+            </h2>
+            <p style={{
+              margin: 0,
+              color: "#6c757d",
+              fontSize: window.innerWidth <= 768 ? "14px" : "16px"
+            }}>
+              Explore the rich cultural heritage and spiritual destinations of India
+            </p>
+          </div>
+          <button
+            onClick={() => navigate('/package')}
+            style={{
+              backgroundColor: 'transparent',
+              color: '#ff6b35',
+              border: '2px solid #ff6b35',
+              borderRadius: '8px',
+              padding: window.innerWidth <= 480 ? '8px 16px' : '10px 20px',
+              fontSize: window.innerWidth <= 480 ? '14px' : '16px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              fontFamily: 'Poppins, sans-serif'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#ff6b35';
+              e.currentTarget.style.color = 'white';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.color = '#ff6b35';
+            }}
+          >
+            See all →
+          </button>
         </div>
 
         {/* Tours Grid */}
@@ -340,36 +375,6 @@ const PopularTours = () => {
           ))}
         </div>
 
-        {/* View All Button */}
-        <div style={{ 
-          textAlign: 'center', 
-          marginTop: window.innerWidth <= 768 ? '30px' : '50px' 
-        }}>
-          <button 
-            onClick={() => navigate('/package')}
-            style={{
-              padding: window.innerWidth <= 480 ? '10px 24px' : '12px 32px',
-              fontSize: window.innerWidth <= 480 ? '14px' : '16px',
-              fontWeight: '600',
-              color: '#ff6b35',
-              backgroundColor: 'white',
-              border: '2px solid #ff6b35',
-              borderRadius: '25px',
-              cursor: 'pointer',
-              transition: 'all 0.3s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.backgroundColor = '#ff6b35';
-              e.target.style.color = 'white';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.backgroundColor = 'white';
-              e.target.style.color = '#ff6b35';
-            }}
-          >
-            View All Tours →
-          </button>
-        </div>
       </div>
     </div>
   );

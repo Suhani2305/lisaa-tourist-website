@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { tourService } from "../../services";
 import { Spin } from "antd";
+import { ArrowLeftOutlined } from "@ant-design/icons";
 import Header from "../landingpage/components/Header";
 import Footer from "../landingpage/components/Footer";
 
@@ -96,67 +97,46 @@ const TrendingDestinationsPage = () => {
     <>
       <Header />
       <div style={{ minHeight: "100vh", backgroundColor: "#f8f9fa" }}>
-        {/* Header/Navigation */}
-        <div style={{
-          backgroundColor: "white",
-          padding: isSmall ? "12px 0" : isMobile ? "14px 0" : "16px 0",
-          borderBottom: "1px solid #e9ecef",
-          position: "sticky",
-          top: 0,
-          zIndex: 100,
-          boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
-        }}>
-          <div style={{
-            maxWidth: isMobile ? "100%" : "1800px",
-            margin: "0 auto",
-            padding: isSmall ? "0 8px" : isMobile ? "0 12px" : window.innerWidth <= 1024 ? "0 32px" : "0 250px",
-            display: "flex",
-            alignItems: "center",
-            gap: isMobile ? "12px" : "20px",
-            flexWrap: "wrap"
-          }}>
-            <button onClick={() => {
-              // Set flag to scroll to trending destinations section on landing page
-              sessionStorage.setItem('scrollToTrendingDestinations', 'true');
-              navigate("/");
-            }} style={{
-              padding: isSmall ? "6px 12px" : "8px 16px",
-              backgroundColor: "transparent",
-              color: "#FF6B35",
-              border: "2px solid #FF6B35",
-              borderRadius: isMobile ? "6px" : "8px",
-              cursor: "pointer",
-              fontSize: isSmall ? "12px" : "14px",
-              fontWeight: "600",
-              transition: "all 0.3s"
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = "#FF6B35";
-              e.currentTarget.style.color = "white";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = "transparent";
-              e.currentTarget.style.color = "#FF6B35";
-            }}>
-              ← Back to Home
-            </button>
-            <div>
-              <div style={{ fontSize: isSmall ? "10px" : "12px", color: "#6c757d" }}>
-                Home / Trending Destinations
-              </div>
-              <h1 style={{ fontSize: isSmall ? "1.1rem" : isMobile ? "1.3rem" : "2rem", fontWeight: "bold", color: "#212529", margin: "4px 0 0 0" }}>
-                Trending Destinations
-              </h1>
-            </div>
-          </div>
-        </div>
-
         {/* Main Content */}
         <div style={{
           maxWidth: isMobile ? "100%" : "1800px",
           margin: "0 auto",
           padding: isSmall ? "20px 8px" : isMobile ? "30px 12px" : window.innerWidth <= 1024 ? "40px 32px" : "60px 250px"
         }}>
+          {/* Breadcrumb & Title */}
+          <div style={{ 
+            fontSize: isSmall ? "11px" : isMobile ? "12px" : "14px", 
+            color: "#6c757d",
+            marginBottom: "12px",
+            fontFamily: "Poppins, sans-serif"
+          }}>
+            <span 
+              onClick={() => {
+                sessionStorage.setItem('scrollToTrendingDestinations', 'true');
+                navigate("/");
+              }}
+              style={{ 
+                cursor: "pointer",
+                color: "#6c757d",
+                transition: "color 0.2s ease"
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.color = "#ff6b35"}
+              onMouseLeave={(e) => e.currentTarget.style.color = "#6c757d"}
+            >
+              Home
+            </span>
+            <span style={{ margin: "0 8px", color: "#6c757d" }}> &gt; </span>
+            <span style={{ color: "#212529" }}>Trending Destinations</span>
+          </div>
+          <h1 style={{ 
+            fontSize: isSmall ? "1.2rem" : isMobile ? "1.5rem" : "2rem", 
+            fontWeight: "700", 
+            color: "#212529", 
+            margin: "0 0 24px 0",
+            fontFamily: "Poppins, sans-serif"
+          }}>
+            Trending Destinations
+          </h1>
           {/* Loading State */}
           {loading ? (
             <div style={{

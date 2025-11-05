@@ -149,51 +149,111 @@ const Header = () => {
     <>
       {/* Top Navigation Bar */}
       <div style={{ 
-        backgroundColor: '#f8f9fa', 
-        padding: window.innerWidth <= 768 ? '6px 0' : '8px 0', 
+        backgroundColor: '#ffffff', 
+        padding: window.innerWidth <= 768 ? '12px 0' : '16px 0', 
         fontSize: window.innerWidth <= 480 ? '12px' : '14px',
-        borderBottom: '1px solid #e9ecef'
+        boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+        position: 'sticky',
+        top: 0,
+        zIndex: 999,
+        fontFamily: 'Poppins, sans-serif'
       }}>
         <div style={{ 
-          maxWidth: '1200px', 
+          maxWidth: '1400px', 
           margin: '0 auto', 
-          padding: window.innerWidth <= 768 ? '0 16px' : '0 24px' 
+          padding: window.innerWidth <= 768 ? '0 16px' : '0 40px' 
         }}>
           <div style={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
             flexWrap: window.innerWidth <= 768 ? 'wrap' : 'nowrap',
-            gap: window.innerWidth <= 768 ? '8px' : '0'
+            gap: window.innerWidth <= 768 ? '12px' : '20px'
           }}>
+            {/* Company Name - Left Side */}
             <div style={{ 
-              display: window.innerWidth <= 768 ? 'none' : 'block',
-              flex: '1'
-            }}>
-              <span style={{ color: '#6c757d' }}>Search destinations or activities</span>
-            </div>
-            <div style={{ 
-              flex: '1',
-              textAlign: 'center',
-              cursor: 'pointer'
+              flex: window.innerWidth <= 768 ? '1 1 100%' : '0 0 auto',
+              cursor: 'pointer',
+              transition: 'transform 0.3s ease'
             }}
             onClick={() => navigate('/')}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'scale(1.05)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'scale(1)';
+            }}
             >
               <h2 style={{ 
-                color: '#343a40', 
-                fontWeight: 'bold', 
+                color: '#ff6b35', 
+                fontWeight: '700', 
                 margin: 0,
-                fontSize: window.innerWidth <= 480 ? '18px' : '24px'
+                fontSize: window.innerWidth <= 480 ? '18px' : window.innerWidth <= 768 ? '20px' : '24px',
+                fontFamily: 'Poppins, sans-serif',
+                letterSpacing: '0.5px',
+                background: 'linear-gradient(135deg, #ff6b35 0%, #f15a29 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                whiteSpace: 'nowrap'
               }}>
-                Lsiaa Tours & Travels
+                Lisaa Tours & Travels
               </h2>
             </div>
+
+            {/* Search Bar - Center */}
             <div style={{ 
-              flex: '1',
-              textAlign: 'right',
+              flex: window.innerWidth <= 768 ? '1 1 100%' : '1',
+              maxWidth: window.innerWidth <= 768 ? '100%' : '600px',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'flex-end',
+              justifyContent: 'center',
+              margin: window.innerWidth <= 768 ? '0' : '0 auto'
+            }}>
+              <div style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                backgroundColor: '#f5f5f5',
+                borderRadius: '25px',
+                padding: window.innerWidth <= 480 ? '8px 16px' : '10px 20px',
+                border: '2px solid transparent',
+                transition: 'all 0.3s ease',
+                cursor: 'text'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = '#ff6b35';
+                e.currentTarget.style.backgroundColor = '#fff';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'transparent';
+                e.currentTarget.style.backgroundColor = '#f5f5f5';
+              }}
+              >
+                <span style={{ 
+                  color: '#666', 
+                  fontSize: window.innerWidth <= 480 ? '12px' : '14px',
+                  fontFamily: 'Poppins, sans-serif',
+                  marginRight: '8px'
+                }}>
+                  🔍
+                </span>
+                <span style={{ 
+                  color: '#999', 
+                  fontSize: window.innerWidth <= 480 ? '12px' : '14px',
+                  fontFamily: 'Poppins, sans-serif'
+                }}>
+                  {window.innerWidth <= 480 ? 'Search...' : 'Search destinations or activities'}
+                </span>
+              </div>
+            </div>
+
+            {/* Login/Signup or User Dropdown - Right Side */}
+            <div style={{ 
+              flex: window.innerWidth <= 768 ? '1 1 100%' : '0 0 auto',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: window.innerWidth <= 768 ? 'center' : 'flex-end',
               gap: window.innerWidth <= 768 ? '12px' : '20px',
               flexWrap: 'wrap'
             }}>
@@ -202,37 +262,44 @@ const Header = () => {
                   <div style={{ 
                     display: 'flex', 
                     alignItems: 'center', 
-                    gap: '8px',
+                    gap: '10px',
                     cursor: 'pointer',
-                    padding: '6px 12px',
+                    padding: '8px 16px',
                     borderRadius: '25px',
                     backgroundColor: '#fff',
                     border: '2px solid #ff6b35',
-                    transition: 'all 0.3s ease'
+                    transition: 'all 0.3s ease',
+                    fontFamily: 'Poppins, sans-serif',
+                    boxShadow: '0 2px 4px rgba(255, 107, 53, 0.1)'
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.backgroundColor = '#fff5f0';
-                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(255, 107, 53, 0.2)';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(255, 107, 53, 0.25)';
+                    e.currentTarget.style.transform = 'translateY(-2px)';
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = '#fff';
-                    e.currentTarget.style.boxShadow = 'none';
+                    e.currentTarget.style.boxShadow = '0 2px 4px rgba(255, 107, 53, 0.1)';
+                    e.currentTarget.style.transform = 'translateY(0)';
                   }}
                   >
                     <Avatar 
-                      size={window.innerWidth <= 480 ? 28 : 32} 
+                      size={window.innerWidth <= 480 ? 30 : 36} 
                       icon={getAvatarIcon()}
                       src={currentUser?.profileImage}
                       style={{ 
                         backgroundColor: getAvatarColor(),
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        border: '2px solid #fff',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                       }} 
                     />
                     <span style={{ 
                       color: '#333', 
-                      fontWeight: '500',
-                      fontSize: window.innerWidth <= 480 ? '12px' : '14px',
-                      display: window.innerWidth <= 480 ? 'none' : 'inline'
+                      fontWeight: '600',
+                      fontSize: window.innerWidth <= 480 ? '12px' : '15px',
+                      display: window.innerWidth <= 480 ? 'none' : 'inline',
+                      fontFamily: 'Poppins, sans-serif'
                     }}>
                       {currentUser?.name?.split(' ')[0] || currentUser?.email?.split('@')[0]}
                     </span>
@@ -243,14 +310,23 @@ const Header = () => {
                   <span 
                     onClick={handleLogin}
                     style={{ 
-                      color: '#6c757d', 
-                      fontSize: window.innerWidth <= 480 ? '12px' : '14px',
+                      color: '#666', 
+                      fontSize: window.innerWidth <= 480 ? '13px' : '15px',
                       cursor: 'pointer',
-                      fontWeight: '500',
-                      transition: 'color 0.3s ease'
+                      fontWeight: '600',
+                      transition: 'all 0.3s ease',
+                      fontFamily: 'Poppins, sans-serif',
+                      padding: '8px 12px',
+                      borderRadius: '8px'
                     }}
-                    onMouseEnter={(e) => e.target.style.color = '#ff6b35'}
-                    onMouseLeave={(e) => e.target.style.color = '#6c757d'}
+                    onMouseEnter={(e) => {
+                      e.target.style.color = '#ff6b35';
+                      e.target.style.backgroundColor = '#fff5f0';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.color = '#666';
+                      e.target.style.backgroundColor = 'transparent';
+                    }}
                   >
                     Login
                   </span>
@@ -260,22 +336,24 @@ const Header = () => {
                       backgroundColor: '#ff6b35',
                       color: 'white',
                       border: 'none',
-                      padding: window.innerWidth <= 480 ? '6px 12px' : '8px 16px',
-                      borderRadius: '20px',
-                      fontSize: window.innerWidth <= 480 ? '12px' : '14px',
+                      padding: window.innerWidth <= 480 ? '8px 16px' : '10px 20px',
+                      borderRadius: '25px',
+                      fontSize: window.innerWidth <= 480 ? '13px' : '15px',
                       cursor: 'pointer',
-                      fontWeight: '500',
-                      transition: 'all 0.3s ease'
+                      fontWeight: '600',
+                      transition: 'all 0.3s ease',
+                      fontFamily: 'Poppins, sans-serif',
+                      boxShadow: '0 4px 12px rgba(255, 107, 53, 0.3)'
                     }}
                     onMouseEnter={(e) => {
-                      e.target.style.backgroundColor = '#e55a29';
+                      e.target.style.backgroundColor = '#f15a29';
                       e.target.style.transform = 'translateY(-2px)';
-                      e.target.style.boxShadow = '0 4px 12px rgba(255, 107, 53, 0.3)';
+                      e.target.style.boxShadow = '0 6px 16px rgba(255, 107, 53, 0.4)';
                     }}
                     onMouseLeave={(e) => {
                       e.target.style.backgroundColor = '#ff6b35';
                       e.target.style.transform = 'translateY(0)';
-                      e.target.style.boxShadow = 'none';
+                      e.target.style.boxShadow = '0 4px 12px rgba(255, 107, 53, 0.3)';
                     }}
                   >
                     Sign up

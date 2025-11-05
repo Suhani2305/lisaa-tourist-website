@@ -64,7 +64,7 @@ const bookingService = {
   // Cancel booking
   cancelBooking: async (bookingId) => {
     try {
-      const response = await api.delete(`/bookings/${bookingId}`);
+      const response = await api.put(`/bookings/${bookingId}/cancel`);
       return response.data;
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Failed to cancel booking');

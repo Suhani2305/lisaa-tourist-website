@@ -149,7 +149,7 @@ router.put('/:id/status', authenticateToken, async (req, res) => {
 // Cancel booking
 router.put('/:id/cancel', authenticateToken, async (req, res) => {
   try {
-    const booking = await Booking.findById(req.params.id);
+    const booking = await Booking.findById(req.params.id).populate('tour');
 
     if (!booking) {
       return res.status(404).json({ message: 'Booking not found' });
@@ -165,10 +165,99 @@ router.put('/:id/cancel', authenticateToken, async (req, res) => {
       return res.status(400).json({ message: 'Booking is already cancelled' });
     }
 
+    if (booking.status === 'completed') {
+      return res.status(400).json({ message: 'Cannot cancel a completed booking' });
+    }
+
+    // Calculate refund based on cancellation policy
+    const now = new Date();
+    const travelStartDate = new Date(booking.travelDates.startDate);
+    const daysUntilTravel = Math.ceil((travelStartDate - now) / (1000 * 60 * 60 * 24));
+    
+    let refundAmount = 0;
+    let refundPercentage = 0;
+    let cancellationFee = 0;
+    let refundable = false;
+
+    // Check cancellation deadline
+    const cancellationDeadline = booking.cancellationPolicy?.cancellationDeadline 
+      ? new Date(booking.cancellationPolicy.cancellationDeadline)
+      : null;
+
+    if (booking.cancellationPolicy?.canCancel) {
+      // Calculate refund based on days until travel
+      if (daysUntilTravel > 30) {
+        // More than 30 days: Full refund (100%)
+        refundPercentage = 100;
+        refundable = true;
+      } else if (daysUntilTravel > 15) {
+        // 15-30 days: 75% refund
+        refundPercentage = 75;
+        refundable = true;
+      } else if (daysUntilTravel > 7) {
+        // 7-15 days: 50% refund
+        refundPercentage = 50;
+        refundable = true;
+      } else if (daysUntilTravel > 0) {
+        // 0-7 days: 25% refund
+        refundPercentage = 25;
+        refundable = true;
+      } else {
+        // Past travel date or same day: No refund
+        refundPercentage = 0;
+        refundable = false;
+      }
+
+      // Override with booking-specific policy if available
+      if (booking.cancellationPolicy?.refundPercentage !== undefined) {
+        refundPercentage = booking.cancellationPolicy.refundPercentage;
+        refundable = refundPercentage > 0;
+      }
+
+      // Check if past cancellation deadline
+      if (cancellationDeadline && now > cancellationDeadline) {
+        refundPercentage = 0;
+        refundable = false;
+      }
+
+      // Calculate amounts
+      const totalPaid = booking.pricing?.finalAmount || booking.totalAmount || 0;
+      refundAmount = Math.round((totalPaid * refundPercentage) / 100);
+      cancellationFee = totalPaid - refundAmount;
+    }
+
+    // Update booking status
     booking.status = 'cancelled';
+    
+    // Update payment status if refund is applicable
+    if (refundable && refundAmount > 0 && booking.payment?.status === 'paid') {
+      booking.payment.status = 'refunded';
+    }
+
+    // Store refund information
+    booking.cancellationRefund = {
+      refundable,
+      refundAmount,
+      refundPercentage,
+      cancellationFee,
+      totalPaid,
+      cancelledAt: now,
+      daysUntilTravel
+    };
+
     await booking.save();
 
-    res.json({ message: 'Booking cancelled successfully', booking });
+    res.json({ 
+      message: 'Booking cancelled successfully', 
+      booking,
+      refund: {
+        refundable,
+        refundAmount,
+        refundPercentage,
+        cancellationFee,
+        totalPaid
+      }
+    });
   } catch (error) {
     console.error('Cancel booking error:', error);
     res.status(500).json({ message: 'Server error' });

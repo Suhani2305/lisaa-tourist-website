@@ -20,8 +20,10 @@ import {
   MailOutlined,
   EnvironmentOutlined
 } from '@ant-design/icons';
-import { articleService } from '../../services';
+import { articleService, mediaService } from '../../services';
 import { useNavigate } from 'react-router-dom';
+import Header from '../landingpage/components/Header';
+import Footer from '../landingpage/components/Footer';
 
 const { TextArea } = Input;
 const { Title, Text, Paragraph } = Typography;
@@ -30,12 +32,68 @@ const { Option } = Select;
 const ShareExperience = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadedImages, setUploadedImages] = useState([]);
   const navigate = useNavigate();
+
+  const handleFileUpload = async (file) => {
+    try {
+      setUploading(true);
+      console.log('📤 Uploading file:', file.name);
+      
+      const response = await mediaService.uploadFile(file, {
+        category: 'Testimonials',
+        title: `Trip Photo - ${file.name}`
+      });
+      
+      console.log('📥 Upload response:', response);
+      
+      // Try different response structures - backend returns { message, media: { url } }
+      const imageUrl = response?.media?.url || 
+                       response?.media?.secure_url ||
+                       response?.url || 
+                       response?.secure_url || 
+                       response?.data?.url || 
+                       response?.data?.secure_url ||
+                       response?.data?.media?.url;
+      
+      if (imageUrl) {
+        setUploadedImages(prev => {
+          const newImages = [...prev, imageUrl];
+          console.log('✅ Updated uploadedImages:', newImages);
+          return newImages;
+        });
+        message.success('Image uploaded successfully!');
+        return imageUrl;
+      } else {
+        console.error('❌ No image URL found in response:', response);
+        message.error('Failed to get image URL from response');
+        return null;
+      }
+    } catch (error) {
+      console.error('❌ Upload error:', error);
+      message.error('Failed to upload image. Please try again.');
+      return null;
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSubmit = async (values) => {
     try {
       setLoading(true);
       console.log('📝 Submitting customer experience:', values);
+
+      // Combine uploaded images and URL images
+      const allImages = [...uploadedImages];
+      if (values.imageUrl) {
+        allImages.push(values.imageUrl);
+      }
+      
+      // Use first image as featured, or default
+      const featuredImage = allImages.length > 0 
+        ? allImages[0] 
+        : 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=90';
 
       const articleData = {
         title: `${values.destination} - ${values.customerName}'s Experience`,
@@ -47,7 +105,8 @@ const ShareExperience = () => {
         customerName: values.customerName,
         customerRating: values.rating,
         status: 'draft', // Admin will review before publishing
-        featuredImage: values.imageUrl || 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=90',
+        featuredImage: featuredImage,
+        images: allImages, // Store all images
         tags: [values.destination, 'Customer Experience', 'Travel Story'],
         seoTitle: `${values.customerName}'s ${values.destination} Travel Experience`,
         seoDescription: values.experience.substring(0, 150),
@@ -57,6 +116,7 @@ const ShareExperience = () => {
       
       message.success('🎉 Thank you for sharing your experience! Our team will review and publish it soon.');
       form.resetFields();
+      setUploadedImages([]);
       
       // Redirect to home after 2 seconds
       setTimeout(() => {
@@ -71,11 +131,13 @@ const ShareExperience = () => {
   };
 
   return (
-    <div style={{ 
-      minHeight: '100vh', 
-      backgroundColor: '#f8f9fa',
-      padding: '40px 20px'
-    }}>
+    <>
+      <Header />
+      <div style={{ 
+        minHeight: '100vh', 
+        backgroundColor: '#f8f9fa',
+        padding: '40px 20px'
+      }}>
       {/* Header */}
       <div style={{ 
         maxWidth: '800px', 
@@ -84,8 +146,10 @@ const ShareExperience = () => {
       }}>
         <Title level={2} style={{ 
           color: '#FF6B35',
-          marginBottom: '16px',
-          fontSize: '2.5rem'
+          marginBottom: '24px',
+          fontSize: window.innerWidth <= 768 ? '1.5rem' : '2rem',
+          fontWeight: '700',
+          fontFamily: 'Poppins, sans-serif'
         }}>
           ✈️ Share Your Travel Experience
         </Title>
@@ -195,9 +259,66 @@ const ShareExperience = () => {
             />
           </Form.Item>
 
+          <Divider orientation="left">
+            <CameraOutlined /> Your Trip Photos
+          </Divider>
+
+          {/* File Upload */}
+          <Form.Item
+            label="Upload Photos (Optional)"
+            tooltip="Upload multiple photos from your trip"
+          >
+            <Upload
+              multiple
+              listType="picture-card"
+              fileList={uploadedImages.map((url, index) => ({
+                uid: `uploaded-${index}-${Date.now()}`,
+                name: `Trip Photo ${index + 1}`,
+                status: 'done',
+                url: url,
+                thumbUrl: url
+              }))}
+              beforeUpload={async (file) => {
+                if (uploadedImages.length >= 10) {
+                  message.warning('Maximum 10 images allowed');
+                  return false;
+                }
+                // Upload file and get URL
+                const imageUrl = await handleFileUpload(file);
+                // State is already updated in handleFileUpload, so we don't need to update again
+                return false; // Prevent auto upload
+              }}
+              accept="image/*"
+              onRemove={(file) => {
+                const url = file.url || file.thumbUrl;
+                if (url) {
+                  setUploadedImages(prev => prev.filter(img => img !== url));
+                  message.success('Image removed');
+                }
+              }}
+              customRequest={() => {}} // Prevent default upload
+              showUploadList={{
+                showPreviewIcon: true,
+                showRemoveIcon: true,
+              }}
+            >
+              {uploadedImages.length < 10 && (
+                <div>
+                  <CameraOutlined style={{ fontSize: '24px' }} />
+                  <div style={{ marginTop: '8px' }}>Upload</div>
+                </div>
+              )}
+            </Upload>
+            {uploading && <div style={{ marginTop: '8px', color: '#ff6b35' }}>Uploading...</div>}
+            <div style={{ marginTop: '8px', fontSize: '12px', color: '#999' }}>
+              You can upload up to 10 photos. Supported formats: JPG, PNG, GIF
+            </div>
+          </Form.Item>
+
+          {/* URL Input */}
           <Form.Item
             name="imageUrl"
-            label="Photo from Your Trip (Optional)"
+            label="Or Paste Image URL (Optional)"
             tooltip="Paste image URL from Google Photos, Dropbox, or Unsplash"
           >
             <Input 
@@ -208,45 +329,6 @@ const ShareExperience = () => {
             />
           </Form.Item>
 
-          <Form.Item
-            label="Image Preview"
-          >
-            <Form.Item noStyle shouldUpdate={(prev, curr) => prev.imageUrl !== curr.imageUrl}>
-              {({ getFieldValue }) => {
-                const imageUrl = getFieldValue('imageUrl');
-                return imageUrl ? (
-                  <img
-                    src={imageUrl}
-                    alt="Trip Photo Preview"
-                    style={{ 
-                      maxWidth: '100%', 
-                      maxHeight: '300px', 
-                      borderRadius: '12px',
-                      objectFit: 'cover',
-                      display: 'block',
-                      margin: '0 auto'
-                    }}
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                      message.warning('Invalid image URL');
-                    }}
-                  />
-                ) : (
-                  <div style={{ 
-                    padding: '40px', 
-                    border: '2px dashed #d9d9d9', 
-                    borderRadius: '8px',
-                    textAlign: 'center',
-                    color: '#999'
-                  }}>
-                    <CameraOutlined style={{ fontSize: '48px', marginBottom: '16px' }} />
-                    <br />
-                    Paste your image URL above to see preview
-                  </div>
-                );
-              }}
-            </Form.Item>
-          </Form.Item>
 
           <Divider />
 
@@ -313,7 +395,9 @@ const ShareExperience = () => {
           <li>Add photos to make your story come alive!</li>
         </ul>
       </Card>
-    </div>
+      </div>
+      <Footer />
+    </>
   );
 };
 
