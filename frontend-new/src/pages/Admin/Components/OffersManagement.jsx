@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import dayjs from 'dayjs';
 import { offerService, tourService } from '../../../services';
 import {
   Card,
@@ -167,8 +168,8 @@ const OffersManagement = () => {
     setEditingOffer(offer);
     form.setFieldsValue({
       ...offer,
-      startDate: offer.startDate ? new Date(offer.startDate) : null,
-      endDate: offer.endDate ? new Date(offer.endDate) : null
+      startDate: offer.startDate ? (dayjs(offer.startDate).isValid() ? dayjs(offer.startDate) : null) : null,
+      endDate: offer.endDate ? (dayjs(offer.endDate).isValid() ? dayjs(offer.endDate) : null) : null
     });
     setModalVisible(true);
   };
@@ -313,9 +314,9 @@ const OffersManagement = () => {
           <Image
             width={60}
             height={60}
-            src={record.image}
+            src={record.image || null}
             style={{ borderRadius: '8px', objectFit: 'cover' }}
-            fallback="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMIAAADDCAYAAADQvc6UAAABRWlDQ1BJQ0MgUHJvZmlsZQAAKJFjYGASSSwoyGFhYGDIzSspCnJ3UoiIjFJgf8LAwSDCIMogwMCcmFxc4BgQ4ANUwgCjUcG3awyMIPqyLsis7PPOq3QdDFcvjV3jOD1boQVTPQrgSkktTgbSf4A4LbmgqISBgTEFyFYuLykAsTuAbJEioKOA7DkgdjqEvQHEToKwj4DVhAQ5A9k3gGyB5IxEoBmML4BsnSQk8XQkNtReEOBxcfXxUQg1Mjc0dyHgXNJBSWpFCYh2zi+oLMpMzyhRcASGUqqCZ16yno6CkYGRAQMDKMwhqj/fAIcloxgHQqxAjIHBEugw5sUIsSQpBobtQPdLciLEVJYzMPBHMDBsayhILEqEO4DxG0txmrERhM29nYGBddr//5/DGRjYNRkY/l7////39v///y4Dmn+LgeHANwDrkl1AuO+pmgAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAwqADAAQAAAABAAAAwwAAAAD9b/HnAAAHlklEQVR4Ae3dP3Ik1RnG4W+FgYxN..."
+            fallback="https://via.placeholder.com/60x60?text=No+Image"
           />
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -919,16 +920,50 @@ const OffersManagement = () => {
                 label="Start Date"
                 rules={[{ required: true, message: 'Please select start date' }]}
               >
-                <DatePicker style={{ width: '100%', borderRadius: '8px' }} />
+                <DatePicker 
+                  style={{ width: '100%', borderRadius: '8px' }}
+                  format="YYYY-MM-DD"
+                  disabledDate={(current) => {
+                    if (!current) return false;
+                    if (!dayjs.isDayjs(current) || !current.isValid()) return false;
+                    return false; // Allow all dates for start date
+                  }}
+                />
               </Form.Item>
             </Col>
             <Col span={12}>
               <Form.Item
                 name="endDate"
                 label="End Date"
-                rules={[{ required: true, message: 'Please select end date' }]}
+                rules={[
+                  { required: true, message: 'Please select end date' },
+                  ({ getFieldValue }) => ({
+                    validator(_, value) {
+                      if (!value) {
+                        return Promise.resolve();
+                      }
+                      const startDate = getFieldValue('startDate');
+                      if (startDate && dayjs.isDayjs(value) && dayjs.isDayjs(startDate) && value.isBefore(startDate)) {
+                        return Promise.reject('End date must be after start date');
+                      }
+                      return Promise.resolve();
+                    },
+                  }),
+                ]}
               >
-                <DatePicker style={{ width: '100%', borderRadius: '8px' }} />
+                <DatePicker 
+                  style={{ width: '100%', borderRadius: '8px' }}
+                  format="YYYY-MM-DD"
+                  disabledDate={(current) => {
+                    if (!current) return false;
+                    if (!dayjs.isDayjs(current) || !current.isValid()) return false;
+                    const startDate = form.getFieldValue('startDate');
+                    if (startDate && dayjs.isDayjs(startDate) && startDate.isValid()) {
+                      return current.isBefore(startDate.startOf('day'));
+                    }
+                    return false;
+                  }}
+                />
               </Form.Item>
             </Col>
           </Row>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import dayjs from 'dayjs';
 import {
   Card,
   Table,
@@ -288,7 +289,7 @@ const ContentManagement = () => {
     setEditingContent(content);
     form.setFieldsValue({
       ...content,
-      publishDate: content.publishDate ? new Date(content.publishDate) : null
+      publishDate: content.publishDate ? (dayjs(content.publishDate).isValid() ? dayjs(content.publishDate) : null) : null
     });
     setModalVisible(true);
   };

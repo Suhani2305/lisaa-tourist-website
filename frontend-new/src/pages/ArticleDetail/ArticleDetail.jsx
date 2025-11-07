@@ -270,7 +270,7 @@ const ArticleDetail = () => {
               boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
             }}>
               <img
-                src={article.featuredImage}
+                src={article.featuredImage || 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=90'}
                 alt={article.title}
                 style={{
                   width: '100%',

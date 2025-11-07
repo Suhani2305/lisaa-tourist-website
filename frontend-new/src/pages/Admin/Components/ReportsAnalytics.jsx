@@ -1202,7 +1202,7 @@ const ReportsAnalytics = () => {
                 <List.Item.Meta
                   avatar={
                     <Avatar 
-                      src={item.tour?.images?.[0]} 
+                      src={item.tour?.images?.[0] || null} 
                       icon={<BookIcon />}
                       style={{ backgroundColor: '#ff6b35' }}
                     />

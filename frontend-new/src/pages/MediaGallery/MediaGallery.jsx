@@ -505,7 +505,7 @@ const MediaGallery = () => {
                   >
                     {media.type === 'image' ? (
                       <img
-                        src={media.thumbnail}
+                        src={media.thumbnail || 'https://via.placeholder.com/400x300?text=Image'}
                         alt={media.alt}
                         style={{
                           width: '100%',

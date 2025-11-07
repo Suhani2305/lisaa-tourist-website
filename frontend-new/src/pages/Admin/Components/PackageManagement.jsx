@@ -115,8 +115,8 @@ const PackageManagement = () => {
       discountType: record.discount?.type || 'percentage',
       discountValue: record.discount?.value || 0,
       discountActive: record.discount?.isActive || false,
-      discountStartDate: record.discount?.startDate ? dayjs(record.discount.startDate) : null,
-      discountEndDate: record.discount?.endDate ? dayjs(record.discount.endDate) : null,
+      discountStartDate: record.discount?.startDate ? (dayjs(record.discount.startDate).isValid() ? dayjs(record.discount.startDate) : null) : null,
+      discountEndDate: record.discount?.endDate ? (dayjs(record.discount.endDate).isValid() ? dayjs(record.discount.endDate) : null) : null,
       category: record.category,
       trendingCategories: record.trendingCategories || [],
       difficulty: record.difficulty,
@@ -668,6 +668,7 @@ const PackageManagement = () => {
                               disabled={!discountActive}
                               disabledDate={(current) => {
                                 if (!current || !discountActive) return false;
+                                if (!dayjs.isDayjs(current) || !current.isValid()) return false;
                                 const today = dayjs().startOf('day');
                                 return current.isBefore(today);
                               }}
@@ -710,6 +711,7 @@ const PackageManagement = () => {
                               disabled={!discountActive}
                               disabledDate={(current) => {
                                 if (!current || !discountActive) return false;
+                                if (!dayjs.isDayjs(current) || !current.isValid()) return false;
                                 
                                 const today = dayjs().startOf('day');
                                 if (current.isBefore(today)) {
@@ -719,7 +721,7 @@ const PackageManagement = () => {
                                 const startDateValue = form.getFieldValue('discountStartDate');
                                 const startDate = ensureDayjs(startDateValue);
                                 
-                                if (startDate && startDate.isValid() && current.isBefore(startDate.startOf('day'))) {
+                                if (startDate && dayjs.isDayjs(startDate) && startDate.isValid() && current.isBefore(startDate.startOf('day'))) {
                                   return true;
                                 }
                                 

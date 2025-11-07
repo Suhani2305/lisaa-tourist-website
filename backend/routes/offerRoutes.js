@@ -143,7 +143,19 @@ router.post('/validate/:code', async (req, res) => {
     
     // Check date validity
     const now = new Date();
-    if (now < offer.startDate || now > offer.endDate) {
+    // Set startDate to beginning of day (00:00:00)
+    const startDate = new Date(offer.startDate);
+    startDate.setHours(0, 0, 0, 0);
+    
+    // Set endDate to end of day (23:59:59.999) so it's valid for the entire day
+    const endDate = new Date(offer.endDate);
+    endDate.setHours(23, 59, 59, 999);
+    
+    // Set current date to beginning of day for comparison
+    const today = new Date(now);
+    today.setHours(0, 0, 0, 0);
+    
+    if (today < startDate || today > endDate) {
       return res.status(400).json({ message: 'Offer has expired' });
     }
     

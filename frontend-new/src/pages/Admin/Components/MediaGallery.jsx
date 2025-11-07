@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import dayjs from 'dayjs';
 import { mediaService } from '../../../services';
 import {
   Card,
@@ -327,7 +328,7 @@ const MediaGallery = () => {
     setEditingMedia(media);
     form.setFieldsValue({
       ...media,
-      uploadDate: media.uploadDate ? new Date(media.uploadDate) : null
+      uploadDate: media.uploadDate ? (dayjs(media.uploadDate).isValid() ? dayjs(media.uploadDate) : null) : null
     });
     setModalVisible(true);
   };

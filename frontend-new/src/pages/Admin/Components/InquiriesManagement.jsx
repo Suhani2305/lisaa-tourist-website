@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import dayjs from 'dayjs';
 import { inquiryService } from '../../../services';
 import {
   Card,
@@ -282,8 +283,8 @@ Lisaa Tours & Travels Team`
     setEditingInquiry(inquiry);
     form.setFieldsValue({
       ...inquiry,
-      travelDate: inquiry.travelDate ? new Date(inquiry.travelDate) : null,
-      followUpDate: inquiry.followUpDate ? new Date(inquiry.followUpDate) : null,
+      travelDate: inquiry.travelDate ? (dayjs(inquiry.travelDate).isValid() ? dayjs(inquiry.travelDate) : null) : null,
+      followUpDate: inquiry.followUpDate ? (dayjs(inquiry.followUpDate).isValid() ? dayjs(inquiry.followUpDate) : null) : null,
       // Set interestedTour to the populated tour object if available
       interestedTour: inquiry.interestedTour?._id || inquiry.interestedTour
     });
