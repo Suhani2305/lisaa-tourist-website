@@ -112,13 +112,12 @@ const TravelArticles = () => {
         <div style={{ 
           display: 'flex', 
           justifyContent: 'space-between', 
-          alignItems: 'center',
+          alignItems: window.innerWidth <= 768 ? 'flex-start' : 'center',
           marginBottom: window.innerWidth <= 768 ? '20px' : '40px',
-          padding: '0 10px',
           flexWrap: 'wrap',
-          gap: '10px'
+          gap: '12px'
         }}>
-          <div>
+          <div style={{ flex: '1', minWidth: '200px' }}>
             <h2 style={{ 
               fontSize: window.innerWidth <= 480 ? "22px" : window.innerWidth <= 768 ? "26px" : "36px",
               fontWeight: "700",
@@ -148,7 +147,9 @@ const TravelArticles = () => {
               fontWeight: '600',
               cursor: 'pointer',
               transition: 'all 0.3s ease',
-              fontFamily: 'Poppins, sans-serif'
+              fontFamily: 'Poppins, sans-serif',
+              alignSelf: window.innerWidth <= 768 ? 'flex-start' : 'center',
+              whiteSpace: 'nowrap'
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.backgroundColor = '#ff6b35';

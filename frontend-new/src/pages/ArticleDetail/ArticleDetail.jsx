@@ -127,8 +127,8 @@ const ArticleDetail = () => {
         });
         
         // Call API to increment likes
-        try {
-          await articleService.likeArticle(articleId);
+    try {
+      await articleService.likeArticle(articleId);
         } catch (error) {
           console.error('Like API error:', error);
         }

@@ -169,7 +169,7 @@ const TrendingDestinationsPage = () => {
             /* Destinations Grid */
             <div style={{
               display: "grid",
-              gridTemplateColumns: isSmall ? "1fr" : isMobile ? "repeat(2, 1fr)" : window.innerWidth <= 1024 ? "repeat(3, 1fr)" : "repeat(4, 1fr)",
+              gridTemplateColumns: isSmall ? "1fr" : isMobile ? "repeat(2, 1fr)" : "repeat(3, 1fr)",
               gap: isSmall ? "16px" : isMobile ? "20px" : "24px"
             }}>
               {filteredDestinations.map(destination => (
@@ -279,12 +279,21 @@ const TrendingDestinationsPage = () => {
           {/* Results Count */}
           <div style={{
             textAlign: "center",
-            marginTop: "40px",
-            padding: "20px",
-            color: "#6c757d",
-            fontSize: "14px"
+            marginTop: isSmall ? "40px" : "60px",
+            padding: isSmall ? "20px" : "30px",
+            backgroundColor: "#f8f9fa",
+            borderRadius: "16px",
+            border: "1px solid rgba(255, 107, 53, 0.1)"
           }}>
-            Showing {filteredDestinations.length} {filteredDestinations.length === 1 ? "category" : "categories"}
+            <p style={{
+              color: "#495057",
+              fontSize: isSmall ? "13px" : "15px",
+              margin: "0",
+              fontFamily: "Poppins, sans-serif",
+              fontWeight: "500"
+            }}>
+              Showing <span style={{ color: "#FF6B35", fontWeight: "700" }}>{filteredDestinations.length}</span> {filteredDestinations.length === 1 ? "trending destination" : "trending destinations"}
+            </p>
           </div>
         </div>
       </div>

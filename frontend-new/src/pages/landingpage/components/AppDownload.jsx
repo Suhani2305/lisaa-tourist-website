@@ -63,6 +63,7 @@ const AppDownload = () => {
               minWidth: window.innerWidth <= 768 ? '250px' : '300px',
               color: 'white',
               alignSelf: 'flex-start',
+              width: window.innerWidth <= 768 ? '100%' : 'auto',
             }}
           >
             <h2
@@ -99,7 +100,7 @@ const AppDownload = () => {
               style={{
                 display: 'flex',
                 gap: '10px',
-                marginBottom: '30px',
+                marginBottom: window.innerWidth <= 768 ? '20px' : '30px',
                 flexWrap: 'wrap',
               }}
             >
@@ -134,32 +135,34 @@ const AppDownload = () => {
             </div>
           </div>
 
-          {/* Right Side - Image */}
-          <div
-            style={{
-              flex: 0.6, // 👈 60% width
-              minWidth: '250px',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'flex-end', // 👈 stick to bottom
-              margin: '0 auto',
-              paddingBottom: 0,
-            }}
-          >
-            <img
-              src="https://viatour-nextjs.vercel.app/img/cta/1/1.png"
-              alt="App Preview"
+          {/* Right Side - Image (Hidden on Mobile) */}
+          {window.innerWidth > 768 && (
+            <div
               style={{
-                width: '100%',
-                maxWidth: '500px',
-                height: 'auto',
-                objectFit: 'contain',
-                display: 'block',
-                marginBottom: 0,
+                flex: 0.6, // 👈 60% width
+                minWidth: '250px',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'flex-end', // 👈 stick to bottom
+                margin: '0 auto',
                 paddingBottom: 0,
               }}
-            />
-          </div>
+            >
+              <img
+                src="https://viatour-nextjs.vercel.app/img/cta/1/1.png"
+                alt="App Preview"
+                style={{
+                  width: '100%',
+                  maxWidth: '500px',
+                  height: 'auto',
+                  objectFit: 'contain',
+                  display: 'block',
+                  marginBottom: 0,
+                  paddingBottom: 0,
+                }}
+              />
+            </div>
+          )}
         </div>
       </div>
       </div>

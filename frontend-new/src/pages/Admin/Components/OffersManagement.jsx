@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import dayjs from 'dayjs';
-import { offerService, tourService } from '../../../services';
+import { offerService, tourService, stateService, mediaService } from '../../../services';
 import {
   Card,
   Table,
@@ -31,7 +31,10 @@ import {
   Avatar,
   Rate,
   List,
-  Drawer
+  Drawer,
+  Upload,
+  Radio,
+  Alert
 } from 'antd';
 import {
   PlusOutlined,
@@ -68,6 +71,7 @@ import {
   TrophyOutlined,
   BookOutlined,
   CameraOutlined,
+  UploadOutlined,
   VideoCameraOutlined,
   QuestionCircleOutlined,
   ExclamationCircleOutlined,
@@ -103,10 +107,16 @@ const OffersManagement = () => {
   const [filterType, setFilterType] = useState('all');
   const [selectedOffer, setSelectedOffer] = useState(null);
   const [availableTours, setAvailableTours] = useState([]);
+  const [availableStates, setAvailableStates] = useState([]);
+  const [availableCities, setAvailableCities] = useState([]);
+  const [applicabilityType, setApplicabilityType] = useState('all'); // 'all', 'tours', 'cities', 'states'
+  const [imageFileList, setImageFileList] = useState([]);
 
   useEffect(() => {
     fetchOffers();
     fetchTours();
+    fetchStates();
+    fetchCities();
   }, [filterStatus, searchText]);
 
   const fetchTours = async () => {
@@ -115,6 +125,36 @@ const OffersManagement = () => {
       setAvailableTours(Array.isArray(tours) ? tours : (tours?.data || tours?.tours || []));
     } catch (error) {
       console.error('Failed to fetch tours:', error);
+    }
+  };
+
+  const fetchStates = async () => {
+    try {
+      const states = await stateService.getAllStates({ all: 'true' });
+      setAvailableStates(Array.isArray(states) ? states : (states?.states || []));
+    } catch (error) {
+      console.error('Failed to fetch states:', error);
+    }
+  };
+
+  const fetchCities = async () => {
+    try {
+      const response = await stateService.getAllCities({ all: 'true' });
+      // Handle different response formats
+      let citiesArray = [];
+      if (Array.isArray(response)) {
+        citiesArray = response;
+      } else if (response?.cities && Array.isArray(response.cities)) {
+        citiesArray = response.cities;
+      } else if (response?.data?.cities && Array.isArray(response.data.cities)) {
+        citiesArray = response.data.cities;
+      }
+      setAvailableCities(citiesArray);
+      console.log('✅ Cities loaded:', citiesArray.length);
+    } catch (error) {
+      console.error('❌ Failed to fetch cities:', error);
+      message.error('Failed to load cities. Please refresh the page.');
+      setAvailableCities([]);
     }
   };
 
@@ -141,7 +181,10 @@ const OffersManagement = () => {
         maxDiscount: offer.maxDiscount || null,
         usageLimit: offer.usageLimit || null,
         usedCount: offer.usedCount || 0,
+        applicableToAll: offer.applicableToAll || false,
         applicableTours: offer.applicableTours || [],
+        applicableCities: offer.applicableCities || [],
+        applicableStates: offer.applicableStates || [],
         customerTiers: offer.customerTiers || [],
         image: offer.image || '',
         terms: offer.terms || '',
@@ -166,10 +209,46 @@ const OffersManagement = () => {
 
   const handleEditOffer = (offer) => {
     setEditingOffer(offer);
+    
+    // Determine applicability type based on existing data
+    let appType = 'all';
+    if (offer.applicableTours && offer.applicableTours.length > 0) {
+      appType = 'tours';
+    } else if (offer.applicableCities && offer.applicableCities.length > 0) {
+      appType = 'cities';
+    } else if (offer.applicableStates && offer.applicableStates.length > 0) {
+      appType = 'states';
+    }
+    
+    setApplicabilityType(appType);
+    
+    // Convert applicableTours to array of IDs if they're objects
+    const toursArray = offer.applicableTours 
+      ? offer.applicableTours.map(t => typeof t === 'object' ? (t._id || t.id) : t)
+      : [];
+    
+    // Set image file list if image exists
+    const imageValue = offer.image || '';
+    if (imageValue) {
+      setImageFileList([{
+        uid: '-1',
+        name: 'coupon-image',
+        status: 'done',
+        url: imageValue
+      }]);
+    } else {
+      setImageFileList([]);
+    }
+    
     form.setFieldsValue({
       ...offer,
       startDate: offer.startDate ? (dayjs(offer.startDate).isValid() ? dayjs(offer.startDate) : null) : null,
-      endDate: offer.endDate ? (dayjs(offer.endDate).isValid() ? dayjs(offer.endDate) : null) : null
+      endDate: offer.endDate ? (dayjs(offer.endDate).isValid() ? dayjs(offer.endDate) : null) : null,
+      image: imageValue,
+      applicabilityType: appType,
+      applicableTours: toursArray,
+      applicableCities: offer.applicableCities || [],
+      applicableStates: offer.applicableStates || []
     });
     setModalVisible(true);
   };
@@ -223,13 +302,23 @@ const OffersManagement = () => {
     try {
       const values = await form.validateFields();
       
+      // Determine applicableToAll and clear other fields based on applicabilityType
+      const appType = values.applicabilityType || applicabilityType || 'all';
+      const applicableToAll = appType === 'all';
+      
       const offerData = {
         ...values,
         startDate: values.startDate ? values.startDate.toISOString() : null,
         endDate: values.endDate ? values.endDate.toISOString() : null,
-        applicableTours: values.applicableTours || [],
+        applicableToAll: applicableToAll,
+        applicableTours: appType === 'tours' ? (values.applicableTours || []) : [],
+        applicableCities: appType === 'cities' ? (values.applicableCities || []) : [],
+        applicableStates: appType === 'states' ? (values.applicableStates || []) : [],
         customerTiers: values.customerTiers || []
       };
+      
+      // Remove applicabilityType from offerData as it's not part of the schema
+      delete offerData.applicabilityType;
       
       if (editingOffer) {
         // Update existing offer
@@ -243,6 +332,7 @@ const OffersManagement = () => {
       
       setModalVisible(false);
       setEditingOffer(null);
+      setApplicabilityType('all');
       form.resetFields();
       fetchOffers(); // Refresh list
     } catch (error) {
@@ -254,6 +344,9 @@ const OffersManagement = () => {
   const handleModalCancel = () => {
     setModalVisible(false);
     setDetailModalVisible(false);
+    setEditingOffer(null);
+    setApplicabilityType('all');
+    setImageFileList([]);
     form.resetFields();
   };
 
@@ -544,7 +637,13 @@ const OffersManagement = () => {
           <Button
             type="primary"
             icon={<PlusOutlined />}
-            onClick={() => setModalVisible(true)}
+            onClick={() => {
+              setApplicabilityType('all');
+              setImageFileList([]);
+              form.resetFields();
+              form.setFieldsValue({ applicabilityType: 'all' });
+              setModalVisible(true);
+            }}
             style={{
               borderRadius: '12px',
               background: '#ff6b35',
@@ -787,11 +886,56 @@ const OffersManagement = () => {
                       <Card title="Terms & Conditions" size="small" style={{ marginTop: '16px' }}>
                         <Text>{selectedOffer.terms}</Text>
                       </Card>
-                      <Card title="Applicable Tours" size="small" style={{ marginTop: '16px' }}>
+                      <Card title="Applicability" size="small" style={{ marginTop: '16px' }}>
                         <div>
-                          {selectedOffer.applicableTours?.map((tour, index) => (
-                            <Tag key={index} style={{ margin: '2px' }}>{tour}</Tag>
+                          {selectedOffer.applicableToAll ? (
+                            <Tag color="green" style={{ margin: '2px' }}>
+                              <GlobalOutlined style={{ marginRight: '4px' }} />
+                              All Available Packages
+                            </Tag>
+                          ) : (
+                            <>
+                              {selectedOffer.applicableTours && selectedOffer.applicableTours.length > 0 && (
+                                <div style={{ marginBottom: '12px' }}>
+                                  <Text strong style={{ display: 'block', marginBottom: '4px' }}>
+                                    <BookOutlined style={{ marginRight: '4px' }} />
+                                    Specific Tours ({selectedOffer.applicableTours.length}):
+                                  </Text>
+                                  {selectedOffer.applicableTours.map((tour, index) => (
+                                    <Tag key={index} color="blue" style={{ margin: '2px' }}>
+                                      {typeof tour === 'object' ? tour.title || tour._id : tour}
+                                    </Tag>
                           ))}
+                                </div>
+                              )}
+                              {selectedOffer.applicableCities && selectedOffer.applicableCities.length > 0 && (
+                                <div style={{ marginBottom: '12px' }}>
+                                  <Text strong style={{ display: 'block', marginBottom: '4px' }}>
+                                    <EnvironmentOutlined style={{ marginRight: '4px' }} />
+                                    Cities ({selectedOffer.applicableCities.length}):
+                                  </Text>
+                                  {selectedOffer.applicableCities.map((city, index) => (
+                                    <Tag key={index} color="orange" style={{ margin: '2px' }}>
+                                      {city}
+                                    </Tag>
+                                  ))}
+                                </div>
+                              )}
+                              {selectedOffer.applicableStates && selectedOffer.applicableStates.length > 0 && (
+                                <div>
+                                  <Text strong style={{ display: 'block', marginBottom: '4px' }}>
+                                    <HomeOutlined style={{ marginRight: '4px' }} />
+                                    States ({selectedOffer.applicableStates.length}):
+                                  </Text>
+                                  {selectedOffer.applicableStates.map((state, index) => (
+                                    <Tag key={index} color="purple" style={{ margin: '2px' }}>
+                                      {state}
+                                    </Tag>
+                                  ))}
+                                </div>
+                              )}
+                            </>
+                          )}
                         </div>
                       </Card>
                     </div>
@@ -868,6 +1012,81 @@ const OffersManagement = () => {
               placeholder="Enter offer description"
               style={{ borderRadius: '8px' }}
             />
+          </Form.Item>
+
+          <Form.Item
+            name="image"
+            label="Coupon Image"
+            extra="Upload an image for the coupon (optional, max 5MB)"
+          >
+            <Upload
+              listType="picture-card"
+              maxCount={1}
+              fileList={imageFileList}
+              beforeUpload={(file) => {
+                // Check file size (max 5MB)
+                const isLt5M = file.size / 1024 / 1024 < 5;
+                if (!isLt5M) {
+                  message.error('Image must be smaller than 5MB!');
+                  return false;
+                }
+                // Check file type
+                const isImage = file.type.startsWith('image/');
+                if (!isImage) {
+                  message.error('You can only upload image files!');
+                  return false;
+                }
+                return false; // Prevent auto upload
+              }}
+              onChange={async (info) => {
+                const { fileList } = info;
+                setImageFileList(fileList);
+                
+                if (fileList.length > 0) {
+                  const file = fileList[0].originFileObj;
+                  if (file) {
+                    // Upload directly to Cloudinary instead of Base64
+                    try {
+                      message.loading({ content: 'Uploading image...', key: 'upload' });
+                      const response = await mediaService.uploadImage(file);
+                      if (response.url) {
+                        form.setFieldValue('image', response.url);
+                        message.success({ content: 'Image uploaded successfully!', key: 'upload' });
+                        // Update fileList with the uploaded URL for preview
+                        setImageFileList([{
+                          ...fileList[0],
+                          url: response.url,
+                          status: 'done'
+                        }]);
+                      }
+                    } catch (error) {
+                      console.error('Image upload error:', error);
+                      message.error({ content: error.message || 'Failed to upload image', key: 'upload' });
+                      setImageFileList([]);
+                      form.setFieldValue('image', '');
+                    }
+                  } else if (fileList[0].url) {
+                    // If it's an existing image (from edit mode)
+                    form.setFieldValue('image', fileList[0].url);
+                  }
+                } else {
+                  form.setFieldValue('image', '');
+                }
+              }}
+              accept="image/*"
+              onRemove={() => {
+                setImageFileList([]);
+                form.setFieldValue('image', '');
+                return true;
+              }}
+            >
+              {imageFileList.length >= 1 ? null : (
+                <div>
+                  <PlusOutlined />
+                  <div style={{ marginTop: 8 }}>Upload</div>
+                </div>
+              )}
+            </Upload>
           </Form.Item>
 
           <Row gutter={16}>
@@ -1006,6 +1225,146 @@ const OffersManagement = () => {
               </Form.Item>
             </Col>
           </Row>
+
+          <Divider orientation="left" style={{ marginTop: '24px', marginBottom: '16px' }}>
+            <GlobalOutlined style={{ marginRight: '8px' }} />
+            Applicability Settings
+          </Divider>
+
+          <Form.Item
+            name="applicabilityType"
+            label="Apply Coupon To"
+            rules={[{ required: true, message: 'Please select applicability type' }]}
+            initialValue="all"
+          >
+            <Radio.Group
+              value={applicabilityType}
+              onChange={(e) => {
+                setApplicabilityType(e.target.value);
+                form.setFieldsValue({
+                  applicableTours: [],
+                  applicableCities: [],
+                  applicableStates: []
+                });
+              }}
+              style={{ width: '100%' }}
+            >
+              <Space direction="vertical" style={{ width: '100%' }}>
+                <Radio value="all">
+                  <Text strong>All Available Packages</Text>
+                  <br />
+                  <Text type="secondary" style={{ fontSize: '12px' }}>
+                    Coupon applies to all tours and packages
+                  </Text>
+                </Radio>
+                <Radio value="tours">
+                  <Text strong>Specific Tours</Text>
+                  <br />
+                  <Text type="secondary" style={{ fontSize: '12px' }}>
+                    Select specific tours for this coupon
+                  </Text>
+                </Radio>
+                <Radio value="cities">
+                  <Text strong>Specific Cities</Text>
+                  <br />
+                  <Text type="secondary" style={{ fontSize: '12px' }}>
+                    Coupon applies to all tours in selected cities
+                  </Text>
+                </Radio>
+                <Radio value="states">
+                  <Text strong>Specific States</Text>
+                  <br />
+                  <Text type="secondary" style={{ fontSize: '12px' }}>
+                    Coupon applies to all tours in selected states
+                  </Text>
+                </Radio>
+              </Space>
+            </Radio.Group>
+          </Form.Item>
+
+          {applicabilityType === 'tours' && (
+            <Form.Item
+              name="applicableTours"
+              label="Select Tours"
+              rules={[{ required: true, message: 'Please select at least one tour' }]}
+            >
+              <Select
+                mode="multiple"
+                placeholder="Select tours for this coupon"
+                style={{ width: '100%', borderRadius: '8px' }}
+                showSearch
+                filterOption={(input, option) =>
+                  (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                }
+                options={availableTours.map(tour => ({
+                  label: `${tour.title} - ${tour.destination || 'N/A'}`,
+                  value: tour._id || tour.id
+                }))}
+              />
+            </Form.Item>
+          )}
+
+          {applicabilityType === 'cities' && (
+            <Form.Item
+              name="applicableCities"
+              label="Select Cities"
+              rules={[{ required: true, message: 'Please select at least one city' }]}
+            >
+              {availableCities.length === 0 ? (
+                <Alert
+                  message="No cities available"
+                  description="Please ensure cities are added to the system first."
+                  type="warning"
+                  style={{ borderRadius: '8px' }}
+                />
+              ) : (
+                <Select
+                  mode="multiple"
+                  placeholder="Select cities for this coupon"
+                  style={{ width: '100%', borderRadius: '8px' }}
+                  showSearch
+                  filterOption={(input, option) =>
+                    (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                  }
+                  options={Array.from(
+                    new Map(
+                      availableCities
+                        .filter(city => city && city.name) // Filter out invalid cities
+                        .map(city => {
+                          const cityName = city.name.trim();
+                          const cityState = city.state ? `, ${city.state.trim()}` : '';
+                          const label = `${cityName}${cityState}`;
+                          // Use city name as key to remove duplicates
+                          return [cityName, { label, value: cityName }];
+                        })
+                    ).values()
+                  )}
+                />
+              )}
+            </Form.Item>
+          )}
+
+          {applicabilityType === 'states' && (
+            <Form.Item
+              name="applicableStates"
+              label="Select States"
+              rules={[{ required: true, message: 'Please select at least one state' }]}
+            >
+              <Select
+                mode="multiple"
+                placeholder="Select states for this coupon"
+                style={{ width: '100%', borderRadius: '8px' }}
+                showSearch
+                filterOption={(input, option) =>
+                  (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                }
+                options={availableStates.map(state => ({
+                  label: state.name,
+                  value: state.slug || state.name
+                }))}
+              />
+            </Form.Item>
+          )}
 
           <Form.Item
             name="terms"

@@ -59,8 +59,144 @@ const Login = () => {
     }
   };
 
+  const handleGoogleLogin = async () => {
+    try {
+      setLoading(true);
+      
+      // Load Google OAuth script
+      if (!window.google) {
+        const script = document.createElement('script');
+        script.src = 'https://accounts.google.com/gsi/client';
+        script.async = true;
+        script.defer = true;
+        document.body.appendChild(script);
+        
+        script.onload = () => {
+          const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID';
+          window.google.accounts.id.initialize({
+            client_id: googleClientId,
+            callback: handleGoogleCallback,
+          });
+          
+          window.google.accounts.id.prompt((notification) => {
+            if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+              // Use popup flow
+              window.google.accounts.oauth2.initTokenClient({
+                client_id: googleClientId,
+                scope: 'email profile',
+                callback: async (response) => {
+                  if (response.access_token) {
+                    await handleGoogleCallback(response.access_token);
+                  }
+                },
+              }).requestAccessToken();
+            }
+          });
+        };
+      } else {
+        // Google already loaded, use OAuth2
+        const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID';
+        window.google.accounts.oauth2.initTokenClient({
+          client_id: googleClientId,
+          scope: 'email profile',
+          callback: async (response) => {
+            if (response.access_token) {
+              await handleGoogleCallback(response.access_token);
+            }
+          },
+        }).requestAccessToken();
+      }
+    } catch (error) {
+      console.error('Google login error:', error);
+      message.error('Google login failed. Please try again.');
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleCallback = async (token) => {
+    try {
+      const response = await authService.googleLogin(token);
+      message.success(`Welcome, ${response.user.name}!`);
+      setTimeout(() => {
+        navigate("/");
+      }, 500);
+    } catch (error) {
+      console.error('Google login error:', error);
+      message.error(error.message || 'Google login failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFacebookLogin = async () => {
+    try {
+      setLoading(true);
+      
+      // Load Facebook SDK
+      if (!window.FB) {
+        const script = document.createElement('script');
+        script.src = 'https://connect.facebook.net/en_US/sdk.js';
+        script.async = true;
+        script.defer = true;
+        document.body.appendChild(script);
+        
+        script.onload = () => {
+          const facebookAppId = import.meta.env.VITE_FACEBOOK_APP_ID || 'YOUR_FACEBOOK_APP_ID';
+          window.FB.init({
+            appId: facebookAppId,
+            cookie: true,
+            xfbml: true,
+            version: 'v18.0'
+          });
+          
+          window.FB.login(async (response) => {
+            if (response.authResponse) {
+              await handleFacebookCallback(response.authResponse.accessToken, response.authResponse.userID);
+            } else {
+              message.error('Facebook login cancelled or failed');
+              setLoading(false);
+            }
+          }, { scope: 'email,public_profile' });
+        };
+      } else {
+        // Facebook SDK already loaded
+        window.FB.login(async (response) => {
+          if (response.authResponse) {
+            await handleFacebookCallback(response.authResponse.accessToken, response.authResponse.userID);
+          } else {
+            message.error('Facebook login cancelled or failed');
+            setLoading(false);
+          }
+        }, { scope: 'email,public_profile' });
+      }
+    } catch (error) {
+      console.error('Facebook login error:', error);
+      message.error('Facebook login failed. Please try again.');
+      setLoading(false);
+    }
+  };
+
+  const handleFacebookCallback = async (accessToken, userID) => {
+    try {
+      const response = await authService.facebookLogin(accessToken, userID);
+      message.success(`Welcome, ${response.user.name}!`);
+      setTimeout(() => {
+        navigate("/");
+      }, 500);
+    } catch (error) {
+      console.error('Facebook login error:', error);
+      message.error(error.message || 'Facebook login failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSocialLogin = (provider) => {
-    message.info(`${provider} login coming soon!`);
+    if (provider === 'Google') {
+      handleGoogleLogin();
+    } else if (provider === 'Facebook') {
+      handleFacebookLogin();
+    }
   };
 
   return (

@@ -60,6 +60,16 @@ const reviewService = {
       throw new Error(error.response?.data?.message || 'Failed to delete review');
     }
   },
+
+  // Mark review as helpful
+  markHelpful: async (reviewId) => {
+    try {
+      const response = await api.post(`/reviews/${reviewId}/helpful`);
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to mark review as helpful');
+    }
+  },
 };
 
 export default reviewService;

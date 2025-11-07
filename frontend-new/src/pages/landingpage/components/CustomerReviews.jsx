@@ -43,8 +43,8 @@ const CustomerReviews = () => {
     <div
       style={{
         backgroundColor: '#ffffff',
-        padding: window.innerWidth <= 768 ? '20px 0' : '40px 0',
-        minHeight: window.innerWidth <= 768 ? '50vh' : '70vh',
+        padding: window.innerWidth <= 768 ? '40px 16px' : window.innerWidth <= 1024 ? '60px 32px' : '80px 250px',
+        minHeight: window.innerWidth <= 768 ? 'auto' : '70vh',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -56,79 +56,119 @@ const CustomerReviews = () => {
         style={{
           backgroundColor: '#1F2039',
           maxWidth: '1400px',
-          width: '95%',
+          width: '100%',
           borderRadius: window.innerWidth <= 768 ? '20px' : '30px',
-          padding: window.innerWidth <= 768 ? '30px 0 20px' : '60px 0 30px',
-          boxShadow: '0 15px 50px rgba(0,0,0,0.1)',
+          padding: window.innerWidth <= 768 ? '30px 20px' : window.innerWidth <= 1024 ? '50px 40px' : '60px 50px',
+          boxShadow: '0 15px 50px rgba(0,0,0,0.15)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
+          position: 'relative',
+          overflow: 'hidden'
         }}
       >
+        {/* Decorative gradient overlay */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          right: 0,
+          width: '300px',
+          height: '300px',
+          background: 'radial-gradient(circle, rgba(255,107,53,0.1) 0%, transparent 70%)',
+          borderRadius: '50%',
+          transform: 'translate(30%, -30%)',
+          pointerEvents: 'none'
+        }}></div>
+
         {/* Inner content */}
         <div
           className="inner-content-wrapper"
           style={{
             display: 'flex',
+            flexDirection: window.innerWidth <= 768 ? 'column' : 'row',
             justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: window.innerWidth <= 768 ? '20px' : '60px',
-            width: 'calc(100% - 100px)',
-            paddingBottom: window.innerWidth <= 768 ? '40px' : '80px',
-            flexWrap: window.innerWidth <= 768 ? 'wrap' : 'nowrap'
+            alignItems: window.innerWidth <= 768 ? 'flex-start' : 'center',
+            gap: window.innerWidth <= 768 ? '30px' : '60px',
+            width: '100%',
+            position: 'relative',
+            zIndex: 1
           }}
         >
           {/* Left Section */}
           <div style={{ 
             flex: 1, 
-            color: 'white', 
-            paddingLeft: window.innerWidth <= 768 ? '20px' : '50px' 
+            color: 'white',
+            width: window.innerWidth <= 768 ? '100%' : 'auto'
           }}>
             <h2
               style={{
-                fontSize: window.innerWidth <= 768 ? '1.3rem' : '1.7rem',
-                fontWeight: 'bold',
-                marginBottom: window.innerWidth <= 768 ? '15px' : '20px',
+                fontSize: window.innerWidth <= 480 ? '1.2rem' : window.innerWidth <= 768 ? '1.5rem' : '2rem',
+                fontWeight: '700',
+                marginBottom: window.innerWidth <= 768 ? '24px' : '30px',
+                lineHeight: '1.3',
+                fontFamily: 'Poppins, sans-serif'
               }}
             >
               What our Travelers <br /> are saying
             </h2>
 
-            <div style={{ marginBottom: window.innerWidth <= 768 ? '15px' : '20px' }}>
-              <h3 style={{ 
-                fontSize: window.innerWidth <= 768 ? '2rem' : '2.5rem', 
-                fontWeight: '800', 
-                margin: '0 0 5px' 
-              }}>4.8</h3>
-              <p
-                style={{
-                  fontSize: window.innerWidth <= 768 ? '0.7rem' : '0.8rem',
-                  opacity: 0.8,
-                  margin: 0,
-                  lineHeight: '1.4',
-                }}
-              >
-                1000+ reviews on TripAdvisor.
-                <br />
-                Certificate of Excellence
-              </p>
-            </div>
+            <div style={{ 
+              marginBottom: window.innerWidth <= 768 ? '24px' : '30px',
+              paddingBottom: window.innerWidth <= 768 ? '20px' : '30px',
+              borderBottom: window.innerWidth <= 768 ? 'none' : '1px solid rgba(255,255,255,0.1)'
+            }}>
+              <div style={{ 
+                display: 'flex', 
+                flexDirection: window.innerWidth <= 768 ? 'row' : 'column',
+                gap: window.innerWidth <= 768 ? '20px' : '0',
+                alignItems: window.innerWidth <= 768 ? 'flex-start' : 'flex-start'
+              }}>
+                {/* Rating Section */}
+                <div style={{ flex: window.innerWidth <= 768 ? '1' : 'none' }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '8px' }}>
+                    <h3 style={{ 
+                      fontSize: window.innerWidth <= 480 ? '2rem' : window.innerWidth <= 768 ? '2.5rem' : '3rem', 
+                      fontWeight: '800', 
+                      margin: 0,
+                      color: '#ff6b35'
+                    }}>4.8</h3>
+                    <span style={{ fontSize: window.innerWidth <= 768 ? '1rem' : '1.2rem', opacity: 0.9 }}>⭐</span>
+                  </div>
+                  <p
+                    style={{
+                      fontSize: window.innerWidth <= 480 ? '0.75rem' : window.innerWidth <= 768 ? '0.85rem' : '0.95rem',
+                      opacity: 0.9,
+                      margin: 0,
+                      lineHeight: '1.5',
+                      fontFamily: 'Poppins, sans-serif'
+                    }}
+                  >
+                    1000+ reviews on TripAdvisor
+                    <br />
+                    <span style={{ color: '#ff6b35', fontWeight: '600' }}>Certificate of Excellence</span>
+                  </p>
+                </div>
 
-            <div>
-              <h3 style={{ 
-                fontSize: window.innerWidth <= 768 ? '2.5rem' : '3.5rem', 
-                fontWeight: '800', 
-                margin: '0 0 2px' 
-              }}>16M</h3>
-              <p
-                style={{
-                  fontSize: window.innerWidth <= 768 ? '0.7rem' : '0.8rem',
-                  opacity: 0.8,
-                  margin: 0,
-                }}
-              >
-                Happy customers
-              </p>
+                {/* Happy Customers Section */}
+                <div style={{ flex: window.innerWidth <= 768 ? '1' : 'none' }}>
+                  <h3 style={{ 
+                    fontSize: window.innerWidth <= 480 ? '2rem' : window.innerWidth <= 768 ? '2.5rem' : '3.5rem', 
+                    fontWeight: '800', 
+                    margin: '0 0 8px',
+                    color: '#ff6b35'
+                  }}>16M</h3>
+                  <p
+                    style={{
+                      fontSize: window.innerWidth <= 480 ? '0.75rem' : window.innerWidth <= 768 ? '0.85rem' : '0.95rem',
+                      opacity: 0.9,
+                      margin: 0,
+                      fontFamily: 'Poppins, sans-serif'
+                    }}
+                  >
+                    Happy customers
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -137,49 +177,60 @@ const CustomerReviews = () => {
             style={{
               flex: 1,
               display: 'flex',
-              justifyContent: 'flex-end',
+              justifyContent: window.innerWidth <= 768 ? 'center' : 'flex-end',
               position: 'relative',
-              marginRight: '10px',
-              marginTop: '10px',
+              width: window.innerWidth <= 768 ? '100%' : 'auto',
+              maxWidth: window.innerWidth <= 768 ? '100%' : '450px'
             }}
           >
             {/* Background stacked card */}
             <div
               style={{
                 backgroundColor: '#D7D8DA',
-                borderRadius: '25px',
+                borderRadius: window.innerWidth <= 768 ? '20px' : '25px',
                 position: 'absolute',
-                top: '15px',
-                left: '15px',
-                width: 'calc(100% - 30px)',
-                height: 'calc(100% - 30px)',
+                top: window.innerWidth <= 768 ? '10px' : '15px',
+                left: window.innerWidth <= 768 ? '10px' : '15px',
+                width: 'calc(100% - 20px)',
+                height: 'calc(100% - 20px)',
                 boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
+                opacity: 0.6
               }}
             ></div>
 
             {/* Main Review Card */}
             <div
               style={{
-                backgroundColor: '#EBECEC',
-                padding: '40px',
-                borderRadius: '25px',
-                boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
-                maxWidth: '400px',
+                backgroundColor: '#ffffff',
+                padding: window.innerWidth <= 480 ? '24px' : window.innerWidth <= 768 ? '30px' : '40px',
+                borderRadius: window.innerWidth <= 768 ? '20px' : '25px',
+                boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
                 width: '100%',
                 position: 'relative',
                 zIndex: 1,
+                border: '1px solid rgba(255,107,53,0.1)',
+                transition: 'all 0.3s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-5px)';
+                e.currentTarget.style.boxShadow = '0 15px 50px rgba(0,0,0,0.2)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 10px 40px rgba(0,0,0,0.15)';
               }}
             >
               <div
                 style={{
                   position: 'absolute',
-                  top: '0px',
-                  right: '20px',
-                  fontSize: '150px',
-                  color: 'rgba(0,0,0,0.08)',
+                  top: window.innerWidth <= 768 ? '10px' : '15px',
+                  right: window.innerWidth <= 768 ? '15px' : '20px',
+                  fontSize: window.innerWidth <= 768 ? '100px' : '150px',
+                  color: 'rgba(255,107,53,0.08)',
                   lineHeight: '0.1',
                   userSelect: 'none',
                   zIndex: 0,
+                  fontFamily: 'Georgia, serif'
                 }}
               >
                 &ldquo;
@@ -189,51 +240,71 @@ const CustomerReviews = () => {
                 style={{
                   color: '#ff6b35',
                   fontWeight: '700',
-                  marginBottom: '10px',
-                  fontSize: '1.1rem',
+                  marginBottom: '12px',
+                  fontSize: window.innerWidth <= 768 ? '1rem' : '1.1rem',
                   position: 'relative',
                   zIndex: 1,
+                  fontFamily: 'Poppins, sans-serif'
                 }}
               >
-                Great Work
+                Amazing Experience
               </p>
 
               <p
                 style={{
-                  fontSize: '1rem',
+                  fontSize: window.innerWidth <= 480 ? '0.9rem' : window.innerWidth <= 768 ? '0.95rem' : '1rem',
                   color: '#495057',
                   lineHeight: '1.7',
-                  marginBottom: '30px',
+                  marginBottom: window.innerWidth <= 768 ? '24px' : '30px',
                   fontStyle: 'italic',
                   position: 'relative',
                   zIndex: 1,
+                  fontFamily: 'Poppins, sans-serif'
                 }}
               >
-                "I think Educrat is the best theme I ever seen this year. Amazing design, easy to customize and a design quality superlative account on its cloud platform for optimized performance."
+                "LISAA provided us with an incredible travel experience! From the moment we booked our trip to the spiritual destinations of India, everything was perfectly organized. The guides were knowledgeable, the accommodations were excellent, and the itinerary was well-planned. Highly recommended for anyone looking to explore India's rich heritage!"
               </p>
 
-              <div style={{ display: 'flex', alignItems: 'center', position: 'relative', zIndex: 1 }}>
-                <img src={placeholderAvatar} alt="Reviewer Avatar" style={activeAvatarStyle} />
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                position: 'relative', 
+                zIndex: 1,
+                paddingTop: window.innerWidth <= 768 ? '16px' : '20px',
+                borderTop: '1px solid #f1f3f5'
+              }}>
+                <img 
+                  src={placeholderAvatar} 
+                  alt="Reviewer Avatar" 
+                  style={{
+                    ...activeAvatarStyle,
+                    width: window.innerWidth <= 768 ? '45px' : '50px',
+                    height: window.innerWidth <= 768 ? '45px' : '50px',
+                    marginRight: window.innerWidth <= 768 ? '12px' : '15px'
+                  }} 
+                />
                 <div>
                   <h4
                     style={{
-                      fontSize: '17px',
-                      fontWeight: 'bold',
-                      color: '#343a40',
-                      marginBottom: '3px',
+                      fontSize: window.innerWidth <= 768 ? '15px' : '17px',
+                      fontWeight: '700',
+                      color: '#212529',
+                      marginBottom: '4px',
                       margin: 0,
+                      fontFamily: 'Poppins, sans-serif'
                     }}
                   >
-                    Courtney Henry
+                    Suhani
                   </h4>
                   <p
                     style={{
-                      fontSize: '13px',
+                      fontSize: window.innerWidth <= 768 ? '12px' : '13px',
                       color: '#6c757d',
                       margin: 0,
+                      fontFamily: 'Poppins, sans-serif'
                     }}
                   >
-                    Web Designer
+                    Travel Enthusiast
                   </p>
                 </div>
               </div>

@@ -71,10 +71,20 @@ const PackageDestinations = () => {
         console.log('📅 End date:', urlEndDate);
       }
       
-      // Also include client-side filters (destination, price) if set
+      // Also include client-side filters (category, destination, price) if set
       // Use current filters state directly (not in dependencies to avoid loops)
       const currentFilters = filters;
-      if (currentFilters.destination) params.destination = currentFilters.destination;
+      
+      // Add category filter (regular tour category, not trending category)
+      if (currentFilters.category && currentFilters.category !== 'All') {
+        params.category = currentFilters.category;
+        console.log('📂 Category filter:', currentFilters.category);
+      }
+      
+      if (currentFilters.destination) {
+        params.destination = currentFilters.destination;
+        console.log('📍 Destination filter:', currentFilters.destination);
+      }
       if (currentFilters.minPrice) params.minPrice = currentFilters.minPrice;
       if (currentFilters.maxPrice) params.maxPrice = currentFilters.maxPrice;
       
@@ -351,11 +361,74 @@ const PackageDestinations = () => {
   }, [filters, sortBy, packages]);
 
   const handleFilterChange = (filterType, value) => {
-    setFilters(prev => ({
-      ...prev,
+    const newFilters = {
+      ...filters,
       [filterType]: value
-    }));
+    };
+    
+    setFilters(newFilters);
+    
+    // Trigger fetch when category or destination changes
+    if (filterType === 'category' || filterType === 'destination') {
+      // Fetch immediately with new filter values
+      fetchPackagesWithFilters(newFilters);
+    }
   };
+
+  // Separate function to fetch with specific filters
+  const fetchPackagesWithFilters = useCallback(async (customFilters = null) => {
+    try {
+      setLoading(true);
+      
+      const filtersToUse = customFilters || filters;
+      const params = {};
+      
+      // Use URL params if present
+      if (urlSearch && urlSearch.trim()) {
+        params.search = urlSearch.trim();
+      }
+      
+      if (urlTrendingCategory) {
+        params.trendingCategory = urlTrendingCategory;
+      }
+      
+      if (urlStartDate) {
+        params.startDate = urlStartDate;
+      }
+      if (urlEndDate) {
+        params.endDate = urlEndDate;
+      }
+      
+      // Add category filter (regular tour category, not trending category)
+      if (filtersToUse.category && filtersToUse.category !== 'All') {
+        params.category = filtersToUse.category;
+        console.log('📂 Category filter:', filtersToUse.category);
+      }
+      
+      if (filtersToUse.destination) {
+        params.destination = filtersToUse.destination;
+        console.log('📍 Destination filter:', filtersToUse.destination);
+      }
+      
+      if (filtersToUse.minPrice) params.minPrice = filtersToUse.minPrice;
+      if (filtersToUse.maxPrice) params.maxPrice = filtersToUse.maxPrice;
+      
+      console.log('📡 Fetching packages with params:', params);
+      const data = await tourService.getAllTours(params);
+      console.log('✅ Received packages:', Array.isArray(data) ? data.length : 'not array', data);
+      
+      const packagesArray = Array.isArray(data) ? data : (data?.tours || []);
+      setPackages(packagesArray);
+      
+      const uniqueDestinations = [...new Set(packagesArray.map(pkg => pkg.destination).filter(Boolean))].sort();
+      setDestinations(uniqueDestinations);
+    } catch (error) {
+      console.error('❌ Fetch packages error:', error);
+      message.error('Failed to load packages');
+    } finally {
+      setLoading(false);
+    }
+  }, [urlTrendingCategory, urlSearch, urlStartDate, urlEndDate, filters]);
 
   const clearFilters = () => {
     setFilters({
@@ -604,36 +677,15 @@ const PackageDestinations = () => {
           </div>
         </div>
 
-        {/* Filter and Sort Controls */}
+        {/* Sort Controls */}
         <div style={{
           display: 'flex',
-          justifyContent: 'space-between',
+          justifyContent: 'flex-end',
           alignItems: 'center',
           marginBottom: window.innerWidth <= 480 ? '15px' : '30px',
           flexWrap: 'wrap',
           gap: '10px'
         }}>
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            style={{
-              padding: window.innerWidth <= 480 ? '8px 16px' : '12px 24px',
-              backgroundColor: '#FF6B35',
-              color: 'white',
-              border: 'none',
-              borderRadius: '25px',
-              fontSize: window.innerWidth <= 480 ? '12px' : '14px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}
-          >
-            🔍 Filters
-            <span style={{ fontSize: '12px' }}>
-              {showFilters ? '▲' : '▼'}
-            </span>
-          </button>
 
           <div style={{
             display: 'flex',
@@ -670,235 +722,6 @@ const PackageDestinations = () => {
             </select>
           </div>
         </div>
-
-        {/* Filters Panel */}
-        {showFilters && (
-          <div style={{
-            backgroundColor: 'white',
-            padding: window.innerWidth <= 480 ? '20px' : '24px',
-            borderRadius: '15px',
-            marginBottom: window.innerWidth <= 480 ? '15px' : '30px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-            fontFamily: 'Poppins, sans-serif'
-          }}>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: window.innerWidth <= 768 ? '1fr' : 'repeat(2, 1fr)',
-              gap: window.innerWidth <= 480 ? '16px' : '20px'
-          }}>
-              {/* Category Filter */}
-            <div>
-              <label style={{
-                display: 'block',
-                  fontSize: window.innerWidth <= 480 ? '12px' : '14px',
-                fontWeight: '600',
-                color: '#495057',
-                  marginBottom: '8px',
-                  fontFamily: 'Poppins, sans-serif'
-              }}>
-                Category
-              </label>
-              <select
-                value={filters.category}
-                onChange={(e) => handleFilterChange('category', e.target.value)}
-                style={{
-                  width: '100%',
-                    padding: window.innerWidth <= 480 ? '10px 12px' : '12px 16px',
-                  border: '2px solid #FF6B35',
-                  borderRadius: '8px',
-                  fontSize: window.innerWidth <= 480 ? '12px' : '14px',
-                  outline: 'none',
-                  backgroundColor: 'white',
-                  color: '#212529',
-                  fontWeight: '500',
-                    cursor: 'pointer',
-                    fontFamily: 'Poppins, sans-serif'
-                }}
-              >
-                {categories.map(category => (
-                  <option key={category.value} value={category.value}>{category.label}</option>
-                ))}
-              </select>
-              </div>
-
-              {/* Destination Filter */}
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: window.innerWidth <= 480 ? '12px' : '14px',
-                  fontWeight: '600',
-                  color: '#495057',
-                  marginBottom: '8px',
-                  fontFamily: 'Poppins, sans-serif'
-                }}>
-                  Destination
-                </label>
-                <select
-                  value={filters.destination}
-                  onChange={(e) => handleFilterChange('destination', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: window.innerWidth <= 480 ? '10px 12px' : '12px 16px',
-                    border: '2px solid #FF6B35',
-                    borderRadius: '8px',
-                    fontSize: window.innerWidth <= 480 ? '12px' : '14px',
-                    outline: 'none',
-                    backgroundColor: 'white',
-                    color: '#212529',
-                    fontWeight: '500',
-                    cursor: 'pointer',
-                    fontFamily: 'Poppins, sans-serif'
-                  }}
-                >
-                  <option value="">All Destinations</option>
-                  {destinations.map(dest => (
-                    <option key={dest} value={dest}>{dest}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Price Range */}
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: window.innerWidth <= 480 ? '12px' : '14px',
-                  fontWeight: '600',
-                  color: '#495057',
-                  marginBottom: '8px',
-                  fontFamily: 'Poppins, sans-serif'
-                }}>
-                  Price Range
-                </label>
-                <select
-                  value={filters.priceRange || ''}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (value === '') {
-                      setFilters(prev => ({
-                        ...prev,
-                        minPrice: null,
-                        maxPrice: null,
-                        priceRange: ''
-                      }));
-                    } else {
-                      const parts = value.split('-');
-                      const min = parts[0] === 'above' ? null : parseInt(parts[0]);
-                      const max = parts[1] === 'above' ? null : (parts[1] ? parseInt(parts[1]) : null);
-                      setFilters(prev => ({
-                        ...prev,
-                        minPrice: min,
-                        maxPrice: max,
-                        priceRange: value
-                      }));
-                    }
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: window.innerWidth <= 480 ? '10px 12px' : '12px 16px',
-                    border: '2px solid #FF6B35',
-                    borderRadius: '8px',
-                    fontSize: window.innerWidth <= 480 ? '12px' : '14px',
-                    outline: 'none',
-                    backgroundColor: 'white',
-                    color: '#212529',
-                    fontWeight: '500',
-                    cursor: 'pointer',
-                    fontFamily: 'Poppins, sans-serif'
-                  }}
-                >
-                  <option value="">All Price Ranges</option>
-                  <option value="0-5000">₹0 - ₹5,000</option>
-                  <option value="5000-10000">₹5,000 - ₹10,000</option>
-                  <option value="10000-20000">₹10,000 - ₹20,000</option>
-                  <option value="20000-30000">₹20,000 - ₹30,000</option>
-                  <option value="30000-50000">₹30,000 - ₹50,000</option>
-                  <option value="50000-100000">₹50,000 - ₹1,00,000</option>
-                  <option value="100000-above">Above ₹1,00,000</option>
-                </select>
-              </div>
-
-              {/* Duration Range */}
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: window.innerWidth <= 480 ? '12px' : '14px',
-                  fontWeight: '600',
-                  color: '#495057',
-                  marginBottom: '8px',
-                  fontFamily: 'Poppins, sans-serif'
-                }}>
-                  Duration
-                </label>
-                <select
-                  value={filters.durationRange || ''}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (value === '') {
-                      setFilters(prev => ({
-                        ...prev,
-                        minDuration: null,
-                        maxDuration: null,
-                        durationRange: ''
-                      }));
-                    } else {
-                      const parts = value.split('-');
-                      const min = parts[0] === 'above' ? null : parseInt(parts[0]);
-                      const max = parts[1] === 'above' ? null : (parts[1] ? parseInt(parts[1]) : null);
-                      setFilters(prev => ({
-                        ...prev,
-                        minDuration: min,
-                        maxDuration: max,
-                        durationRange: value
-                      }));
-                    }
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: window.innerWidth <= 480 ? '10px 12px' : '12px 16px',
-                    border: '2px solid #FF6B35',
-                    borderRadius: '8px',
-                    fontSize: window.innerWidth <= 480 ? '12px' : '14px',
-                    outline: 'none',
-                    backgroundColor: 'white',
-                    color: '#212529',
-                    fontWeight: '500',
-                    cursor: 'pointer',
-                    fontFamily: 'Poppins, sans-serif'
-                  }}
-                >
-                  <option value="">All Durations</option>
-                  <option value="1-2">1 - 2 Days</option>
-                  <option value="3-5">3 - 5 Days</option>
-                  <option value="6-7">6 - 7 Days</option>
-                  <option value="8-10">8 - 10 Days</option>
-                  <option value="11-15">11 - 15 Days</option>
-                  <option value="16-above">Above 15 Days</option>
-                </select>
-              </div>
-            </div>
-
-            <button
-              onClick={clearFilters}
-              style={{
-                marginTop: '20px',
-                padding: window.innerWidth <= 480 ? '10px 20px' : '12px 24px',
-                backgroundColor: '#FF6B35',
-                color: 'white',
-                border: 'none',
-                borderRadius: '25px',
-                fontSize: window.innerWidth <= 480 ? '12px' : '14px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                fontFamily: 'Poppins, sans-serif',
-                width: '100%'
-              }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#f15a29'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = '#FF6B35'}
-            >
-              Clear All Filters
-            </button>
-          </div>
-        )}
         
         {/* Packages Grid */}
         <div style={{ 

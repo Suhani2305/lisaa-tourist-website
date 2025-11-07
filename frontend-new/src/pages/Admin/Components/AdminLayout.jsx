@@ -34,6 +34,7 @@ import {
   ClockCircleOutlined,
 } from "@ant-design/icons";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
+import { bookingService, inquiryService } from "../../../services";
 
 // Import Google Font (Poppins)
 const link = document.createElement("link");
@@ -52,6 +53,7 @@ const AdminLayout = () => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationDrawerVisible, setNotificationDrawerVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -66,114 +68,128 @@ const AdminLayout = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Real-time notification system
+  // Real-time notification system with real data
   useEffect(() => {
-    // Initialize with some sample notifications
-    const initialNotifications = [
-      {
-        id: 1,
-        type: 'success',
-        title: 'New Booking Received',
-        message: 'John Doe booked Kerala Backwaters Paradise',
-        time: new Date(Date.now() - 5 * 60000), // 5 minutes ago
-        read: false,
-        icon: <ShoppingCartOutlined />
-      },
-      {
-        id: 2,
-        type: 'info',
-        title: 'Customer Inquiry',
-        message: 'Sarah Wilson inquired about Rajasthan Heritage Tour',
-        time: new Date(Date.now() - 15 * 60000), // 15 minutes ago
-        read: false,
-        icon: <MessageOutlined />
-      },
-      {
-        id: 3,
-        type: 'warning',
-        title: 'Payment Pending',
-        message: 'Booking BK001 payment is pending for 2 days',
-        time: new Date(Date.now() - 30 * 60000), // 30 minutes ago
-        read: false,
-        icon: <ExclamationCircleOutlined />
-      },
-      {
-        id: 4,
-        type: 'success',
-        title: 'Package Updated',
-        message: 'Kerala Backwaters package has been updated',
-        time: new Date(Date.now() - 60 * 60000), // 1 hour ago
-        read: true,
-        icon: <CheckCircleOutlined />
-      },
-      {
-        id: 5,
-        type: 'info',
-        title: 'System Maintenance',
-        message: 'Scheduled maintenance completed successfully',
-        time: new Date(Date.now() - 120 * 60000), // 2 hours ago
-        read: true,
-        icon: <InfoCircleOutlined />
-      }
-    ];
+    const fetchNotifications = async () => {
+      try {
+        const [bookingsData, inquiriesData] = await Promise.all([
+          bookingService.getAllBookings({ limit: 20, sort: '-createdAt' }),
+          inquiryService.getAllInquiries({ limit: 20, sort: '-createdAt' })
+        ]);
 
-    setNotifications(initialNotifications);
-    setUnreadCount(initialNotifications.filter(n => !n.read).length);
+        const bookings = Array.isArray(bookingsData) ? bookingsData : (bookingsData?.bookings || []);
+        const inquiries = Array.isArray(inquiriesData) ? inquiriesData : (inquiriesData?.inquiries || inquiriesData || []);
 
-    // Simulate real-time notifications
-    const notificationInterval = setInterval(() => {
-      const notificationTypes = [
-        {
-          type: 'success',
-          title: 'New Booking',
-          message: 'Customer booked a tour package',
-          icon: <ShoppingCartOutlined />
-        },
-        {
-          type: 'info',
-          title: 'New Inquiry',
-          message: 'Customer submitted an inquiry',
-          icon: <MessageOutlined />
-        },
-        {
-          type: 'warning',
-          title: 'Payment Alert',
-          message: 'Payment is pending for a booking',
-          icon: <ExclamationCircleOutlined />
-        },
-        {
-          type: 'success',
-          title: 'Review Received',
-          message: 'Customer left a 5-star review',
-          icon: <CheckCircleOutlined />
-        }
-      ];
+        const notificationList = [];
 
-      // Randomly generate notifications (30% chance every 30 seconds)
-      if (Math.random() < 0.3) {
-        const randomNotification = notificationTypes[Math.floor(Math.random() * notificationTypes.length)];
-        const newNotification = {
-          id: Date.now(),
-          type: randomNotification.type,
-          title: randomNotification.title,
-          message: randomNotification.message,
-          time: new Date(),
-          read: false,
-          icon: randomNotification.icon
-        };
+        // Process recent bookings (last 24 hours)
+        const recentBookings = bookings.filter(booking => {
+          const bookingDate = new Date(booking.createdAt || booking.date);
+          const hoursAgo = (Date.now() - bookingDate.getTime()) / (1000 * 60 * 60);
+          return hoursAgo <= 24;
+        });
 
-        setNotifications(prev => [newNotification, ...prev.slice(0, 9)]); // Keep only last 10
-        setUnreadCount(prev => prev + 1);
-
-        // Show browser notification if permission granted
-        if (Notification.permission === 'granted') {
-          new Notification(newNotification.title, {
-            body: newNotification.message,
-            icon: '/favicon.ico'
+        recentBookings.slice(0, 5).forEach(booking => {
+          const customerName = booking.user?.name || booking.customerName || 'Guest User';
+          const packageName = booking.tour?.title || booking.packageName || 'Unknown Package';
+          const bookingDate = new Date(booking.createdAt || booking.date);
+          
+          notificationList.push({
+            id: `booking-${booking._id || booking.id}`,
+            type: booking.status === 'pending' ? 'warning' : 'success',
+            title: booking.status === 'pending' ? 'New Booking Pending' : 'New Booking Received',
+            message: `${customerName} booked ${packageName}`,
+            time: bookingDate,
+            read: false,
+            icon: <ShoppingCartOutlined />,
+            link: `/admin/bookings`
           });
-        }
+        });
+
+        // Process pending payments
+        const pendingPayments = bookings.filter(booking => 
+          booking.payment?.status === 'pending' || booking.status === 'pending'
+        );
+
+        pendingPayments.slice(0, 3).forEach(booking => {
+          const customerName = booking.user?.name || booking.customerName || 'Guest User';
+          const amount = booking.totalAmount || booking.amount || 0;
+          const bookingDate = new Date(booking.createdAt || booking.date);
+          const daysPending = Math.floor((Date.now() - bookingDate.getTime()) / (1000 * 60 * 60 * 24));
+          
+          notificationList.push({
+            id: `payment-${booking._id || booking.id}`,
+            type: daysPending > 2 ? 'warning' : 'info',
+            title: 'Payment Pending',
+            message: `Payment of ₹${amount.toLocaleString()} pending for ${daysPending} day${daysPending > 1 ? 's' : ''}`,
+            time: bookingDate,
+            read: false,
+            icon: <ExclamationCircleOutlined />,
+            link: `/admin/bookings`
+          });
+        });
+
+        // Process recent inquiries (last 24 hours)
+        const recentInquiries = inquiries.filter(inquiry => {
+          const inquiryDate = new Date(inquiry.createdAt || inquiry.date);
+          const hoursAgo = (Date.now() - inquiryDate.getTime()) / (1000 * 60 * 60);
+          return hoursAgo <= 24 && (inquiry.status === 'new' || !inquiry.status);
+        });
+
+        recentInquiries.slice(0, 5).forEach(inquiry => {
+          const customerName = inquiry.name || inquiry.customerName || 'Guest';
+          const tourName = inquiry.interestedTour?.title || inquiry.tourName || 'General Inquiry';
+          const inquiryDate = new Date(inquiry.createdAt || inquiry.date);
+          
+          notificationList.push({
+            id: `inquiry-${inquiry._id || inquiry.id}`,
+            type: 'info',
+            title: 'New Customer Inquiry',
+            message: `${customerName} inquired about ${tourName}`,
+            time: inquiryDate,
+            read: false,
+            icon: <MessageOutlined />,
+            link: `/admin/inquiries`
+          });
+        });
+
+        // Sort by time (newest first) and limit to 10
+        notificationList.sort((a, b) => new Date(b.time) - new Date(a.time));
+        const finalNotifications = notificationList.slice(0, 10);
+
+        // Check for new notifications (compare with previous state)
+        setNotifications(prev => {
+          const prevIds = new Set(prev.map(n => n.id));
+          const newNotifications = finalNotifications.filter(n => !prevIds.has(n.id));
+          
+          // Show browser notification for new items
+          if (newNotifications.length > 0 && Notification.permission === 'granted') {
+            newNotifications.forEach(notif => {
+              new Notification(notif.title, {
+                body: notif.message,
+                icon: '/favicon.ico',
+                tag: notif.id
+              });
+            });
+          }
+          
+          return finalNotifications;
+        });
+        
+        setUnreadCount(finalNotifications.filter(n => !n.read).length);
+      } catch (error) {
+        console.error('Failed to fetch notifications:', error);
+        // Set empty notifications on error
+        setNotifications([]);
+        setUnreadCount(0);
       }
-    }, 30000); // Check every 30 seconds
+    };
+
+    // Initial fetch
+    fetchNotifications();
+
+    // Refresh notifications every 30 seconds
+    const notificationInterval = setInterval(fetchNotifications, 30000);
 
     // Request notification permission
     if (Notification.permission === 'default') {
@@ -237,10 +253,26 @@ const AdminLayout = () => {
   };
 
   const userMenuItems = [
-    { key: "profile", icon: <UserOutlined />, label: "Profile" },
-    { key: "settings", icon: <SettingOutlined />, label: "Settings" },
+    { 
+      key: "profile", 
+      icon: <UserOutlined />, 
+      label: "Profile",
+      onClick: () => navigate("/admin/profile")
+    },
+    { 
+      key: "settings", 
+      icon: <SettingOutlined />, 
+      label: "Settings",
+      onClick: () => navigate("/admin/settings")
+    },
     { type: "divider" },
-    { key: "logout", icon: <LogoutOutlined />, label: "Logout", onClick: handleLogout },
+    { 
+      key: "logout", 
+      icon: <LogoutOutlined />, 
+      label: "Logout", 
+      onClick: handleLogout,
+      danger: true
+    },
   ];
 
   const menuItems = [
@@ -457,6 +489,15 @@ const AdminLayout = () => {
               <input
                 type="text"
                 placeholder="Search packages, customers..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && searchQuery.trim()) {
+                    // Navigate to search results or filter
+                    message.info(`Searching for: ${searchQuery}`);
+                    // You can add actual search functionality here
+                  }
+                }}
                 style={{
                   border: "none",
                   outline: "none",
@@ -470,20 +511,47 @@ const AdminLayout = () => {
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              style={{
-                background: "#ff6b35",
-                border: "none",
-                borderRadius: "20px",
-                fontFamily: "'Poppins', sans-serif",
-                fontWeight: "600",
-                display: windowWidth <= 768 ? "none" : "flex",
+            <Dropdown
+              menu={{
+                items: [
+                  {
+                    key: 'package',
+                    label: 'Add Package',
+                    icon: <AppstoreOutlined />,
+                    onClick: () => navigate('/admin/packages')
+                  },
+                  {
+                    key: 'offer',
+                    label: 'Create Offer',
+                    icon: <GiftOutlined />,
+                    onClick: () => navigate('/admin/offers')
+                  },
+                  {
+                    key: 'content',
+                    label: 'Add Content',
+                    icon: <FileTextOutlined />,
+                    onClick: () => navigate('/admin/content')
+                  }
+                ]
               }}
+              placement="bottomRight"
+              arrow
             >
-              Quick Add
-            </Button>
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                style={{
+                  background: "#ff6b35",
+                  border: "none",
+                  borderRadius: "20px",
+                  fontFamily: "'Poppins', sans-serif",
+                  fontWeight: "600",
+                  display: windowWidth <= 768 ? "none" : "flex",
+                }}
+              >
+                Quick Add
+              </Button>
+            </Dropdown>
 
             <Badge count={unreadCount} size="small">
               <Button
@@ -608,7 +676,13 @@ const AdminLayout = () => {
             notifications.map((notification) => (
               <div
                 key={notification.id}
-                onClick={() => markAsRead(notification.id)}
+                onClick={() => {
+                  markAsRead(notification.id);
+                  if (notification.link) {
+                    navigate(notification.link);
+                    setNotificationDrawerVisible(false);
+                  }
+                }}
                 style={{
                   padding: '16px',
                   borderBottom: '1px solid #f0f0f0',

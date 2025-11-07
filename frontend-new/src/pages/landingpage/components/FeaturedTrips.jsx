@@ -121,7 +121,7 @@ const FeaturedTrips = () => {
   return (
     <div style={{ 
       backgroundColor: "#fdf7f4", 
-      padding: window.innerWidth <= 768 ? "60px 16px 10px 16px" : window.innerWidth <= 1024 ? "80px 32px 10px 32px" : "120px 2px 10px 250px" 
+      padding: window.innerWidth <= 768 ? "80px 16px 10px 16px" : window.innerWidth <= 1024 ? "80px 32px 10px 32px" : "120px 2px 10px 250px" 
     }}>
       <div style={{ 
         maxWidth: "1250px", 
@@ -171,12 +171,23 @@ const FeaturedTrips = () => {
             borderTopLeftRadius: "50px"
           }}
         >
-          {trips.map((trip) => (
+          {trips.map((trip) => {
+            // Calculate card width for mobile to show one full card
+            const screenWidth = window.innerWidth;
+            const isMobile = screenWidth <= 768;
+            const containerPadding = isMobile ? 32 : 0; // 16px left + 16px right
+            const gap = isMobile ? 12 : 20;
+            const cardWidth = isMobile 
+              ? Math.floor(screenWidth - containerPadding - gap) 
+              : screenWidth <= 1440 ? 240 : 280;
+            
+            return (
             <div
               key={trip.id}
               onClick={() => navigate(`/package/${trip.id}`)}
               style={{
-                minWidth: window.innerWidth <= 480 ? "280px" : window.innerWidth <= 768 ? "300px" : window.innerWidth <= 1440 ? "240px" : "280px",
+                minWidth: isMobile ? `${cardWidth}px` : window.innerWidth <= 1440 ? "240px" : "280px",
+                width: isMobile ? `${cardWidth}px` : "auto",
                 backgroundColor: "white",
                 borderRadius: "16px",
                 overflow: "hidden",
@@ -328,7 +339,8 @@ const FeaturedTrips = () => {
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Navigation Arrows - Bottom Left */}

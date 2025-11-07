@@ -107,6 +107,40 @@ const authService = {
       throw new Error(error.response?.data?.message || 'Failed to update profile');
     }
   },
+
+  // Google OAuth Login
+  googleLogin: async (token) => {
+    try {
+      const response = await api.post('/auth/social/google', { token });
+      
+      // Store token and user data
+      if (response.data.token) {
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+      }
+      
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Google login failed');
+    }
+  },
+
+  // Facebook OAuth Login
+  facebookLogin: async (accessToken, userID) => {
+    try {
+      const response = await api.post('/auth/social/facebook', { accessToken, userID });
+      
+      // Store token and user data
+      if (response.data.token) {
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+      }
+      
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Facebook login failed');
+    }
+  },
 };
 
 export default authService;

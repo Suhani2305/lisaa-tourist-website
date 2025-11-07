@@ -226,15 +226,27 @@ const AdminLogin = () => {
       console.log(`📥 OTP Response:`, data);
 
       if (response.ok) {
-        setGeneratedOTP(data.demo_otp); // Store for verification
         setOtpSent(true);
-        message.success({
-          content: `📱 OTP sent to ${selectedPhone} via SMS!`,
-          duration: 5
-        });
-        // Show OTP in console and alert for easy testing
-        console.log(`🔑 Your OTP is: ${data.demo_otp}`);
-        console.log(`⏰ OTP valid for 5 minutes`);
+        
+        // Only store demo_otp if it exists (development mode only)
+        if (data.demo_otp) {
+          setGeneratedOTP(data.demo_otp);
+          message.warning({
+            content: `⚠️ Demo Mode: OTP is ${data.demo_otp}. SMS provider not configured.`,
+            duration: 8
+          });
+          console.log(`🔑 [DEMO] Your OTP is: ${data.demo_otp}`);
+        } else {
+          // Production mode - OTP sent via SMS
+          message.success({
+            content: `📱 OTP sent to ${selectedPhone} via SMS! Please check your phone.`,
+            duration: 5
+          });
+        }
+        
+        if (data.warning) {
+          console.warn('⚠️', data.warning);
+        }
       } else {
         message.error(data.message || 'Failed to send OTP');
       }

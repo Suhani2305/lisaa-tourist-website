@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { articleService } from '../../services';
-import { Spin, message } from 'antd';
+import { Spin, message, Pagination } from 'antd';
 import { ArrowLeftOutlined, SearchOutlined } from '@ant-design/icons';
 import Header from '../landingpage/components/Header';
 import Footer from '../landingpage/components/Footer';
@@ -12,26 +12,34 @@ const AllArticles = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(12);
 
   useEffect(() => {
     fetchAllArticles();
-  }, []);
+  }, [currentPage, pageSize]);
 
   const fetchAllArticles = async () => {
     try {
       setLoading(true);
       console.log('🔄 Fetching all published articles...');
       
-      // Get all published articles (no limit)
+      // Get published articles with pagination
       const data = await articleService.getAllArticles({ 
         status: 'published',
-        limit: 1000 // Get all articles
+        page: currentPage,
+        limit: pageSize
       });
       
       console.log('✅ Articles loaded:', data);
       
+      // Handle paginated response
+      const articlesArray = data?.articles || (Array.isArray(data) ? data : []);
+      const total = data?.total || articlesArray.length;
+      setTotalArticles(total);
+      
       // Transform backend data to component format
-      const formattedArticles = Array.isArray(data) ? data.map(article => ({
+      const formattedArticles = articlesArray.map(article => ({
         id: article._id,
         image: article.featuredImage || 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&q=90',
         date: new Date(article.publishDate || article.createdAt).toLocaleDateString('en-US', { 
@@ -45,9 +53,14 @@ const AllArticles = () => {
         category: article.category,
         description: article.content?.substring(0, 150) + '...' || '',
         readingTime: article.readingTime || '5 min read'
-      })) : [];
+      }));
       
       setArticles(formattedArticles);
+      
+      // Update pagination info if available
+      if (data?.totalPages) {
+        // Backend pagination info available
+      }
     } catch (error) {
       console.error('❌ Failed to fetch articles:', error);
       message.error('Failed to load articles');
@@ -286,7 +299,8 @@ const AllArticles = () => {
               textAlign: 'center',
               fontFamily: 'Poppins, sans-serif'
             }}>
-              Showing <strong style={{ color: '#FF6B35' }}>{filteredArticles.length}</strong> of <strong>{articles.length}</strong> {filteredArticles.length === 1 ? 'article' : 'articles'}
+              Showing <strong style={{ color: '#FF6B35' }}>{filteredArticles.length}</strong> {filteredArticles.length === 1 ? 'article' : 'articles'}
+              {totalArticles > 0 && ` (${totalArticles} total)`}
             </div>
           </div>
 

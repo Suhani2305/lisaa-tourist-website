@@ -104,12 +104,28 @@ const TopAttractions = () => {
             </div>
           </div>
         ) : states.length > 0 ? (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: isSmall ? '1fr' : isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
-            gap: isSmall ? '16px' : '20px'
-          }}>
-            {states.map((state) => (
+          <div style={{ position: 'relative' }}>
+          <div
+            id="top-states-scroll"
+            style={{
+              display: isMobile ? 'flex' : 'grid',
+              gridTemplateColumns: isMobile ? 'none' : 'repeat(4, 1fr)',
+              gap: isSmall ? '16px' : '20px',
+              overflowX: isMobile ? 'auto' : 'visible',
+              overflowY: 'visible',
+              scrollBehavior: 'smooth',
+              paddingBottom: isMobile ? '20px' : '0',
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none'
+            }}
+          >
+            {states.map((state) => {
+              // Calculate card width to show 1.5 items on screen for mobile
+              const screenWidth = window.innerWidth;
+              const gap = isSmall ? 16 : 20;
+              const cardWidth = isMobile ? Math.floor((screenWidth - gap * 2) / 1.5) : null;
+              
+              return (
               <div
                 key={state._id || state.slug}
                 onClick={() => navigate(`/state/${state.slug}`)}
@@ -119,7 +135,12 @@ const TopAttractions = () => {
                   cursor: 'pointer',
                   transition: 'transform 0.3s, box-shadow 0.3s',
                   boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                  backgroundColor: 'white'
+                  backgroundColor: 'white',
+                  ...(isMobile ? {
+                    minWidth: `${cardWidth}px`,
+                    width: `${cardWidth}px`,
+                    flexShrink: 0
+                  } : {})
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = 'translateY(-8px)';
@@ -169,7 +190,20 @@ const TopAttractions = () => {
                   </div>
                 </div>
               </div>
-            ))}
+            );
+            })}
+          </div>
+          
+          {/* Custom scrollbar hide for mobile */}
+          {isMobile && (
+            <style>
+              {`
+                #top-states-scroll::-webkit-scrollbar {
+                  display: none;
+                }
+              `}
+            </style>
+          )}
           </div>
         ) : (
           <div style={{

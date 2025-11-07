@@ -28,25 +28,26 @@ const PromotionalBanner = () => {
       }}>
         <div style={{
           backgroundColor: '#ffffff',
-          borderRadius: window.innerWidth <= 768 ? '15px' : '20px',
+          borderRadius: window.innerWidth <= 768 ? '16px' : '20px',
           overflow: 'hidden',
           display: 'flex',
-          flexWrap: 'wrap',
+          flexDirection: window.innerWidth <= 768 ? 'column' : 'row',
           alignItems: 'stretch',
           boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
-          minHeight: window.innerWidth <= 768 ? '300px' : '400px'
+          minHeight: window.innerWidth <= 768 ? 'auto' : '400px'
         }}>
           
           {/* Left Side - Text Content */}
           <div style={{
-            flex: '1 1 320px',
-            padding: window.innerWidth <= 768 ? '30px' : '60px',
+            flex: window.innerWidth <= 768 ? 'none' : '1 1 320px',
+            padding: window.innerWidth <= 768 ? '24px 20px' : '60px',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'center',
             position: 'relative',
-            backgroundColor: '#393230',
+            backgroundColor: window.innerWidth <= 768 ? '#f8f9fa' : '#393230',
             zIndex: 2,
+            order: window.innerWidth <= 768 ? 1 : 1
           }}>
              {/* The background shape from the image */}
              <div style={backgroundShapeStyle}></div> 
@@ -54,27 +55,27 @@ const PromotionalBanner = () => {
             {/* Content Wrapper */}
             <div style={{ position: 'relative', zIndex: 3 }}>
                 <h2 style={{
-                fontSize: window.innerWidth <= 768 ? '1.5rem' : window.innerWidth <= 1024 ? '2rem' : '2.5rem',
+                fontSize: window.innerWidth <= 480 ? '1.3rem' : window.innerWidth <= 768 ? '1.5rem' : window.innerWidth <= 1024 ? '2rem' : '2.5rem',
                 fontWeight: 'normal',
-                color: '#343a40',
+                color: window.innerWidth <= 768 ? '#343a40' : '#343a40',
                 marginBottom: '5px',
                 lineHeight: '1.2'
                 }}>
                 Grab up to <span style={{ color: '#ff6b35', fontWeight: 'bold' }}>35% off</span>
                 </h2>
                 <h2 style={{
-                fontSize: window.innerWidth <= 768 ? '1.5rem' : window.innerWidth <= 1024 ? '2rem' : '2.5rem',
+                fontSize: window.innerWidth <= 480 ? '1.3rem' : window.innerWidth <= 768 ? '1.5rem' : window.innerWidth <= 1024 ? '2rem' : '2.5rem',
                 fontWeight: 'bold',
-                color: '#343a40',
-                marginBottom: window.innerWidth <= 768 ? '20px' : '30px',
+                color: window.innerWidth <= 768 ? '#343a40' : '#343a40',
+                marginBottom: window.innerWidth <= 768 ? '16px' : '30px',
                 lineHeight: '1.2'
                 }}>
                 on your favorite<br />Destination
                 </h2>
                 <p style={{
-                fontSize: window.innerWidth <= 768 ? '0.9rem' : '1rem',
-                color: '#000000',
-                marginBottom: window.innerWidth <= 768 ? '20px' : '30px'
+                fontSize: window.innerWidth <= 480 ? '0.85rem' : window.innerWidth <= 768 ? '0.9rem' : '1rem',
+                color: window.innerWidth <= 768 ? '#6c757d' : '#000000',
+                marginBottom: window.innerWidth <= 768 ? '16px' : '30px'
                 }}>
                 Limited time offer, don't miss the opportunity
                 </p>
@@ -82,13 +83,24 @@ const PromotionalBanner = () => {
                 backgroundColor: '#ff6b35',
                 color: 'white',
                 border: 'none',
-                padding: window.innerWidth <= 768 ? '10px 20px' : '12px 25px',
+                padding: window.innerWidth <= 480 ? '10px 18px' : window.innerWidth <= 768 ? '10px 20px' : '12px 25px',
                 borderRadius: '8px',
-                fontSize: window.innerWidth <= 768 ? '14px' : '16px',
-                fontWeight: 'normal',
+                fontSize: window.innerWidth <= 480 ? '13px' : window.innerWidth <= 768 ? '14px' : '16px',
+                fontWeight: '600',
                 cursor: 'pointer',
                 alignSelf: 'flex-start',
-                boxShadow: '0 4px 10px rgba(255,107,53,0.4)'
+                boxShadow: '0 4px 10px rgba(255,107,53,0.4)',
+                transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f15a29';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 6px 15px rgba(255,107,53,0.5)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#ff6b35';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 4px 10px rgba(255,107,53,0.4)';
                 }}>
                 Book Now
                 </button>
@@ -97,14 +109,15 @@ const PromotionalBanner = () => {
           
           {/* Right Side - Image */}
           <div style={{
-            flex: '1 1 320px',
+            flex: window.innerWidth <= 768 ? 'none' : '1 1 320px',
             // Updated URL to an image that closely resembles the one in the photo (Cappadocia hot air balloons)
             backgroundImage: 'url("https://i2-prod.manchestereveningnews.co.uk/incoming/article27932397.ece/ALTERNATES/s615b/2_GettyImages-1392042272.jpg")', 
             backgroundSize: 'cover',
             backgroundPosition: 'center center',
             position: 'relative',
-            minHeight: '400px', // Ensure it matches the left side height
-            flexGrow: 1.5, // Make the image slightly wider than the text (optional, but looks better)
+            minHeight: window.innerWidth <= 768 ? '250px' : '400px',
+            flexGrow: window.innerWidth <= 768 ? 0 : 1.5,
+            order: window.innerWidth <= 768 ? 2 : 2
           }}>
             {/* Removed the extra balloon emoji circle as it's not in the image */}
           </div>

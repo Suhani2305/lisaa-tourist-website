@@ -139,7 +139,7 @@ const CityPage = () => {
             >
               States
             </span>
-            {state && (
+            {city?.state && (
               <>
                 <span style={{ margin: '0 8px', color: '#6c757d' }}> &gt; </span>
                 <span 
@@ -152,7 +152,7 @@ const CityPage = () => {
                   onMouseEnter={(e) => e.currentTarget.style.color = '#ff6b35'}
                   onMouseLeave={(e) => e.currentTarget.style.color = '#6c757d'}
                 >
-                  {state.name}
+                  {city.state}
                 </span>
               </>
             )}

@@ -28,7 +28,8 @@ import {
   Timeline,
   Descriptions,
   Avatar,
-  Rate
+  Rate,
+  Empty
 } from 'antd';
 import {
   PlusOutlined,
@@ -82,10 +83,57 @@ const BookingsManagement = () => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterPayment, setFilterPayment] = useState('all');
   const [selectedBooking, setSelectedBooking] = useState(null);
+  const [modificationRequests, setModificationRequests] = useState([]);
+  const [modificationLoading, setModificationLoading] = useState(false);
+  const [modificationModalVisible, setModificationModalVisible] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [adminNotes, setAdminNotes] = useState('');
+  const [processingRequest, setProcessingRequest] = useState(false);
 
   useEffect(() => {
     fetchBookings();
+    fetchModificationRequests();
   }, [filterStatus, filterPayment, searchText]);
+
+  const fetchModificationRequests = async () => {
+    setModificationLoading(true);
+    try {
+      const response = await bookingService.getModificationRequests('pending');
+      if (response && response.requests) {
+        setModificationRequests(response.requests);
+      }
+    } catch (error) {
+      console.error('Failed to fetch modification requests:', error);
+      message.error('Failed to load modification requests');
+    } finally {
+      setModificationLoading(false);
+    }
+  };
+
+  const handleProcessRequest = async (action) => {
+    if (!selectedRequest) return;
+    
+    try {
+      setProcessingRequest(true);
+      await bookingService.processModificationRequest(
+        selectedRequest.bookingId,
+        selectedRequest.id,
+        action,
+        adminNotes
+      );
+      message.success(`Modification request ${action === 'approve' ? 'approved' : 'rejected'} successfully!`);
+      setModificationModalVisible(false);
+      setSelectedRequest(null);
+      setAdminNotes('');
+      fetchModificationRequests();
+      fetchBookings(); // Refresh bookings
+    } catch (error) {
+      console.error('Failed to process request:', error);
+      message.error(error.message || 'Failed to process modification request');
+    } finally {
+      setProcessingRequest(false);
+    }
+  };
 
   const fetchBookings = async () => {
     setLoading(true);
@@ -668,21 +716,149 @@ const BookingsManagement = () => {
         </Row>
       </Card>
 
-      {/* Bookings Table */}
+      {/* Tabs for Bookings and Modification Requests */}
       <Card style={{ borderRadius: '16px' }}>
-        <Table
-          columns={columns}
-          dataSource={filteredBookings}
-          rowKey="id"
-          loading={loading}
-          pagination={{
-            total: filteredBookings.length,
-            pageSize: 10,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} bookings`,
-          }}
-          scroll={{ x: 1200 }}
+        <Tabs
+          defaultActiveKey="bookings"
+          items={[
+            {
+              key: 'bookings',
+              label: (
+                <span>
+                  <BookOutlined /> All Bookings
+                  {modificationRequests.length > 0 && (
+                    <Badge count={modificationRequests.length} offset={[8, -2]} />
+                  )}
+                </span>
+              ),
+              children: (
+                <Table
+                  columns={columns}
+                  dataSource={filteredBookings}
+                  rowKey="id"
+                  loading={loading}
+                  pagination={{
+                    total: filteredBookings.length,
+                    pageSize: 10,
+                    showSizeChanger: true,
+                    showQuickJumper: true,
+                    showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} bookings`,
+                  }}
+                  scroll={{ x: 1200 }}
+                />
+              )
+            },
+            {
+              key: 'modifications',
+              label: (
+                <span>
+                  <EditOutlined /> Modification Requests
+                  {modificationRequests.length > 0 && (
+                    <Badge count={modificationRequests.length} offset={[8, -2]} />
+                  )}
+                </span>
+              ),
+              children: (
+                <div>
+                  {modificationRequests.length > 0 ? (
+                    <Table
+                      dataSource={modificationRequests}
+                      rowKey="id"
+                      loading={modificationLoading}
+                      columns={[
+                        {
+                          title: 'Booking #',
+                          dataIndex: 'bookingNumber',
+                          key: 'bookingNumber',
+                          render: (text) => <Text strong>{text}</Text>
+                        },
+                        {
+                          title: 'Customer',
+                          key: 'customer',
+                          render: (_, record) => (
+                            <div>
+                              <div>{record.user?.name || 'N/A'}</div>
+                              <Text type="secondary" style={{ fontSize: '12px' }}>
+                                {record.user?.email || 'N/A'}
+                              </Text>
+                            </div>
+                          )
+                        },
+                        {
+                          title: 'Tour',
+                          key: 'tour',
+                          render: (_, record) => record.tour?.title || 'N/A'
+                        },
+                        {
+                          title: 'Request Type',
+                          dataIndex: 'type',
+                          key: 'type',
+                          render: (type) => {
+                            const typeMap = {
+                              'date_change': { label: 'Date Change', color: 'blue' },
+                              'traveler_add': { label: 'Add Traveler', color: 'green' },
+                              'traveler_remove': { label: 'Remove Traveler', color: 'orange' },
+                              'traveler_update': { label: 'Update Traveler', color: 'cyan' },
+                              'special_request': { label: 'Special Request', color: 'purple' },
+                              'other': { label: 'Other', color: 'default' }
+                            };
+                            const typeInfo = typeMap[type] || typeMap['other'];
+                            return <Tag color={typeInfo.color}>{typeInfo.label}</Tag>;
+                          }
+                        },
+                        {
+                          title: 'Price Difference',
+                          dataIndex: 'priceDifference',
+                          key: 'priceDifference',
+                          render: (amount) => {
+                            if (!amount || amount === 0) return <Text>-</Text>;
+                            const isPositive = amount > 0;
+                            return (
+                              <Text style={{ color: isPositive ? '#ff4d4f' : '#52c41a' }}>
+                                {isPositive ? '+' : ''}₹{Math.abs(amount).toLocaleString()}
+                              </Text>
+                            );
+                          }
+                        },
+                        {
+                          title: 'Requested',
+                          dataIndex: 'requestedAt',
+                          key: 'requestedAt',
+                          render: (date) => new Date(date).toLocaleDateString()
+                        },
+                        {
+                          title: 'Actions',
+                          key: 'actions',
+                          render: (_, record) => (
+                            <Button
+                              type="primary"
+                              size="small"
+                              onClick={() => {
+                                setSelectedRequest(record);
+                                setModificationModalVisible(true);
+                              }}
+                            >
+                              Review
+                            </Button>
+                          )
+                        }
+                      ]}
+                      pagination={{
+                        pageSize: 10,
+                        showSizeChanger: true,
+                        showTotal: (total) => `${total} pending requests`
+                      }}
+                    />
+                  ) : (
+                    <Empty
+                      description="No pending modification requests"
+                      image={Empty.PRESENTED_IMAGE_SIMPLE}
+                    />
+                  )}
+                </div>
+              )
+            }
+          ]}
         />
       </Card>
 
@@ -962,6 +1138,190 @@ const BookingsManagement = () => {
             ]}
           />
         </Form>
+      </Modal>
+
+      {/* Modification Request Review Modal */}
+      <Modal
+        title={
+          <div style={{ fontFamily: "'Poppins', sans-serif" }}>
+            <EditOutlined style={{ marginRight: '8px', color: '#ff6b35' }} />
+            Review Modification Request
+          </div>
+        }
+        open={modificationModalVisible}
+        onCancel={() => {
+          setModificationModalVisible(false);
+          setSelectedRequest(null);
+          setAdminNotes('');
+        }}
+        footer={null}
+        width={700}
+        style={{ fontFamily: "'Poppins', sans-serif" }}
+      >
+        {selectedRequest && (
+          <div>
+            <Descriptions bordered column={1} size="middle" style={{ marginBottom: '24px' }}>
+              <Descriptions.Item label="Booking Number">
+                <Text strong>{selectedRequest.bookingNumber}</Text>
+              </Descriptions.Item>
+              <Descriptions.Item label="Customer">
+                <div>
+                  <div>{selectedRequest.user?.name || 'N/A'}</div>
+                  <Text type="secondary" style={{ fontSize: '12px' }}>
+                    {selectedRequest.user?.email || 'N/A'}
+                  </Text>
+                </div>
+              </Descriptions.Item>
+              <Descriptions.Item label="Tour">
+                {selectedRequest.tour?.title || 'N/A'}
+              </Descriptions.Item>
+              <Descriptions.Item label="Request Type">
+                <Tag color="blue">
+                  {selectedRequest.type === 'date_change' && 'Date Change'}
+                  {selectedRequest.type === 'traveler_add' && 'Add Traveler'}
+                  {selectedRequest.type === 'traveler_remove' && 'Remove Traveler'}
+                  {selectedRequest.type === 'traveler_update' && 'Update Traveler'}
+                  {selectedRequest.type === 'special_request' && 'Special Request'}
+                  {selectedRequest.type === 'other' && 'Other'}
+                </Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="Requested At">
+                {new Date(selectedRequest.requestedAt).toLocaleString()}
+              </Descriptions.Item>
+              {selectedRequest.priceDifference !== 0 && (
+                <Descriptions.Item label="Price Difference">
+                  <Text style={{ 
+                    color: selectedRequest.priceDifference > 0 ? '#ff4d4f' : '#52c41a',
+                    fontSize: '16px',
+                    fontWeight: 'bold'
+                  }}>
+                    {selectedRequest.priceDifference > 0 ? '+' : ''}₹{Math.abs(selectedRequest.priceDifference).toLocaleString()}
+                  </Text>
+                  {selectedRequest.requiresPayment && (
+                    <div style={{ marginTop: '4px', fontSize: '12px', color: '#ff4d4f' }}>
+                      Additional payment required
+                    </div>
+                  )}
+                </Descriptions.Item>
+              )}
+            </Descriptions>
+
+            {/* Request Details */}
+            <Card title="Request Details" size="small" style={{ marginBottom: '16px' }}>
+              {selectedRequest.type === 'date_change' && (
+                <div>
+                  <div style={{ marginBottom: '8px' }}>
+                    <Text strong>New Start Date: </Text>
+                    <Text>{selectedRequest.requestDetails?.newStartDate ? new Date(selectedRequest.requestDetails.newStartDate).toLocaleDateString() : 'N/A'}</Text>
+                  </div>
+                  <div style={{ marginBottom: '8px' }}>
+                    <Text strong>New End Date: </Text>
+                    <Text>{selectedRequest.requestDetails?.newEndDate ? new Date(selectedRequest.requestDetails.newEndDate).toLocaleDateString() : 'N/A'}</Text>
+                  </div>
+                  {selectedRequest.requestDetails?.reason && (
+                    <div>
+                      <Text strong>Reason: </Text>
+                      <Text>{selectedRequest.requestDetails.reason}</Text>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {selectedRequest.type === 'traveler_add' && selectedRequest.requestDetails?.travelerToAdd && (
+                <div>
+                  <div style={{ marginBottom: '8px' }}>
+                    <Text strong>Name: </Text>
+                    <Text>{selectedRequest.requestDetails.travelerToAdd.name}</Text>
+                  </div>
+                  <div style={{ marginBottom: '8px' }}>
+                    <Text strong>Age: </Text>
+                    <Text>{selectedRequest.requestDetails.travelerToAdd.age}</Text>
+                  </div>
+                  <div style={{ marginBottom: '8px' }}>
+                    <Text strong>Type: </Text>
+                    <Tag>{selectedRequest.requestDetails.travelerToAdd.type}</Tag>
+                  </div>
+                  <div style={{ marginBottom: '8px' }}>
+                    <Text strong>Gender: </Text>
+                    <Text>{selectedRequest.requestDetails.travelerToAdd.gender}</Text>
+                  </div>
+                  {selectedRequest.requestDetails?.reason && (
+                    <div>
+                      <Text strong>Reason: </Text>
+                      <Text>{selectedRequest.requestDetails.reason}</Text>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {selectedRequest.type === 'traveler_remove' && (
+                <div>
+                  <Text>Traveler ID: {selectedRequest.requestDetails?.travelerToRemove || 'N/A'}</Text>
+                  {selectedRequest.requestDetails?.reason && (
+                    <div style={{ marginTop: '8px' }}>
+                      <Text strong>Reason: </Text>
+                      <Text>{selectedRequest.requestDetails.reason}</Text>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {selectedRequest.type === 'special_request' && (
+                <div>
+                  <Text strong>New Special Request: </Text>
+                  <Text>{selectedRequest.requestDetails?.newSpecialRequest || 'N/A'}</Text>
+                </div>
+              )}
+
+              {selectedRequest.requestDetails?.description && (
+                <div style={{ marginTop: '12px', padding: '12px', background: '#f5f5f5', borderRadius: '4px' }}>
+                  <Text strong>Additional Notes: </Text>
+                  <Text>{selectedRequest.requestDetails.description}</Text>
+                </div>
+              )}
+            </Card>
+
+            {/* Admin Notes */}
+            <Form.Item label="Admin Notes (Optional)">
+              <TextArea
+                rows={4}
+                value={adminNotes}
+                onChange={(e) => setAdminNotes(e.target.value)}
+                placeholder="Add any notes about this decision..."
+              />
+            </Form.Item>
+
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px' }}>
+              <Button
+                onClick={() => {
+                  setModificationModalVisible(false);
+                  setSelectedRequest(null);
+                  setAdminNotes('');
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                danger
+                onClick={() => handleProcessRequest('reject')}
+                loading={processingRequest}
+                icon={<CloseOutlined />}
+              >
+                Reject
+              </Button>
+              <Button
+                type="primary"
+                onClick={() => handleProcessRequest('approve')}
+                loading={processingRequest}
+                icon={<CheckOutlined />}
+                style={{ background: '#52c41a', borderColor: '#52c41a' }}
+              >
+                Approve
+              </Button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

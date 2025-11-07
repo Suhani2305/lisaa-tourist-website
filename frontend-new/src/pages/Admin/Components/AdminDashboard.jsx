@@ -17,7 +17,8 @@ import {
   Badge,
   Tooltip,
   Divider,
-  Spin
+  Spin,
+  Empty
 } from 'antd';
 import {
   UserOutlined,
@@ -42,7 +43,7 @@ import {
   ExclamationCircleOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { authService, bookingService, tourService, api } from '../../../services';
+import { authService, bookingService, tourService, analyticsService, api } from '../../../services';
 
 // Import Google Font (Poppins) - Same as landing page
 const link = document.createElement("link");
@@ -135,54 +136,109 @@ const AdminDashboard = () => {
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      // Simulate API call with realistic demo data
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Fetch real data from APIs
+      const [analyticsData, recentBookingsData] = await Promise.all([
+        analyticsService.getDashboardAnalytics(),
+        bookingService.getAllBookings({ limit: 10 })
+      ]);
+
+      const analytics = analyticsData?.overview || analyticsData || {};
+      const recentBookings = Array.isArray(recentBookingsData) 
+        ? recentBookingsData 
+        : (recentBookingsData?.bookings || []);
+      const topTours = analyticsData?.topTours || [];
+
+      // Calculate growth percentages
+      const monthlyGrowth = analytics.monthlyRevenue && analytics.totalRevenue 
+        ? Math.round(((analytics.monthlyRevenue / analytics.totalRevenue) * 100) / (analytics.totalBookings || 1))
+        : 0;
       
+      const revenueGrowth = analytics.monthlyRevenue && analytics.yearlyRevenue
+        ? Math.round(((analytics.monthlyRevenue / (analytics.yearlyRevenue / 12)) - 1) * 100)
+        : 0;
+
+      // Calculate conversion rate (confirmed bookings / total bookings)
+      const confirmedBookings = analyticsData?.bookingStatus?.confirmed || 0;
+      const conversionRate = analytics.totalBookings > 0
+        ? Math.round((confirmedBookings / analytics.totalBookings) * 100)
+        : 0;
+
+      // Format recent bookings
+      const formattedRecentBookings = recentBookings.slice(0, 5).map((booking, index) => {
+        const customerName = booking.user?.name || booking.customerName || 'Guest User';
+        const packageName = booking.tour?.title || booking.packageName || 'Unknown Package';
+        const amount = booking.totalAmount || booking.amount || 0;
+        const status = booking.status || 'pending';
+        const createdAt = booking.createdAt || booking.date || new Date();
+        
+        return {
+          key: booking._id || booking.id || `booking-${index}`,
+          id: booking._id || booking.id,
+          customer: customerName,
+          package: packageName,
+          amount: amount,
+          status: status,
+          date: new Date(createdAt).toISOString().split('T')[0],
+          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${customerName}`,
+          time: getTimeAgo(createdAt)
+        };
+      });
+
+      // Format top packages
+      const formattedTopPackages = topTours.slice(0, 4).map((item, index) => {
+        const tour = item.tour || item;
+        const bookings = item.bookings || item.count || 0;
+        const revenue = item.revenue || 0;
+        
+        return {
+          key: tour._id || tour.id || `package-${index}`,
+          name: tour.title || tour.name || 'Unknown Package',
+          bookings: bookings,
+          revenue: revenue,
+          rating: 4.5 + (Math.random() * 0.5), // Placeholder rating
+          trend: index < 2 ? 'up' : 'down'
+        };
+      });
+
+      // Generate recent activities from bookings
+      const recentActivities = formattedRecentBookings.slice(0, 4).map((booking, index) => ({
+        key: `act-${index}`,
+        action: `New booking received for ${booking.package}`,
+        time: booking.time,
+        type: 'booking'
+      }));
+
+      // Generate notifications from pending bookings
+      const pendingBookings = recentBookings.filter(b => b.status === 'pending').slice(0, 3);
+      const notifications = pendingBookings.map((booking, index) => ({
+        id: index + 1,
+        message: `New booking pending approval - ${booking.tour?.title || 'Package'}`,
+        type: 'warning',
+        time: getTimeAgo(booking.createdAt)
+      }));
+
       const newData = {
         stats: {
-          totalBookings: Math.floor(Math.random() * 500) + 1000,
-          totalRevenue: Math.floor(Math.random() * 1000000) + 2000000,
-          totalCustomers: Math.floor(Math.random() * 300) + 700,
-          conversionRate: Math.floor(Math.random() * 20) + 60,
-          monthlyGrowth: Math.floor(Math.random() * 20) + 5,
-          revenueGrowth: Math.floor(Math.random() * 30) + 10
+          totalBookings: analytics.totalBookings || 0,
+          totalRevenue: analytics.totalRevenue || 0,
+          totalCustomers: analytics.totalCustomers || 0,
+          conversionRate: conversionRate,
+          monthlyGrowth: monthlyGrowth,
+          revenueGrowth: revenueGrowth
         },
-        recentBookings: [
-          {
-            key: 'BK001',
-            id: 'BK003',
-            customer: 'Mike Johnson',
-            package: 'Andaman Islands Adventure',
-            amount: 52000,
-            status: 'confirmed',
-            date: new Date(Date.now() - 172800000).toISOString().split('T')[0],
-            avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike',
-            time: '3 hours ago'
-          }
-        ],
-        topPackages: [
-          { key: 'pkg1', name: 'Kerala Backwaters Paradise', bookings: 156, revenue: 780000, rating: 4.9, trend: 'up' },
-          { key: 'pkg2', name: 'Rajasthan Heritage Tour', bookings: 134, revenue: 670000, rating: 4.8, trend: 'up' },
-          { key: 'pkg3', name: 'Andaman Islands Adventure', bookings: 98, revenue: 490000, rating: 4.7, trend: 'down' },
-          { key: 'pkg4', name: 'Kashmir Valley Experience', bookings: 87, revenue: 435000, rating: 4.6, trend: 'up' }
-        ],
-        recentActivities: [
-          { key: 'act1', action: 'New booking received for Kerala Backwaters', time: '2 minutes ago', type: 'booking' },
-          { key: 'act2', action: 'Customer inquiry about Rajasthan packages', time: '15 minutes ago', type: 'inquiry' },
-          { key: 'act3', action: 'Payment received for BK001', time: '1 hour ago', type: 'payment' },
-          { key: 'act4', action: 'Package updated: Andaman Islands', time: '2 hours ago', type: 'update' }
-        ],
-        notifications: [
-          { id: 1, message: 'New booking pending approval', type: 'warning', time: '5 min ago' },
-          { id: 2, message: 'Payment received for ₹45,000', type: 'success', time: '10 min ago' },
-          { id: 3, message: 'Customer review submitted', type: 'info', time: '1 hour ago' }
+        recentBookings: formattedRecentBookings,
+        topPackages: formattedTopPackages,
+        recentActivities: recentActivities,
+        notifications: notifications.length > 0 ? notifications : [
+          { id: 1, message: 'No pending notifications', type: 'info', time: 'Just now' }
         ]
       };
       
       setDashboardData(newData);
       setLastUpdated(new Date());
     } catch (error) {
-      message.error('Failed to fetch dashboard data');
+      console.error('Failed to fetch dashboard data:', error);
+      message.error('Failed to fetch dashboard data. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -225,12 +281,15 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div style={{ 
-      fontFamily: "'Poppins', sans-serif",
-      width: '100%',
-      maxWidth: '100%',
-      overflow: 'visible'
-    }}>
+    <Spin spinning={loading} tip="Loading dashboard data...">
+      <div style={{ 
+        fontFamily: "'Poppins', sans-serif",
+        width: '100%',
+        maxWidth: '100%',
+        overflow: 'visible',
+        opacity: loading ? 0.7 : 1,
+        transition: 'opacity 0.3s ease'
+      }}>
       {/* Dashboard Header */}
       <div style={{
         display: 'flex',
@@ -490,9 +549,38 @@ const AdminDashboard = () => {
               minHeight: '400px'
             }}
           >
-            <List
-              dataSource={dashboardData.recentBookings}
-              renderItem={(item) => (
+            {dashboardData.recentBookings.length === 0 ? (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description={
+                  <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+                    <ShoppingCartOutlined style={{ fontSize: '64px', color: '#d9d9d9', marginBottom: '16px' }} />
+                    <Text style={{ fontSize: '16px', color: '#8c8c8c', display: 'block', marginBottom: '8px' }}>
+                      No recent bookings yet
+                    </Text>
+                    <Text type="secondary" style={{ fontSize: '14px', display: 'block' }}>
+                      Bookings will appear here once customers start making reservations
+                    </Text>
+                    <Button 
+                      type="primary" 
+                      icon={<PlusOutlined />}
+                      style={{ 
+                        marginTop: '20px',
+                        background: '#ff6b35',
+                        border: 'none',
+                        borderRadius: '8px'
+                      }}
+                      onClick={() => navigate('/admin/packages')}
+                    >
+                      Create Package
+                    </Button>
+                  </div>
+                }
+              />
+            ) : (
+              <List
+                dataSource={dashboardData.recentBookings}
+                renderItem={(item) => (
                 <List.Item
                   style={{ 
                     padding: '20px 0',
@@ -560,8 +648,9 @@ const AdminDashboard = () => {
                     }
                   />
                 </List.Item>
-              )}
-            />
+                )}
+              />
+            )}
           </Card>
         </Col>
 
@@ -593,9 +682,25 @@ const AdminDashboard = () => {
                 minHeight: '250px'
               }}
             >
-              <List
-                dataSource={dashboardData.topPackages}
-                renderItem={(item, index) => (
+              {dashboardData.topPackages.length === 0 ? (
+                <Empty
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  description={
+                    <div style={{ textAlign: 'center', padding: '20px' }}>
+                      <TrophyOutlined style={{ fontSize: '48px', color: '#d9d9d9', marginBottom: '12px' }} />
+                      <Text style={{ fontSize: '14px', color: '#8c8c8c', display: 'block' }}>
+                        No packages data available
+                      </Text>
+                      <Text type="secondary" style={{ fontSize: '12px', display: 'block', marginTop: '4px' }}>
+                        Top packages will appear after bookings are made
+                      </Text>
+                    </div>
+                  }
+                />
+              ) : (
+                <List
+                  dataSource={dashboardData.topPackages}
+                  renderItem={(item, index) => (
                   <List.Item style={{ 
                     padding: '16px 0',
                     borderRadius: '12px',
@@ -638,6 +743,7 @@ const AdminDashboard = () => {
                   </List.Item>
                 )}
               />
+              )}
             </Card>
 
             {/* Quick Actions */}
@@ -768,33 +874,50 @@ const AdminDashboard = () => {
               minHeight: '300px'
             }}
           >
-            <Timeline
-              items={dashboardData.recentActivities.map(activity => ({
-                key: activity.key,
-                color: activity.type === 'booking' ? '#52c41a' : 
-                       activity.type === 'payment' ? '#1890ff' : 
-                       activity.type === 'inquiry' ? '#faad14' : '#722ed1',
-                children: (
-                  <div style={{ 
-                    background: 'linear-gradient(135deg, #fafafa 0%, #ffffff 100%)',
-                    padding: '12px 16px',
-                    borderRadius: '12px',
-                    border: '1px solid #f0f0f0'
-                  }}>
-                    <Text strong style={{ fontSize: '16px', fontFamily: "'Poppins', sans-serif" }}>
-                      {activity.action}
+            {dashboardData.recentActivities.length === 0 ? (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description={
+                  <div style={{ textAlign: 'center', padding: '30px 20px' }}>
+                    <ClockCircleOutlined style={{ fontSize: '48px', color: '#d9d9d9', marginBottom: '12px' }} />
+                    <Text style={{ fontSize: '14px', color: '#8c8c8c', display: 'block' }}>
+                      No recent activities
                     </Text>
-                    <br />
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
-                      <ClockCircleOutlined style={{ color: '#6c757d', fontSize: '12px' }} />
-                      <Text type="secondary" style={{ fontSize: '12px', fontFamily: "'Poppins', sans-serif" }}>
-                        {activity.time}
-                      </Text>
-                    </div>
+                    <Text type="secondary" style={{ fontSize: '12px', display: 'block', marginTop: '4px' }}>
+                      Activities will appear here as they happen
+                    </Text>
                   </div>
-                )
-              }))}
-            />
+                }
+              />
+            ) : (
+              <Timeline
+                items={dashboardData.recentActivities.map(activity => ({
+                  key: activity.key,
+                  color: activity.type === 'booking' ? '#52c41a' : 
+                         activity.type === 'payment' ? '#1890ff' : 
+                         activity.type === 'inquiry' ? '#faad14' : '#722ed1',
+                  children: (
+                    <div style={{ 
+                      background: 'linear-gradient(135deg, #fafafa 0%, #ffffff 100%)',
+                      padding: '12px 16px',
+                      borderRadius: '12px',
+                      border: '1px solid #f0f0f0'
+                    }}>
+                      <Text strong style={{ fontSize: '16px', fontFamily: "'Poppins', sans-serif" }}>
+                        {activity.action}
+                      </Text>
+                      <br />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                        <ClockCircleOutlined style={{ color: '#6c757d', fontSize: '12px' }} />
+                        <Text type="secondary" style={{ fontSize: '12px', fontFamily: "'Poppins', sans-serif" }}>
+                          {activity.time}
+                        </Text>
+                      </div>
+                    </div>
+                  )
+                }))}
+              />
+            )}
           </Card>
         </Col>
 
@@ -811,7 +934,12 @@ const AdminDashboard = () => {
                 fontFamily: "'Poppins', sans-serif"
               }}>
                 🔔 Notifications
-                <Badge count={dashboardData.notifications.length} size="small" />
+                <Badge 
+                  count={
+                    dashboardData.notifications.filter(n => n.message !== 'No pending notifications').length
+                  } 
+                  size="small" 
+                />
               </div>
             }
             style={{ 
@@ -821,48 +949,67 @@ const AdminDashboard = () => {
               minHeight: '300px'
             }}
           >
-            <List
-              dataSource={dashboardData.notifications}
-              renderItem={(notification) => (
-                <List.Item style={{ 
-                  padding: '12px 0',
-                  borderBottom: '1px solid #f0f0f0'
-                }}>
-                  <List.Item.Meta
-                    avatar={
-                      <div style={{
-                        width: '40px',
-                        height: '40px',
-                        borderRadius: '50%',
-                        background: notification.type === 'success' ? '#52c41a' : 
-                                   notification.type === 'warning' ? '#faad14' : '#1890ff',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}>
-                        {notification.type === 'success' ? <CheckCircleOutlined style={{ color: 'white' }} /> :
-                         notification.type === 'warning' ? <ExclamationCircleOutlined style={{ color: 'white' }} /> :
-                         <BellOutlined style={{ color: 'white' }} />}
-                      </div>
-                    }
-                    title={
-                      <Text style={{ fontSize: '14px', fontFamily: "'Poppins', sans-serif" }}>
-                        {notification.message}
-                      </Text>
-                    }
-                    description={
-                      <Text type="secondary" style={{ fontSize: '12px', fontFamily: "'Poppins', sans-serif" }}>
-                        {notification.time}
-                      </Text>
-                    }
-                  />
-                </List.Item>
-              )}
-            />
+            {dashboardData.notifications.length === 0 || 
+             (dashboardData.notifications.length === 1 && dashboardData.notifications[0].message === 'No pending notifications') ? (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description={
+                  <div style={{ textAlign: 'center', padding: '30px 20px' }}>
+                    <BellOutlined style={{ fontSize: '48px', color: '#d9d9d9', marginBottom: '12px' }} />
+                    <Text style={{ fontSize: '14px', color: '#8c8c8c', display: 'block' }}>
+                      No notifications
+                    </Text>
+                    <Text type="secondary" style={{ fontSize: '12px', display: 'block', marginTop: '4px' }}>
+                      You're all caught up! New notifications will appear here
+                    </Text>
+                  </div>
+                }
+              />
+            ) : (
+              <List
+                dataSource={dashboardData.notifications.filter(n => n.message !== 'No pending notifications')}
+                renderItem={(notification) => (
+                  <List.Item style={{ 
+                    padding: '12px 0',
+                    borderBottom: '1px solid #f0f0f0'
+                  }}>
+                    <List.Item.Meta
+                      avatar={
+                        <div style={{
+                          width: '40px',
+                          height: '40px',
+                          borderRadius: '50%',
+                          background: notification.type === 'success' ? '#52c41a' : 
+                                     notification.type === 'warning' ? '#faad14' : '#1890ff',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}>
+                          {notification.type === 'success' ? <CheckCircleOutlined style={{ color: 'white' }} /> :
+                           notification.type === 'warning' ? <ExclamationCircleOutlined style={{ color: 'white' }} /> :
+                           <BellOutlined style={{ color: 'white' }} />}
+                        </div>
+                      }
+                      title={
+                        <Text style={{ fontSize: '14px', fontFamily: "'Poppins', sans-serif" }}>
+                          {notification.message}
+                        </Text>
+                      }
+                      description={
+                        <Text type="secondary" style={{ fontSize: '12px', fontFamily: "'Poppins', sans-serif" }}>
+                          {notification.time}
+                        </Text>
+                      }
+                    />
+                  </List.Item>
+                )}
+              />
+            )}
           </Card>
         </Col>
       </Row>
-    </div>
+      </div>
+    </Spin>
   );
 };
 

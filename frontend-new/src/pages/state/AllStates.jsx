@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { stateService } from '../../services';
-import { Spin, message } from 'antd';
+import { Spin, message, Pagination } from 'antd';
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import Header from '../landingpage/components/Header';
 import Footer from '../landingpage/components/Footer';
@@ -12,6 +12,8 @@ const AllStates = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [states, setStates] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(12);
 
   const isSmall = window.innerWidth <= 480;
   const isMobile = window.innerWidth <= 768;
@@ -88,6 +90,12 @@ const AllStates = () => {
     .filter(state => selectedRegion === 'all' || state.region === selectedRegion)
     .filter(state => state.name.toLowerCase().includes(searchQuery.toLowerCase()))
     .sort((a, b) => a.name.localeCompare(b.name)); // Alphabetical order
+
+  // Pagination
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const paginatedStates = filteredStates.slice(startIndex, endIndex);
+  const totalPages = Math.ceil(filteredStates.length / pageSize);
 
   if (loading) {
     return (
@@ -231,7 +239,7 @@ const AllStates = () => {
             color: '#6c757d',
             textAlign: 'center'
           }}>
-            Showing <strong>{filteredStates.length}</strong> of <strong>{displayStates.length}</strong> states
+            Showing <strong>{startIndex + 1}-{Math.min(endIndex, filteredStates.length)}</strong> of <strong>{filteredStates.length}</strong> states
           </div>
         </div>
 
@@ -260,7 +268,7 @@ const AllStates = () => {
           gap: isSmall ? '12px' : isMobile ? '16px' : '20px',
           marginBottom: '40px'
         }}>
-          {filteredStates.map((state) => (
+          {paginatedStates.map((state) => (
             <div
               key={state.id}
               onClick={() => {
@@ -387,6 +395,37 @@ const AllStates = () => {
             }}>
               Try adjusting your search or filters
             </p>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {!loading && filteredStates.length > 0 && totalPages > 1 && (
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            marginTop: '40px',
+            marginBottom: '40px'
+          }}>
+            <Pagination
+              current={currentPage}
+              total={filteredStates.length}
+              pageSize={pageSize}
+              showSizeChanger
+              showQuickJumper
+              showTotal={(total, range) => `${range[0]}-${range[1]} of ${total} states`}
+              onChange={(page, size) => {
+                setCurrentPage(page);
+                setPageSize(size);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              onShowSizeChange={(current, size) => {
+                setCurrentPage(1);
+                setPageSize(size);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              pageSizeOptions={['12', '24', '48', '96']}
+              style={{ fontFamily: 'Poppins, sans-serif' }}
+            />
           </div>
         )}
       </div>

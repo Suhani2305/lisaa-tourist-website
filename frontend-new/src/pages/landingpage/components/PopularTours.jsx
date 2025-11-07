@@ -148,12 +148,12 @@ const PopularTours = () => {
         <div style={{ 
           display: 'flex',
           justifyContent: 'space-between',
-          alignItems: 'center',
+          alignItems: window.innerWidth <= 768 ? 'flex-start' : 'center',
           marginBottom: window.innerWidth <= 768 ? '20px' : '40px',
           flexWrap: 'wrap',
-          gap: '16px'
+          gap: '12px'
         }}>
-          <div>
+          <div style={{ flex: '1', minWidth: '200px' }}>
             <h2 style={{
               fontSize: window.innerWidth <= 480 ? "22px" : window.innerWidth <= 768 ? "26px" : "36px",
               fontWeight: "700",
@@ -183,7 +183,9 @@ const PopularTours = () => {
               fontWeight: '600',
               cursor: 'pointer',
               transition: 'all 0.3s ease',
-              fontFamily: 'Poppins, sans-serif'
+              fontFamily: 'Poppins, sans-serif',
+              alignSelf: window.innerWidth <= 768 ? 'flex-start' : 'center',
+              whiteSpace: 'nowrap'
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.backgroundColor = '#ff6b35';
@@ -199,15 +201,30 @@ const PopularTours = () => {
         </div>
 
         {/* Tours Grid */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: window.innerWidth <= 480 ? '1fr' : 
-                             window.innerWidth <= 768 ? 'repeat(2, 1fr)' :
+        <div style={{ position: 'relative' }}>
+        <div
+          id="popular-tours-scroll"
+          style={{
+            display: window.innerWidth <= 768 ? 'flex' : 'grid',
+            gridTemplateColumns: window.innerWidth <= 768 ? 'none' :
                              window.innerWidth <= 1024 ? 'repeat(3, 1fr)' : 
                              'repeat(4, 1fr)',
-          gap: window.innerWidth <= 480 ? '12px' : window.innerWidth <= 768 ? '16px' : '24px'
-        }}>
-          {tours.map((tour) => (
+            gap: window.innerWidth <= 480 ? '12px' : window.innerWidth <= 768 ? '16px' : '24px',
+            overflowX: window.innerWidth <= 768 ? 'auto' : 'visible',
+            overflowY: 'visible',
+            scrollBehavior: 'smooth',
+            paddingBottom: window.innerWidth <= 768 ? '20px' : '0',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none'
+          }}
+        >
+          {tours.map((tour) => {
+            // Calculate card width to show 1.5 items on screen for mobile
+            const screenWidth = window.innerWidth;
+            const gap = window.innerWidth <= 480 ? 12 : 16;
+            const cardWidth = window.innerWidth <= 768 ? Math.floor((screenWidth - gap * 2) / 1.5) : null;
+            
+            return (
             <div
               key={tour.id}
               onClick={() => navigate(`/package/${tour.id}`)}
@@ -220,7 +237,12 @@ const PopularTours = () => {
                 transition: 'all 0.3s ease',
                 height: '100%',
                 display: 'flex',
-                flexDirection: 'column'
+                flexDirection: 'column',
+                ...(window.innerWidth <= 768 ? {
+                  minWidth: `${cardWidth}px`,
+                  width: `${cardWidth}px`,
+                  flexShrink: 0
+                } : {})
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = 'translateY(-8px)';
@@ -372,7 +394,20 @@ const PopularTours = () => {
                 </div>
               </div>
             </div>
-          ))}
+          );
+          })}
+        </div>
+        
+        {/* Custom scrollbar hide for mobile */}
+        {window.innerWidth <= 768 && (
+          <style>
+            {`
+              #popular-tours-scroll::-webkit-scrollbar {
+                display: none;
+              }
+            `}
+          </style>
+        )}
         </div>
 
       </div>

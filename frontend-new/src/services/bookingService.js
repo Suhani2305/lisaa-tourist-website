@@ -80,6 +80,46 @@ const bookingService = {
       throw new Error(error.response?.data?.message || 'Failed to get booking statistics');
     }
   },
+
+  // Request booking modification
+  requestModification: async (bookingId, modificationData) => {
+    try {
+      const response = await api.post(`/bookings/${bookingId}/modify`, modificationData);
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to request modification');
+    }
+  },
+
+  // Update special requests
+  updateSpecialRequests: async (bookingId, specialRequests) => {
+    try {
+      const response = await api.put(`/bookings/${bookingId}/special-requests`, { specialRequests });
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to update special requests');
+    }
+  },
+
+  // Get modification requests (admin)
+  getModificationRequests: async (status = 'pending') => {
+    try {
+      const response = await api.get('/bookings/admin/modification-requests', { params: { status } });
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to get modification requests');
+    }
+  },
+
+  // Approve/Reject modification request (admin)
+  processModificationRequest: async (bookingId, requestId, action, adminNotes) => {
+    try {
+      const response = await api.put(`/bookings/${bookingId}/modify/${requestId}`, { action, adminNotes });
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to process modification request');
+    }
+  },
 };
 
 export default bookingService;

@@ -179,34 +179,54 @@ const TrendingDestinations = () => {
           <p style={{ fontSize: '13px', marginTop: '8px' }}>Packages will appear here once they are added with trending categories.</p>
         </div>
       ) : (
-        /* Grid layout - Special 2x2 + 1 vertical card layout for desktop */
+        <>
+        {/* Grid layout for desktop, Horizontal scroll for mobile */}
+        <div style={{ position: "relative" }}>
         <div
+          id="landing-trending-destinations-scroll"
           style={{
-            display: "grid",
-            gridTemplateColumns: window.innerWidth <= 480 
-              ? "1fr" 
-              : window.innerWidth <= 768 
-                ? "repeat(2, 1fr)" 
-                : window.innerWidth <= 1024
-                  ? "repeat(3, 1fr)"
-                  : "repeat(3, 1fr)", // 2 columns for 2x2 grid + 1 for vertical card
-            gridTemplateRows: window.innerWidth > 1024 
+            display: window.innerWidth <= 768 ? "flex" : "grid",
+            gridTemplateColumns: window.innerWidth <= 768 
+              ? "none" 
+              : window.innerWidth <= 1024
+                ? "repeat(3, 1fr)"
+                : "repeat(3, 1fr)",
+            gridTemplateRows: window.innerWidth > 1024 && window.innerWidth > 768
               ? "repeat(2, 1fr)" 
               : "auto",
             gap: window.innerWidth <= 480 ? "12px" : window.innerWidth <= 768 ? "16px" : "20px",
+            overflowX: window.innerWidth <= 768 ? "auto" : "visible",
+            overflowY: "visible",
+            scrollBehavior: "smooth",
+            paddingBottom: window.innerWidth <= 768 ? "20px" : "0",
+            scrollbarWidth: "none",
+            msOverflowStyle: "none"
           }}
         >
           {displayedDestinations.map((destination, index) => {
-            const isDesktop = window.innerWidth > 1024;
+            const isDesktop = window.innerWidth > 1024 && window.innerWidth > 768;
             const is5thCard = index === 4 && isDesktop;
+            const isMobile = window.innerWidth <= 768;
+            
+            // Calculate card width to show 1.5 items on screen
+            const screenWidth = window.innerWidth;
+            const gap = window.innerWidth <= 480 ? 12 : 16;
+            const cardWidth = isMobile ? Math.floor((screenWidth - gap * 2) / 1.5) : null;
             
             return (
               <div 
                 key={destination.category || index}
-                style={is5thCard ? {
-                  gridColumn: "3 / 4", // Right column
-                  gridRow: "1 / 3",    // Span both rows (vertically stretched)
-                } : {}}
+                style={{
+                  ...(is5thCard ? {
+                    gridColumn: "3 / 4",
+                    gridRow: "1 / 3",
+                  } : {}),
+                  ...(isMobile ? {
+                    minWidth: `${cardWidth}px`,
+                    width: `${cardWidth}px`,
+                    flexShrink: 0
+                  } : {})
+                }}
               >
                 <Card 
                   destination={destination} 
@@ -216,7 +236,20 @@ const TrendingDestinations = () => {
               </div>
             );
           })}
-      </div>
+        </div>
+        </div>
+        
+        {/* Custom scrollbar hide for mobile */}
+        {window.innerWidth <= 768 && (
+          <style>
+            {`
+              #landing-trending-destinations-scroll::-webkit-scrollbar {
+                display: none;
+              }
+            `}
+          </style>
+        )}
+        </>
       )}
     </section>
   );

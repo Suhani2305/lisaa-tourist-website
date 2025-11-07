@@ -112,6 +112,23 @@ const mediaService = {
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Failed to upload files');
     }
+  },
+
+  // Upload single image (optimized - returns just URL)
+  uploadImage: async (imageFile) => {
+    try {
+      const formData = new FormData();
+      formData.append('image', imageFile);
+
+      const response = await api.post('/media/upload-image', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to upload image');
+    }
   }
 };
 

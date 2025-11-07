@@ -51,6 +51,7 @@ const PackageDetail = () => {
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponError, setCouponError] = useState('');
+  const [helpfulLoading, setHelpfulLoading] = useState({});
   
   // Watch form values for price calculation (must be at top level, before any returns)
   const adultsCount = Form.useWatch('adults', form) || 1;
@@ -309,9 +310,13 @@ const PackageDetail = () => {
         return;
       }
 
-      // Check if booking is required
-      if (!values.bookingId && userBookings.length > 0) {
-        message.error('Please select a booking for this review');
+      // Check if booking is required - backend requires booking
+      if (!values.bookingId) {
+        if (userBookings.length > 0) {
+          message.error('Please select a booking for this review');
+        } else {
+          message.error('You need to book this package before you can review it. Please book the package first.');
+        }
         return;
       }
 
@@ -319,7 +324,7 @@ const PackageDetail = () => {
       
       const reviewData = {
         tourId: packageData._id,
-        bookingId: values.bookingId || null,
+        bookingId: values.bookingId,
         rating: values.rating,
         title: values.title,
         comment: values.comment,
@@ -339,7 +344,8 @@ const PackageDetail = () => {
       }
     } catch (error) {
       console.error('❌ Error submitting review:', error);
-      message.error(error.message || 'Failed to submit review. Please try again.');
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to submit review. Please try again.';
+      message.error(errorMessage);
     } finally {
       setReviewSubmitting(false);
     }
@@ -353,6 +359,36 @@ const PackageDetail = () => {
     }
     setReviewModalVisible(true);
     fetchUserBookings();
+  };
+
+  const handleMarkHelpful = async (reviewId) => {
+    if (!authService.isAuthenticated()) {
+      message.warning('Please login to mark reviews as helpful');
+      navigate('/login');
+      return;
+    }
+
+    try {
+      setHelpfulLoading(prev => ({ ...prev, [reviewId]: true }));
+      const response = await reviewService.markHelpful(reviewId);
+      
+      if (response.helpfulCount !== undefined) {
+        // Update the review in the reviews array
+        setReviews(prevReviews => 
+          prevReviews.map(review => 
+            review._id === reviewId 
+              ? { ...review, helpful: { ...review.helpful, count: response.helpfulCount } }
+              : review
+          )
+        );
+        message.success('Thank you for your feedback!');
+      }
+    } catch (error) {
+      console.error('Error marking review as helpful:', error);
+      message.error(error.message || 'Failed to mark review as helpful');
+    } finally {
+      setHelpfulLoading(prev => ({ ...prev, [reviewId]: false }));
+    }
   };
 
   const handleBookNow = async (values) => {
@@ -595,14 +631,14 @@ const PackageDetail = () => {
           maxWidth: '1400px',
           margin: '0 auto',
           padding: isSmall ? '24px 16px' : isMobile ? '30px 20px' : '40px 120px'
-        }}>
+      }}>
           {/* Breadcrumb & Title */}
         <div style={{
             fontSize: isSmall ? '11px' : isMobile ? '12px' : '14px', 
             color: '#6c757d',
             marginBottom: '12px',
             fontFamily: 'Poppins, sans-serif'
-          }}>
+        }}>
             <span 
               onClick={() => navigate('/')}
               style={{ 
@@ -840,15 +876,15 @@ const PackageDetail = () => {
                           ))}
                         </Row>
                       </>
-                    )}
-                      </div>
+                )}
+              </div>
                     ),
                   },
                   {
                     key: '2',
                     label: '📅 Itinerary',
                     children: (
-                      <div style={{ padding: '16px 0' }}>
+                  <div style={{ padding: '16px 0' }}>
                     {packageData.itinerary && packageData.itinerary.length > 0 ? (
                       <Timeline mode="left">
                         {packageData.itinerary.map((day, index) => (
@@ -933,178 +969,16 @@ const PackageDetail = () => {
                       <div style={{ textAlign: 'center', padding: '40px 20px', color: '#6c757d' }}>
                         <CalendarOutlined style={{ fontSize: '48px', marginBottom: '16px' }} />
                         <p>Detailed itinerary will be shared upon booking</p>
-                      </div>
-                    )}
-                      </div>
-                    ),
-                  },
-                  {
-                    key: '4',
-                    label: '⭐ Reviews',
-                    children: (
-                      <div style={{ padding: '16px 0' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                      <div>
-                        <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '8px', color: '#212529', fontFamily: 'Poppins, sans-serif' }}>
-                          Customer Reviews
-                        </h3>
-                        {reviewCount > 0 && (
-                          <div style={{ fontSize: '14px', color: '#6c757d', fontFamily: 'Poppins, sans-serif' }}>
-                            {averageRating.toFixed(1)} out of 5 ({reviewCount} {reviewCount === 1 ? 'review' : 'reviews'})
-                          </div>
-                        )}
-                      </div>
-                      <Button
-                        type="primary"
-                        icon={<EditOutlined />}
-                        onClick={handleReviewModalOpen}
-                        style={{
-                          backgroundColor: '#FF6B35',
-                          borderColor: '#FF6B35',
-                          fontFamily: 'Poppins, sans-serif'
-                        }}
-                      >
-                        Write a Review
-                      </Button>
-                    </div>
-
-                    {reviewsLoading ? (
-                      <div style={{ textAlign: 'center', padding: '40px' }}>
-                        <Spin size="large" />
-                      </div>
-                    ) : reviews.length === 0 ? (
-                      <Empty
-                        description={
-                          <span style={{ fontFamily: 'Poppins, sans-serif', color: '#6c757d' }}>
-                            No reviews yet. Be the first to review this package!
-                          </span>
-                        }
-                        image={Empty.PRESENTED_IMAGE_SIMPLE}
-                      >
-                        <Button
-                          type="primary"
-                          icon={<EditOutlined />}
-                          onClick={handleReviewModalOpen}
-                          style={{
-                            backgroundColor: '#FF6B35',
-                            borderColor: '#FF6B35',
-                            fontFamily: 'Poppins, sans-serif'
-                          }}
-                        >
-                          Write the First Review
-                        </Button>
-                      </Empty>
-                    ) : (
-                      <div>
-                        {reviews.map((review, index) => (
-                          <Card
-                            key={review._id || index}
-                            style={{
-                              marginBottom: '16px',
-                              borderRadius: '12px',
-                              boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
-                            }}
-                          >
-                            <div style={{ display: 'flex', gap: '16px' }}>
-                              <Avatar
-                                size={48}
-                                src={review.user?.profileImage}
-                                icon={<UserOutlined />}
-                                style={{ backgroundColor: '#FF6B35', flexShrink: 0 }}
-                              />
-                              <div style={{ flex: 1 }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                                  <div>
-                                    <div style={{ fontWeight: '600', fontSize: '16px', color: '#212529', fontFamily: 'Poppins, sans-serif', marginBottom: '4px' }}>
-                                      {review.user?.name || 'Anonymous'}
-                                    </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                                      <Rate disabled defaultValue={review.rating} style={{ fontSize: '14px' }} />
-                                      <span style={{ fontSize: '12px', color: '#6c757d', fontFamily: 'Poppins, sans-serif' }}>
-                                        {new Date(review.createdAt || review.updatedAt).toLocaleDateString('en-US', {
-                                          year: 'numeric',
-                                          month: 'long',
-                                          day: 'numeric'
-                                        })}
-                                      </span>
-                                    </div>
-                                  </div>
-                                  {review.isVerified && (
-                                    <Tag color="green" icon={<CheckCircleOutlined />}>
-                                      Verified
-                                    </Tag>
-                                  )}
-                                </div>
-                                {review.title && (
-                                  <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#212529', marginBottom: '8px', fontFamily: 'Poppins, sans-serif' }}>
-                                    {review.title}
-                                  </h4>
-                                )}
-                                <p style={{ fontSize: '14px', color: '#495057', lineHeight: '1.6', fontFamily: 'Poppins, sans-serif', marginBottom: '12px' }}>
-                                  {review.comment}
-                                </p>
-                                {review.images && review.images.length > 0 && (
-                                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
-                                    {review.images.map((img, idx) => (
-                                      <img
-                                        key={idx}
-                                        src={img.url}
-                                        alt={img.alt || 'Review image'}
-                                        style={{
-                                          width: '80px',
-                                          height: '80px',
-                                          objectFit: 'cover',
-                                          borderRadius: '8px',
-                                          cursor: 'pointer'
-                                        }}
-                                        onClick={() => {
-                                          // Could open in a modal for full view
-                                          window.open(img.url, '_blank');
-                                        }}
-                                      />
-                                    ))}
-                                  </div>
-                                )}
-                                {review.response && review.response.text && (
-                                  <div style={{
-                                    marginTop: '12px',
-                                    padding: '12px',
-                                    backgroundColor: '#f8f9fa',
-                                    borderRadius: '8px',
-                                    borderLeft: '3px solid #FF6B35'
-                                  }}>
-                                    <div style={{ fontSize: '12px', fontWeight: '600', color: '#FF6B35', marginBottom: '4px', fontFamily: 'Poppins, sans-serif' }}>
-                                      Response from Lisaa Tours & Travels:
-                                    </div>
-                                    <p style={{ fontSize: '13px', color: '#495057', margin: 0, fontFamily: 'Poppins, sans-serif' }}>
-                                      {review.response.text}
-                                    </p>
-                                  </div>
-                                )}
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginTop: '12px' }}>
-                                  <Button
-                                    type="text"
-                                    icon={<LikeOutlined />}
-                                    size="small"
-                                    style={{ color: '#6c757d', fontFamily: 'Poppins, sans-serif' }}
-                                  >
-                                    Helpful ({review.helpful?.count || 0})
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          </Card>
-                        ))}
-                      </div>
-                    )}
-                      </div>
+              </div>
+            )}
+                  </div>
                     ),
                   },
                   {
                     key: '3',
                     label: '✅ Inclusions',
                     children: (
-                      <div style={{ padding: '16px 0' }}>
+                  <div style={{ padding: '16px 0' }}>
                     <Row gutter={[24, 24]}>
                       <Col xs={24} md={12}>
                         <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '16px', color: '#28a745', fontFamily: 'Poppins, sans-serif' }}>
@@ -1162,11 +1036,183 @@ const PackageDetail = () => {
                         )}
                       </Col>
                     </Row>
-                      </div>
+              </div>
                     ),
                   }
                 ]}
               />
+            </Card>
+
+            {/* Reviews Section - Outside Tabs */}
+            <Card style={{ marginTop: '24px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+              <div style={{ padding: '16px 0' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                  <div>
+                    <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '8px', color: '#212529', fontFamily: 'Poppins, sans-serif' }}>
+                      ⭐ Customer Reviews
+                    </h3>
+                    {reviewCount > 0 && (
+                      <div style={{ fontSize: '14px', color: '#6c757d', fontFamily: 'Poppins, sans-serif' }}>
+                        {averageRating.toFixed(1)} out of 5 ({reviewCount} {reviewCount === 1 ? 'review' : 'reviews'})
+                      </div>
+                    )}
+                  </div>
+                  <Button
+                    type="primary"
+                    icon={<EditOutlined />}
+                    onClick={handleReviewModalOpen}
+                    style={{
+                      backgroundColor: '#FF6B35',
+                      borderColor: '#FF6B35',
+                      fontFamily: 'Poppins, sans-serif'
+                    }}
+                  >
+                    Write a Review
+                  </Button>
+                </div>
+
+                {reviewsLoading ? (
+                  <div style={{ textAlign: 'center', padding: '40px' }}>
+                    <Spin size="large" />
+                  </div>
+                ) : reviews.length === 0 ? (
+                  <Empty
+                    description={
+                      <span style={{ fontFamily: 'Poppins, sans-serif', color: '#6c757d' }}>
+                        No reviews yet. Be the first to review this package!
+                      </span>
+                    }
+                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  >
+                    <Button
+                      type="primary"
+                      icon={<EditOutlined />}
+                      onClick={handleReviewModalOpen}
+                      style={{
+                        backgroundColor: '#FF6B35',
+                        borderColor: '#FF6B35',
+                        fontFamily: 'Poppins, sans-serif'
+                      }}
+                    >
+                      Write the First Review
+                    </Button>
+                  </Empty>
+                ) : (
+                  <div>
+                    {reviews.map((review, index) => (
+                      <Card
+                        key={review._id || index}
+                        style={{
+                          marginBottom: '16px',
+                          borderRadius: '12px',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+                        }}
+                      >
+                        <div style={{ display: 'flex', gap: '16px' }}>
+                          <Avatar
+                            size={48}
+                            src={review.user?.profileImage}
+                            icon={<UserOutlined />}
+                            style={{ backgroundColor: '#FF6B35', flexShrink: 0 }}
+                          />
+                          <div style={{ flex: 1 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                              <div>
+                                <div style={{ fontWeight: '600', fontSize: '16px', color: '#212529', fontFamily: 'Poppins, sans-serif', marginBottom: '4px' }}>
+                                  {review.user?.name || 'Anonymous'}
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                                  <Rate disabled defaultValue={review.rating} style={{ fontSize: '14px' }} />
+                                  <span style={{ fontSize: '12px', color: '#6c757d', fontFamily: 'Poppins, sans-serif' }}>
+                                    {new Date(review.createdAt || review.updatedAt).toLocaleDateString('en-US', {
+                                      year: 'numeric',
+                                      month: 'long',
+                                      day: 'numeric'
+                                    })}
+                                  </span>
+                                </div>
+                              </div>
+                              {review.isVerified && (
+                                <Tag color="green" icon={<CheckCircleOutlined />}>
+                                  Verified
+                                </Tag>
+                              )}
+                            </div>
+                            {review.title && (
+                              <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#212529', marginBottom: '8px', fontFamily: 'Poppins, sans-serif' }}>
+                                {review.title}
+                              </h4>
+                            )}
+                            <p style={{ fontSize: '14px', color: '#495057', lineHeight: '1.6', fontFamily: 'Poppins, sans-serif', marginBottom: '12px' }}>
+                              {review.comment}
+                            </p>
+                            {review.images && review.images.length > 0 && (
+                              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
+                                {review.images.map((img, idx) => (
+                                  <img
+                                    key={idx}
+                                    src={img.url}
+                                    alt={img.alt || 'Review image'}
+                                    style={{
+                                      width: '80px',
+                                      height: '80px',
+                                      objectFit: 'cover',
+                                      borderRadius: '8px',
+                                      cursor: 'pointer'
+                                    }}
+                                    onClick={() => {
+                                      // Could open in a modal for full view
+                                      window.open(img.url, '_blank');
+                                    }}
+                                  />
+                                ))}
+                              </div>
+                            )}
+                            {review.response && review.response.text && (
+                              <div style={{
+                                marginTop: '12px',
+                                padding: '12px',
+                                backgroundColor: '#f8f9fa',
+                                borderRadius: '8px',
+                                borderLeft: '3px solid #FF6B35'
+                              }}>
+                                <div style={{ fontSize: '12px', fontWeight: '600', color: '#FF6B35', marginBottom: '4px', fontFamily: 'Poppins, sans-serif' }}>
+                                  Response from Lisaa Tours & Travels:
+                                </div>
+                                <p style={{ fontSize: '13px', color: '#495057', margin: 0, fontFamily: 'Poppins, sans-serif' }}>
+                                  {review.response.text}
+                                </p>
+                              </div>
+                            )}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginTop: '12px' }}>
+                              <Button
+                                type="text"
+                                icon={<LikeOutlined />}
+                                size="small"
+                                loading={helpfulLoading[review._id]}
+                                onClick={() => handleMarkHelpful(review._id)}
+                                style={{ 
+                                  color: '#6c757d', 
+                                  fontFamily: 'Poppins, sans-serif',
+                                  transition: 'all 0.2s ease'
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.color = '#FF6B35';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.color = '#6c757d';
+                                }}
+                              >
+                                Helpful ({review.helpful?.count || 0})
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
             </Card>
           </div>
 
@@ -1761,20 +1807,27 @@ const PackageDetail = () => {
             <Form.Item
               name="bookingId"
               label="Select Booking"
-              rules={[{ required: true, message: 'Please select a booking' }]}
+              rules={[{ required: true, message: 'Please select a booking for this review' }]}
             >
               <Select
                 placeholder="Select the booking you want to review"
                 loading={bookingsLoading}
                 style={{ fontFamily: 'Poppins, sans-serif' }}
+                showSearch
+                optionFilterProp="children"
               >
                 {userBookings.map((booking) => (
                   <Option key={booking._id} value={booking._id}>
-                    {booking.bookingNumber || booking._id} - 
+                    {booking.bookingNumber || `Booking ${booking._id.slice(-6)}`} - 
                     {booking.travelDates?.startDate 
                       ? ` Booked for ${new Date(booking.travelDates.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
                       : ` Created on ${new Date(booking.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
                     }
+                    {booking.status && (
+                      <Tag color={booking.status === 'confirmed' ? 'green' : booking.status === 'pending' ? 'orange' : 'default'} style={{ marginLeft: '8px' }}>
+                        {booking.status}
+                      </Tag>
+                    )}
                   </Option>
                 ))}
               </Select>
@@ -1783,9 +1836,25 @@ const PackageDetail = () => {
             <Alert
               message="No Bookings Found"
               description="You need to book this package before you can review it. Please book the package first and then come back to leave a review."
-              type="info"
+              type="warning"
               showIcon
               style={{ marginBottom: '16px', fontFamily: 'Poppins, sans-serif' }}
+              action={
+                <Button
+                  size="small"
+                  type="primary"
+                  onClick={() => {
+                    setReviewModalVisible(false);
+                    setBookingModalVisible(true);
+                  }}
+                  style={{
+                    backgroundColor: '#FF6B35',
+                    borderColor: '#FF6B35'
+                  }}
+                >
+                  Book Now
+                </Button>
+              }
             />
           )}
 

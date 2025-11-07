@@ -27,7 +27,7 @@ import {
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
-import { authService } from '../../services';
+import { authService, mediaService } from '../../services';
 import Header from '../landingpage/components/Header';
 import Footer from '../landingpage/components/Footer';
 
@@ -127,20 +127,28 @@ const Profile = () => {
         }
       };
       
-      // If image is selected, convert to base64
+      // If image is selected, upload directly to Cloudinary
       if (imageFile) {
-        const reader = new FileReader();
-        reader.onloadend = async () => {
-          updateData.profileImage = reader.result;
-          
-          await authService.updateProfile(updateData);
-          message.success('Profile updated successfully!');
-          
-          // Refresh profile data
-          await fetchUserProfile();
+        try {
+          message.loading({ content: 'Uploading profile image...', key: 'profile' });
+          const uploadResponse = await mediaService.uploadImage(imageFile);
+          if (uploadResponse.url) {
+            updateData.profileImage = uploadResponse.url;
+            
+            await authService.updateProfile(updateData);
+            message.success({ content: 'Profile updated successfully!', key: 'profile' });
+            
+            // Refresh profile data
+            await fetchUserProfile();
+            setSaving(false);
+          } else {
+            throw new Error('Failed to get image URL from upload response');
+          }
+        } catch (error) {
+          console.error('Image upload error:', error);
+          message.error({ content: error.message || 'Failed to upload profile image', key: 'profile' });
           setSaving(false);
-        };
-        reader.readAsDataURL(imageFile);
+        }
       } else {
         await authService.updateProfile(updateData);
         message.success('Profile updated successfully!');
