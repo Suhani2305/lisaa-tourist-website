@@ -411,53 +411,106 @@ const UserDashboard = () => {
     <div style={{ background: '#f5f5f5', minHeight: '100vh' }}>
       <Header />
       
-      <div style={{ maxWidth: '1200px', margin: '40px auto', padding: '0 20px' }}>
+      <div style={{ maxWidth: '1400px', margin: '60px auto', padding: '0 24px' }}>
         {/* User Profile Card */}
         <Card
           style={{
-            marginBottom: '24px',
-            borderRadius: '12px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            marginBottom: '32px',
+            borderRadius: '16px',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+            border: 'none',
+            background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
           }}
         >
-          <Row gutter={[24, 24]} align="middle">
+          <Row gutter={[32, 24]} align="middle">
             <Col xs={24} md={6} style={{ textAlign: 'center' }}>
-              <Avatar
-                size={120}
-                icon={getAvatarIcon()}
-                src={user?.profileImage}
-                style={{ backgroundColor: getAvatarColor() }}
-              />
+              <div style={{ position: 'relative', display: 'inline-block' }}>
+                <Avatar
+                  size={140}
+                  icon={getAvatarIcon()}
+                  src={user?.profileImage}
+                  style={{ 
+                    backgroundColor: getAvatarColor(),
+                    border: '4px solid #ffffff',
+                    boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
+                  }}
+                />
+                <div style={{
+                  position: 'absolute',
+                  bottom: '0',
+                  right: '10px',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  backgroundColor: '#52c41a',
+                  border: '3px solid #ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                }}>
+                  <CheckCircleOutlined style={{ color: '#ffffff', fontSize: '16px' }} />
+                </div>
+              </div>
             </Col>
             
-            <Col xs={24} md={12}>
-              <Title level={2} style={{ marginBottom: '8px' }}>
+            <Col xs={24} md={14}>
+              <Title level={2} style={{ marginBottom: '12px', fontSize: '28px', fontWeight: '600', color: '#1a1a1a' }}>
                 {user?.name || 'User'}
               </Title>
-              <Space direction="vertical" size="small">
-                <TypographyText>
-                  <MailOutlined style={{ marginRight: '8px', color: '#ff6b35' }} />
+              <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                <TypographyText style={{ fontSize: '15px', display: 'flex', alignItems: 'center', color: '#555' }}>
+                  <MailOutlined style={{ marginRight: '10px', color: '#ff6b35', fontSize: '16px' }} />
                   {user?.email}
                 </TypographyText>
                 {user?.phone && (
-                  <TypographyText>
-                    <PhoneOutlined style={{ marginRight: '8px', color: '#ff6b35' }} />
+                  <TypographyText style={{ fontSize: '15px', display: 'flex', alignItems: 'center', color: '#555' }}>
+                    <PhoneOutlined style={{ marginRight: '10px', color: '#ff6b35', fontSize: '16px' }} />
                     {user?.phone}
                   </TypographyText>
                 )}
-                <Tag color={user?.role === 'admin' ? 'gold' : 'blue'}>
-                  {user?.role === 'admin' ? 'Admin' : 'User'}
-                </Tag>
+                <div>
+                  <Tag 
+                    color={user?.role === 'admin' ? 'gold' : 'blue'} 
+                    style={{ 
+                      padding: '4px 12px', 
+                      fontSize: '13px', 
+                      borderRadius: '6px',
+                      fontWeight: '500'
+                    }}
+                  >
+                    {user?.role === 'admin' ? 'Admin' : 'User'}
+                  </Tag>
+                  <Tag 
+                    color="green" 
+                    style={{ 
+                      marginLeft: '8px',
+                      padding: '4px 12px', 
+                      fontSize: '13px', 
+                      borderRadius: '6px',
+                      fontWeight: '500'
+                    }}
+                  >
+                    Member Since {new Date(user?.createdAt).getFullYear()}
+                  </Tag>
+                </div>
               </Space>
             </Col>
 
-            <Col xs={24} md={6} style={{ textAlign: 'right' }}>
+            <Col xs={24} md={4} style={{ textAlign: 'right' }}>
               <Button
                 type="primary"
                 danger
                 icon={<LogoutOutlined />}
                 onClick={handleLogout}
                 size="large"
+                style={{
+                  borderRadius: '8px',
+                  height: '48px',
+                  fontSize: '15px',
+                  fontWeight: '500',
+                  boxShadow: '0 2px 8px rgba(255,77,79,0.3)'
+                }}
               >
                 Logout
               </Button>
@@ -468,19 +521,22 @@ const UserDashboard = () => {
         {/* Tabs for different sections */}
         <Card
           style={{
-            borderRadius: '12px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            borderRadius: '16px',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+            border: 'none',
           }}
         >
           <Tabs 
             defaultActiveKey="bookings" 
             size="large"
+            style={{
+              fontFamily: 'Poppins, sans-serif'
+            }}
             items={[
               {
                 key: 'bookings',
                 label: (
-                <span>
-                  <BookOutlined />
+                <span style={{ fontSize: '16px', fontWeight: '500' }}>
                   My Bookings
                 </span>
                 ),
@@ -489,37 +545,78 @@ const UserDashboard = () => {
               {bookings && bookings.length > 0 ? (
                 <Row gutter={[16, 16]}>
                   {bookings.map((booking) => (
-                    <Col xs={24} md={12} key={booking._id}>
+                    <Col xs={24} md={12} lg={8} key={booking._id}>
                       <Card
                         hoverable
-                        style={{ borderRadius: '8px' }}
+                        style={{ 
+                          borderRadius: '12px',
+                          border: '1px solid #e8e8e8',
+                          transition: 'all 0.3s ease',
+                          height: '100%'
+                        }}
+                        bodyStyle={{ padding: '20px' }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = 'translateY(-4px)';
+                          e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.12)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = 'translateY(0)';
+                          e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
+                        }}
                       >
-                        <Space direction="vertical" style={{ width: '100%' }}>
+                        <Space direction="vertical" style={{ width: '100%' }} size="middle">
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <Title level={5} style={{ margin: 0 }}>
-                              Booking #{booking.bookingNumber}
+                            <Title level={5} style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#1a1a1a' }}>
+                              #{booking.bookingNumber}
                             </Title>
-                            <Tag color={getStatusColor(booking.status)}>
-                              {booking.status.toUpperCase()}
+                            <Tag 
+                              color={getStatusColor(booking.status)}
+                              style={{ 
+                                padding: '4px 12px', 
+                                fontSize: '12px',
+                                borderRadius: '6px',
+                                fontWeight: '500',
+                                textTransform: 'capitalize'
+                              }}
+                            >
+                              {booking.status}
                             </Tag>
                           </div>
                           
-                          <Divider style={{ margin: '12px 0' }} />
+                          <Divider style={{ margin: '8px 0', backgroundColor: '#f0f0f0' }} />
                           
-                          <TypographyText>
-                            <CalendarOutlined style={{ marginRight: '8px' }} />
-                            {new Date(booking.travelDates.startDate).toLocaleDateString()} - {new Date(booking.travelDates.endDate).toLocaleDateString()}
-                          </TypographyText>
+                          <div style={{ display: 'flex', alignItems: 'center', color: '#666', fontSize: '14px' }}>
+                            <CalendarOutlined style={{ marginRight: '8px', color: '#ff6b35' }} />
+                            <span>{new Date(booking.travelDates.startDate).toLocaleDateString()} - {new Date(booking.travelDates.endDate).toLocaleDateString()}</span>
+                          </div>
                           
-                          <TypographyText strong style={{ fontSize: '18px', color: '#ff6b35' }}>
-                            ₹{booking.pricing?.finalAmount?.toLocaleString() || booking.totalAmount?.toLocaleString() || '0'}
-                          </TypographyText>
+                          <div style={{ 
+                            display: 'flex', 
+                            alignItems: 'baseline', 
+                            gap: '4px',
+                            padding: '12px',
+                            backgroundColor: '#fff5f2',
+                            borderRadius: '8px',
+                            marginTop: '4px'
+                          }}>
+                            <TypographyText strong style={{ fontSize: '24px', color: '#ff6b35', fontWeight: '700' }}>
+                              ₹{booking.pricing?.finalAmount?.toLocaleString() || booking.totalAmount?.toLocaleString() || '0'}
+                            </TypographyText>
+                          </div>
                           
-                          <Space style={{ width: '100%' }} direction="vertical">
+                          <Space style={{ width: '100%' }} direction="vertical" size="small">
                             <Button 
                               type="primary" 
                               block
                               onClick={() => handleViewDetails(booking)}
+                              style={{
+                                height: '42px',
+                                borderRadius: '8px',
+                                fontWeight: '500',
+                                fontSize: '15px',
+                                backgroundColor: '#ff6b35',
+                                borderColor: '#ff6b35'
+                              }}
                             >
                               View Details
                             </Button>
@@ -530,12 +627,17 @@ const UserDashboard = () => {
                                 onClick={() => {
                                   paymentService.downloadReceipt(booking._id)
                                     .then(() => {
-                                      message.success('📄 Receipt downloaded successfully!');
+                                      message.success('Receipt downloaded successfully!');
                                     })
                                     .catch((err) => {
                                       message.error('Failed to download receipt');
                                       console.error(err);
                                     });
+                                }}
+                                style={{
+                                  height: '38px',
+                                  borderRadius: '8px',
+                                  fontWeight: '500'
                                 }}
                               >
                                 Download Receipt
@@ -563,8 +665,7 @@ const UserDashboard = () => {
               {
                 key: 'wishlist',
                 label: (
-                  <span>
-                    <HeartFilled style={{ color: '#FF6B35' }} />
+                  <span style={{ fontSize: '16px', fontWeight: '500' }}>
                     My Wishlist
                   </span>
                 ),
@@ -582,25 +683,53 @@ const UserDashboard = () => {
                     const isRemoving = removingWishlist[tourId];
                     
                     return (
-                      <Col xs={24} md={12} lg={8} key={item._id}>
+                      <Col xs={24} sm={12} lg={8} key={item._id}>
                         <Card
                           hoverable
-                          style={{ borderRadius: '8px', height: '100%' }}
+                          style={{ 
+                            borderRadius: '12px', 
+                            height: '100%',
+                            border: '1px solid #e8e8e8',
+                            overflow: 'hidden',
+                            transition: 'all 0.3s ease',
+                            cursor: 'pointer'
+                          }}
                           cover={
                             tour?.images?.[0]?.url ? (
-                              <div style={{ position: 'relative', height: '200px', overflow: 'hidden' }}>
+                              <div style={{ 
+                                position: 'relative', 
+                                height: '220px', 
+                                overflow: 'hidden',
+                                backgroundColor: '#f0f0f0'
+                              }}>
                                 <img
                                   alt={tour?.title}
                                   src={tour?.images[0].url}
                                   style={{
                                     width: '100%',
                                     height: '100%',
-                                    objectFit: 'cover'
+                                    objectFit: 'cover',
+                                    transition: 'transform 0.3s ease'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.transform = 'scale(1.05)';
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.transform = 'scale(1)';
                                   }}
                                 />
+                                <div style={{
+                                  position: 'absolute',
+                                  top: '0',
+                                  left: '0',
+                                  right: '0',
+                                  bottom: '0',
+                                  background: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.3) 100%)'
+                                }} />
                                 <Button
                                   type="primary"
                                   danger
+                                  shape="circle"
                                   icon={<DeleteOutlined />}
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -609,25 +738,50 @@ const UserDashboard = () => {
                                   loading={isRemoving}
                                   style={{
                                     position: 'absolute',
-                                    top: '10px',
-                                    right: '10px',
-                                    zIndex: 10
+                                    top: '12px',
+                                    right: '12px',
+                                    zIndex: 10,
+                                    width: '40px',
+                                    height: '40px',
+                                    boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
                                   }}
                                 />
+                                {tour?.category && (
+                                  <Tag 
+                                    color="orange" 
+                                    style={{
+                                      position: 'absolute',
+                                      bottom: '12px',
+                                      left: '12px',
+                                      zIndex: 10,
+                                      fontWeight: '500',
+                                      fontSize: '12px',
+                                      padding: '4px 10px',
+                                      borderRadius: '6px',
+                                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                                    }}
+                                  >
+                                    {tour.category}
+                                  </Tag>
+                                )}
                               </div>
                             ) : (
                               <div style={{ 
-                                height: '200px', 
-                                backgroundColor: '#f0f0f0', 
+                                height: '220px', 
+                                background: 'linear-gradient(135deg, #ff6b35 0%, #ff8c5a 100%)',
                                 display: 'flex', 
                                 alignItems: 'center', 
                                 justifyContent: 'center',
                                 position: 'relative'
                               }}>
-                                <HeartOutlined style={{ fontSize: '48px', color: '#d9d9d9' }} />
+                                <FileTextOutlined style={{ fontSize: '64px', color: 'rgba(255,255,255,0.3)' }} />
                                 <Button
                                   type="primary"
                                   danger
+                                  shape="circle"
                                   icon={<DeleteOutlined />}
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -636,56 +790,114 @@ const UserDashboard = () => {
                                   loading={isRemoving}
                                   style={{
                                     position: 'absolute',
-                                    top: '10px',
-                                    right: '10px',
-                                    zIndex: 10
+                                    top: '12px',
+                                    right: '12px',
+                                    zIndex: 10,
+                                    width: '40px',
+                                    height: '40px'
                                   }}
                                 />
                               </div>
                             )
                           }
                           onClick={() => navigate(`/package/${tourId}`)}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'translateY(-6px)';
+                            e.currentTarget.style.boxShadow = '0 12px 28px rgba(0,0,0,0.15)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
+                          }}
+                          bodyStyle={{ padding: '20px' }}
                         >
                           <Space direction="vertical" style={{ width: '100%' }} size="small">
-                            <Title level={5} style={{ margin: 0, fontFamily: 'Poppins, sans-serif' }}>
+                            <Title level={5} style={{ 
+                              margin: 0, 
+                              fontFamily: 'Poppins, sans-serif',
+                              fontSize: '18px',
+                              fontWeight: '600',
+                              color: '#1a1a1a',
+                              lineHeight: '1.4',
+                              minHeight: '50px',
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical',
+                              overflow: 'hidden'
+                            }}>
                               {tour?.title || 'Tour Package'}
                             </Title>
                             
-                            {tour?.destination && (
-                              <TypographyText type="secondary" style={{ fontFamily: 'Poppins, sans-serif' }}>
-                                <EnvironmentOutlined style={{ marginRight: '4px' }} />
-                                {tour.destination}
-                              </TypographyText>
-                            )}
-                            
-                            {tour?.duration?.days && (
-                              <TypographyText style={{ fontFamily: 'Poppins, sans-serif' }}>
-                                <CalendarOutlined style={{ marginRight: '4px' }} />
-                                {tour.duration.days} Days
-                              </TypographyText>
-                            )}
-                            
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
-                              <TypographyText strong style={{ fontSize: '18px', color: '#FF6B35', fontFamily: 'Poppins, sans-serif' }}>
-                                ₹{(tour?.price?.adult || tour?.price || 0).toLocaleString()}
-                              </TypographyText>
-                              {tour?.category && (
-                                <Tag color="orange" style={{ fontFamily: 'Poppins, sans-serif' }}>
-                                  {tour.category}
-                                </Tag>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
+                              {tour?.destination && (
+                                <div style={{ 
+                                  display: 'flex', 
+                                  alignItems: 'center', 
+                                  color: '#666',
+                                  fontSize: '14px'
+                                }}>
+                                  <EnvironmentOutlined style={{ marginRight: '6px', color: '#ff6b35', fontSize: '14px' }} />
+                                  <span>{tour.destination}</span>
+                                </div>
                               )}
+                              
+                              {tour?.duration?.days && (
+                                <div style={{ 
+                                  display: 'flex', 
+                                  alignItems: 'center', 
+                                  color: '#666',
+                                  fontSize: '14px'
+                                }}>
+                                  <CalendarOutlined style={{ marginRight: '6px', color: '#ff6b35', fontSize: '14px' }} />
+                                  <span>{tour.duration.days} Days / {tour.duration.nights} Nights</span>
+                                </div>
+                              )}
+                            </div>
+                            
+                            <Divider style={{ margin: '12px 0', backgroundColor: '#f0f0f0' }} />
+                            
+                            <div style={{ 
+                              display: 'flex', 
+                              justifyContent: 'space-between', 
+                              alignItems: 'center',
+                              padding: '10px',
+                              backgroundColor: '#fff5f2',
+                              borderRadius: '8px'
+                            }}>
+                              <div>
+                                <TypographyText type="secondary" style={{ fontSize: '12px', display: 'block', marginBottom: '4px' }}>
+                                  Starting from
+                                </TypographyText>
+                                <TypographyText strong style={{ 
+                                  fontSize: '22px', 
+                                  color: '#FF6B35', 
+                                  fontFamily: 'Poppins, sans-serif',
+                                  fontWeight: '700'
+                                }}>
+                                  ₹{(tour?.price?.adult || tour?.price || 0).toLocaleString()}
+                                </TypographyText>
+                              </div>
                             </div>
                             
                             <Button 
                               type="primary" 
                               block
-                              style={{ marginTop: '12px', fontFamily: 'Poppins, sans-serif' }}
+                              style={{ 
+                                marginTop: '12px', 
+                                fontFamily: 'Poppins, sans-serif',
+                                height: '44px',
+                                borderRadius: '8px',
+                                fontSize: '15px',
+                                fontWeight: '500',
+                                backgroundColor: '#ff6b35',
+                                borderColor: '#ff6b35'
+                              }}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 navigate(`/package/${tourId}`);
                               }}
                             >
-                              View Details
+                              View Package
                             </Button>
                           </Space>
                         </Card>
@@ -709,8 +921,7 @@ const UserDashboard = () => {
               {
                 key: 'reviews',
                 label: (
-                  <span>
-                    <EditOutlined style={{ color: '#FF6B35' }} />
+                  <span style={{ fontSize: '16px', fontWeight: '500' }}>
                     My Reviews
                   </span>
                 ),
@@ -740,43 +951,82 @@ const UserDashboard = () => {
                               );
                               
                               return (
-                                <Col xs={24} md={12} key={booking._id}>
+                                <Col xs={24} md={12} lg={8} key={booking._id}>
                                   <Card
                                     hoverable
-                                    style={{ borderRadius: '8px', border: hasReview ? '2px solid #52c41a' : '1px solid #d9d9d9' }}
+                                    style={{ 
+                                      borderRadius: '12px', 
+                                      border: hasReview ? '2px solid #52c41a' : '1px solid #e8e8e8',
+                                      transition: 'all 0.3s ease',
+                                      height: '100%'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.transform = 'translateY(-4px)';
+                                      e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.12)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.transform = 'translateY(0)';
+                                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
+                                    }}
+                                    bodyStyle={{ padding: '20px' }}
                                   >
-                                    <Space direction="vertical" style={{ width: '100%' }} size="small">
-                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <Title level={5} style={{ margin: 0, fontFamily: 'Poppins, sans-serif' }}>
+                                    <Space direction="vertical" style={{ width: '100%' }} size="middle">
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                        <Title level={5} style={{ 
+                                          margin: 0, 
+                                          fontFamily: 'Poppins, sans-serif',
+                                          fontSize: '16px',
+                                          fontWeight: '600',
+                                          color: '#1a1a1a',
+                                          flex: 1,
+                                          marginRight: '8px'
+                                        }}>
                                           {tour?.title || 'Tour Package'}
                                         </Title>
                                         {hasReview && (
-                                          <Tag color="green" icon={<CheckCircleOutlined />}>
+                                          <Tag 
+                                            color="green" 
+                                            icon={<CheckCircleOutlined />}
+                                            style={{
+                                              padding: '4px 10px',
+                                              fontSize: '12px',
+                                              borderRadius: '6px',
+                                              fontWeight: '500'
+                                            }}
+                                          >
                                             Reviewed
                                           </Tag>
                                         )}
                                       </div>
                                       
-                                      <Divider style={{ margin: '12px 0' }} />
+                                      <Divider style={{ margin: '12px 0', backgroundColor: '#f0f0f0' }} />
                                       
-                                      <TypographyText style={{ fontFamily: 'Poppins, sans-serif' }}>
-                                        <CalendarOutlined style={{ marginRight: '8px' }} />
-                                        {new Date(booking.travelDates?.startDate).toLocaleDateString()} - {new Date(booking.travelDates?.endDate).toLocaleDateString()}
-                                      </TypographyText>
-                                      
-                                      <TypographyText style={{ fontFamily: 'Poppins, sans-serif' }}>
-                                        <EnvironmentOutlined style={{ marginRight: '8px' }} />
-                                        {tour?.destination || 'N/A'}
-                                      </TypographyText>
-                                      
-                                      <TypographyText style={{ fontFamily: 'Poppins, sans-serif' }}>
-                                        Booking #{booking.bookingNumber || booking._id.slice(-6)}
-                                      </TypographyText>
+                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', color: '#666', fontSize: '14px' }}>
+                                          <CalendarOutlined style={{ marginRight: '8px', color: '#ff6b35', fontSize: '14px' }} />
+                                          <span>{new Date(booking.travelDates?.startDate).toLocaleDateString()} - {new Date(booking.travelDates?.endDate).toLocaleDateString()}</span>
+                                        </div>
+                                        
+                                        <div style={{ display: 'flex', alignItems: 'center', color: '#666', fontSize: '14px' }}>
+                                          <EnvironmentOutlined style={{ marginRight: '8px', color: '#ff6b35', fontSize: '14px' }} />
+                                          <span>{tour?.destination || 'N/A'}</span>
+                                        </div>
+                                        
+                                        <div style={{ 
+                                          padding: '8px 12px',
+                                          backgroundColor: '#f8f9fa',
+                                          borderRadius: '6px',
+                                          fontSize: '13px',
+                                          color: '#666'
+                                        }}>
+                                          Booking #{booking.bookingNumber || booking._id.slice(-6)}
+                                        </div>
+                                      </div>
                                       
                                       <Button 
                                         type={hasReview ? "default" : "primary"}
                                         block
-                                        icon={hasReview ? <EditOutlined /> : <EditOutlined />}
+                                        icon={<EditOutlined />}
                                         onClick={() => {
                                           if (hasReview) {
                                             message.info('You have already reviewed this booking');
@@ -785,11 +1035,15 @@ const UserDashboard = () => {
                                           }
                                         }}
                                         style={{ 
-                                          marginTop: '12px', 
+                                          marginTop: '8px', 
                                           fontFamily: 'Poppins, sans-serif',
                                           backgroundColor: hasReview ? '#f0f0f0' : '#FF6B35',
                                           borderColor: hasReview ? '#d9d9d9' : '#FF6B35',
-                                          color: hasReview ? '#595959' : 'white'
+                                          color: hasReview ? '#595959' : 'white',
+                                          height: '42px',
+                                          borderRadius: '8px',
+                                          fontWeight: '500',
+                                          fontSize: '15px'
                                         }}
                                       >
                                         {hasReview ? 'Update Review' : 'Write a Review'}
@@ -884,30 +1138,113 @@ const UserDashboard = () => {
               {
                 key: 'settings',
                 label: (
-                <span>
-                  <SettingOutlined />
+                <span style={{ fontSize: '16px', fontWeight: '500' }}>
                   Profile Settings
                 </span>
                 ),
                 children: (
-              <Card>
-                <Title level={4}>Personal Information</Title>
+              <Card style={{ borderRadius: '12px', border: 'none', boxShadow: 'none' }}>
+                <Title level={4} style={{ fontFamily: 'Poppins, sans-serif', marginBottom: '24px', color: '#1a1a1a' }}>
+                  Personal Information
+                </Title>
                 <Space direction="vertical" size="large" style={{ width: '100%' }}>
-                  <div>
-                    <TypographyText strong>Name:</TypographyText>
-                    <Paragraph>{user?.name}</Paragraph>
+                  <div style={{ 
+                    padding: '20px', 
+                    backgroundColor: '#f8f9fa', 
+                    borderRadius: '10px',
+                    border: '1px solid #e8e8e8'
+                  }}>
+                    <TypographyText strong style={{ 
+                      display: 'block', 
+                      marginBottom: '8px',
+                      color: '#666',
+                      fontSize: '13px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}>
+                      Full Name
+                    </TypographyText>
+                    <Paragraph style={{ 
+                      margin: 0, 
+                      fontSize: '16px',
+                      color: '#1a1a1a',
+                      fontWeight: '500'
+                    }}>
+                      {user?.name || 'N/A'}
+                    </Paragraph>
                   </div>
-                  <div>
-                    <TypographyText strong>Email:</TypographyText>
-                    <Paragraph>{user?.email}</Paragraph>
+                  <div style={{ 
+                    padding: '20px', 
+                    backgroundColor: '#f8f9fa', 
+                    borderRadius: '10px',
+                    border: '1px solid #e8e8e8'
+                  }}>
+                    <TypographyText strong style={{ 
+                      display: 'block', 
+                      marginBottom: '8px',
+                      color: '#666',
+                      fontSize: '13px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}>
+                      Email Address
+                    </TypographyText>
+                    <Paragraph style={{ 
+                      margin: 0, 
+                      fontSize: '16px',
+                      color: '#1a1a1a',
+                      fontWeight: '500'
+                    }}>
+                      {user?.email || 'N/A'}
+                    </Paragraph>
                   </div>
-                  <div>
-                    <TypographyText strong>Phone:</TypographyText>
-                    <Paragraph>{user?.phone || 'Not provided'}</Paragraph>
+                  <div style={{ 
+                    padding: '20px', 
+                    backgroundColor: '#f8f9fa', 
+                    borderRadius: '10px',
+                    border: '1px solid #e8e8e8'
+                  }}>
+                    <TypographyText strong style={{ 
+                      display: 'block', 
+                      marginBottom: '8px',
+                      color: '#666',
+                      fontSize: '13px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}>
+                      Phone Number
+                    </TypographyText>
+                    <Paragraph style={{ 
+                      margin: 0, 
+                      fontSize: '16px',
+                      color: '#1a1a1a',
+                      fontWeight: '500'
+                    }}>
+                      {user?.phone || 'Not provided'}
+                    </Paragraph>
                   </div>
-                  <div>
-                    <TypographyText strong>Member Since:</TypographyText>
-                    <Paragraph>
+                  <div style={{ 
+                    padding: '20px', 
+                    backgroundColor: '#fff5f2', 
+                    borderRadius: '10px',
+                    border: '1px solid #ffe5d9'
+                  }}>
+                    <TypographyText strong style={{ 
+                      display: 'block', 
+                      marginBottom: '8px',
+                      color: '#666',
+                      fontSize: '13px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}>
+                      Member Since
+                    </TypographyText>
+                    <Paragraph style={{ 
+                      margin: 0, 
+                      fontSize: '16px',
+                      color: '#ff6b35',
+                      fontWeight: '600'
+                    }}>
                       {new Date(user?.createdAt).toLocaleDateString('en-US', {
                         year: 'numeric',
                         month: 'long',
@@ -916,7 +1253,21 @@ const UserDashboard = () => {
                     </Paragraph>
                   </div>
                   
-                  <Button type="primary" size="large">
+                  <Button 
+                    type="primary" 
+                    size="large"
+                    icon={<EditOutlined />}
+                    onClick={() => navigate('/profile')}
+                    style={{
+                      height: '48px',
+                      borderRadius: '10px',
+                      fontSize: '16px',
+                      fontWeight: '500',
+                      backgroundColor: '#ff6b35',
+                      borderColor: '#ff6b35',
+                      marginTop: '8px'
+                    }}
+                  >
                     Edit Profile
                   </Button>
                 </Space>
@@ -1859,8 +2210,8 @@ const UserDashboard = () => {
               <h4 style={{ margin: '0 0 8px 0', fontSize: '16px', fontFamily: 'Poppins, sans-serif' }}>Reviewing Package</h4>
               <div style={{ fontSize: '14px', color: '#6c757d', fontFamily: 'Poppins, sans-serif' }}>
                 <div><strong>{selectedBookingForReview.tour?.title || 'Tour Package'}</strong></div>
-                <div>📍 {selectedBookingForReview.tour?.destination || 'N/A'}</div>
-                <div>📅 Booking #{selectedBookingForReview.bookingNumber || selectedBookingForReview._id.slice(-6)}</div>
+                <div>{selectedBookingForReview.tour?.destination || 'N/A'}</div>
+                <div>Booking #{selectedBookingForReview.bookingNumber || selectedBookingForReview._id.slice(-6)}</div>
               </div>
             </Card>
 

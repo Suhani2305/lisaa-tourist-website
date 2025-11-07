@@ -1,6 +1,8 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const PromotionalBanner = () => {
+  const navigate = useNavigate();
   // Styles for the background shape on the left side
   const backgroundShapeStyle = {
     position: 'absolute',
@@ -79,7 +81,9 @@ const PromotionalBanner = () => {
                 }}>
                 Limited time offer, don't miss the opportunity
                 </p>
-                <button style={{
+                <button 
+                onClick={() => navigate('/package')}
+                style={{
                 backgroundColor: '#ff6b35',
                 color: 'white',
                 border: 'none',

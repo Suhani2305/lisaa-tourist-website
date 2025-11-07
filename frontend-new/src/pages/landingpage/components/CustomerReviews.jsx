@@ -262,7 +262,7 @@ const CustomerReviews = () => {
                   fontFamily: 'Poppins, sans-serif'
                 }}
               >
-                "LISAA provided us with an incredible travel experience! From the moment we booked our trip to the spiritual destinations of India, everything was perfectly organized. The guides were knowledgeable, the accommodations were excellent, and the itinerary was well-planned. Highly recommended for anyone looking to explore India's rich heritage!"
+                "LSIAA provided us with an incredible travel experience! From the moment we booked our trip to the spiritual destinations of India, everything was perfectly organized. The guides were knowledgeable, the accommodations were excellent, and the itinerary was well-planned. Highly recommended for anyone looking to explore India's rich heritage!"
               </p>
 
               <div style={{ 

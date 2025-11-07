@@ -630,14 +630,18 @@ const PackageDetail = () => {
       <div style={{
           maxWidth: '1400px',
           margin: '0 auto',
-          padding: isSmall ? '24px 16px' : isMobile ? '30px 20px' : '40px 120px'
+          padding: isSmall ? '20px 8px' : isMobile ? '30px 12px' : window.innerWidth <= 1024 ? '40px 32px' : '60px 250px',
+          paddingTop: isMobile ? '40px' : '60px',
+          position: 'relative',
+          zIndex: 1
       }}>
-          {/* Breadcrumb & Title */}
+          {/* Breadcrumb */}
         <div style={{
             fontSize: isSmall ? '11px' : isMobile ? '12px' : '14px', 
             color: '#6c757d',
-            marginBottom: '12px',
-            fontFamily: 'Poppins, sans-serif'
+            marginBottom: '20px',
+            fontFamily: 'Poppins, sans-serif',
+            textAlign: 'center'
         }}>
             <span 
               onClick={() => navigate('/')}
@@ -646,7 +650,7 @@ const PackageDetail = () => {
                 color: '#6c757d',
                 transition: 'color 0.2s ease'
               }}
-              onMouseEnter={(e) => e.currentTarget.style.color = '#ff6b35'}
+              onMouseEnter={(e) => e.currentTarget.style.color = '#FF6B35'}
               onMouseLeave={(e) => e.currentTarget.style.color = '#6c757d'}
             >
               Home
@@ -659,7 +663,7 @@ const PackageDetail = () => {
                 color: '#6c757d',
                 transition: 'color 0.2s ease'
               }}
-              onMouseEnter={(e) => e.currentTarget.style.color = '#ff6b35'}
+              onMouseEnter={(e) => e.currentTarget.style.color = '#FF6B35'}
               onMouseLeave={(e) => e.currentTarget.style.color = '#6c757d'}
             >
               Tours
@@ -667,56 +671,106 @@ const PackageDetail = () => {
             {packageData && (
               <>
                 <span style={{ margin: '0 8px', color: '#6c757d' }}> &gt; </span>
-                <span style={{ color: '#212529' }}>{packageData.title}</span>
+                <span style={{ color: '#212529', fontWeight: '600' }}>{packageData.title}</span>
               </>
             )}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
-            <h1 style={{ 
-              fontSize: isSmall ? '1.2rem' : isMobile ? '1.5rem' : '2rem', 
-              fontWeight: '700', 
-              color: '#212529',
-              margin: 0,
-              fontFamily: 'Poppins, sans-serif',
-              lineHeight: '1.3',
-              flex: 1
+          
+          {/* Title */}
+          <h1 style={{ 
+              fontSize: isSmall ? '1.8rem' : isMobile ? '2.2rem' : '3rem', 
+              fontWeight: '800', 
+              color: '#FF6B35',
+              margin: '0 auto 16px auto',
+              fontFamily: "'Playfair Display', 'Georgia', serif",
+              lineHeight: '1.2',
+              textAlign: 'center',
+              letterSpacing: '-0.02em',
+              textShadow: '0 2px 4px rgba(255, 107, 53, 0.1)'
             }}>
-              {packageData.title}
+              {packageData?.title}
             </h1>
-            <Button
-              type="default"
-              icon={isInWishlist ? <HeartFilled /> : <HeartOutlined />}
-              onClick={handleWishlistToggle}
-              loading={wishlistLoading}
-              size="large"
-              style={{
-                borderColor: isInWishlist ? '#FF6B35' : '#d9d9d9',
-                color: isInWishlist ? '#FF6B35' : '#595959',
-                backgroundColor: isInWishlist ? '#fff5f5' : '#fff',
+
+            {/* Description/Subheading */}
+            {packageData?.shortDescription && (
+              <p style={{
+                fontSize: isSmall ? '13px' : isMobile ? '14px' : '16px',
+                color: '#6c757d',
+                margin: '0 auto 40px auto',
                 fontFamily: 'Poppins, sans-serif',
-                fontWeight: '500',
-                height: isMobile ? '40px' : '48px',
-                padding: isMobile ? '0 16px' : '0 24px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-              onMouseEnter={(e) => {
-                if (!isInWishlist) {
-                  e.currentTarget.style.borderColor = '#FF6B35';
-                  e.currentTarget.style.color = '#FF6B35';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!isInWishlist) {
-                  e.currentTarget.style.borderColor = '#d9d9d9';
-                  e.currentTarget.style.color = '#595959';
-                }
-              }}
-            >
-              {isInWishlist ? 'In Wishlist' : 'Add to Wishlist'}
-            </Button>
-          </div>
+                lineHeight: '1.6',
+                maxWidth: '700px',
+                textAlign: 'center'
+              }}>
+                {packageData.shortDescription}
+              </p>
+            )}
+
+            {/* Wishlist Button - Responsive: Centered on mobile, Top right on laptop */}
+            <div style={{ 
+              position: isMobile ? 'relative' : 'absolute',
+              top: isMobile ? 'auto' : '20px',
+              right: isMobile ? 'auto' : '0',
+              display: 'flex', 
+              justifyContent: isMobile ? 'center' : 'flex-end', 
+              marginBottom: isMobile ? '32px' : '0',
+              zIndex: 10
+            }}>
+              <button
+                onClick={handleWishlistToggle}
+                disabled={wishlistLoading}
+                style={{
+                  border: isInWishlist ? '2px solid #FF6B35' : '2px solid #e9ecef',
+                  color: isInWishlist ? '#FF6B35' : '#495057',
+                  backgroundColor: isInWishlist ? '#fff5f2' : 'white',
+                  fontFamily: 'Poppins, sans-serif',
+                  fontWeight: '600',
+                  height: isMobile ? '44px' : '48px',
+                  padding: isMobile ? '0 20px' : '0 28px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  borderRadius: '25px',
+                  cursor: wishlistLoading ? 'not-allowed' : 'pointer',
+                  fontSize: isMobile ? '14px' : '15px',
+                  transition: 'all 0.3s ease',
+                  boxShadow: isInWishlist ? '0 2px 8px rgba(255, 107, 53, 0.2)' : '0 2px 4px rgba(0,0,0,0.05)'
+                }}
+                onMouseEnter={(e) => {
+                  if (!wishlistLoading) {
+                    if (!isInWishlist) {
+                      e.currentTarget.style.borderColor = '#FF6B35';
+                      e.currentTarget.style.color = '#FF6B35';
+                      e.currentTarget.style.backgroundColor = '#fff5f2';
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(255, 107, 53, 0.2)';
+                    } else {
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(255, 107, 53, 0.3)';
+                    }
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!wishlistLoading) {
+                    e.currentTarget.style.boxShadow = isInWishlist ? '0 2px 8px rgba(255, 107, 53, 0.2)' : '0 2px 4px rgba(0,0,0,0.05)';
+                    if (!isInWishlist) {
+                      e.currentTarget.style.backgroundColor = 'white';
+                    }
+                  }
+                }}
+              >
+                {wishlistLoading ? (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Spin size="small" style={{ color: '#495057' }} />
+                    <span>Loading...</span>
+                  </span>
+                ) : (
+                  <>
+                    {isInWishlist ? <HeartFilled style={{ fontSize: '18px' }} /> : <HeartOutlined style={{ fontSize: '18px' }} />}
+                    <span>{isInWishlist ? 'In Wishlist' : 'Add to Wishlist'}</span>
+                  </>
+                )}
+              </button>
+            </div>
         <div style={{
           display: 'grid',
           gridTemplateColumns: isMobile ? '1fr' : '1fr 380px',
@@ -724,51 +778,6 @@ const PackageDetail = () => {
         }}>
           {/* Left Content */}
           <div>
-            {/* Quick Info Bar */}
-            <Card style={{ marginBottom: '24px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-              <Row gutter={[16, 16]}>
-                <Col xs={12} sm={6}>
-                  <div style={{ textAlign: 'center' }}>
-                    <EnvironmentOutlined style={{ fontSize: '24px', color: '#FF6B35', marginBottom: '8px' }} />
-                    <div style={{ fontSize: '12px', color: '#6c757d', fontFamily: 'Poppins, sans-serif' }}>Destination</div>
-                    <div style={{ fontWeight: '600', fontSize: '14px', fontFamily: 'Poppins, sans-serif', color: '#212529' }}>{packageData.destination}</div>
-                </div>
-                </Col>
-                <Col xs={12} sm={6}>
-                  <div style={{ textAlign: 'center' }}>
-                    <ClockCircleOutlined style={{ fontSize: '24px', color: '#FF6B35', marginBottom: '8px' }} />
-                    <div style={{ fontSize: '12px', color: '#6c757d', fontFamily: 'Poppins, sans-serif' }}>Duration</div>
-                    <div style={{ fontWeight: '600', fontSize: '14px', fontFamily: 'Poppins, sans-serif', color: '#212529' }}>
-                      {packageData.duration?.days}D/{packageData.duration?.nights}N
-                </div>
-              </div>
-                </Col>
-                <Col xs={12} sm={6}>
-                  <div style={{ textAlign: 'center' }}>
-                    <UserOutlined style={{ fontSize: '24px', color: '#FF6B35', marginBottom: '8px' }} />
-                    <div style={{ fontSize: '12px', color: '#6c757d', fontFamily: 'Poppins, sans-serif' }}>Group Size</div>
-                    <div style={{ fontWeight: '600', fontSize: '14px', fontFamily: 'Poppins, sans-serif', color: '#212529' }}>
-                      Max {packageData.groupSize?.max || 20}
-              </div>
-            </div>
-                </Col>
-                <Col xs={12} sm={6}>
-                  <div style={{ textAlign: 'center' }}>
-                    <StarFilled style={{ fontSize: '24px', color: '#ffc107', marginBottom: '8px' }} />
-                    <div style={{ fontSize: '12px', color: '#6c757d', fontFamily: 'Poppins, sans-serif' }}>Rating</div>
-                    <div style={{ fontWeight: '600', fontSize: '14px', fontFamily: 'Poppins, sans-serif', color: '#212529' }}>
-                      {(averageRating || packageData.rating?.average || 0).toFixed(1)}/5
-                      {reviewCount > 0 && (
-                        <span style={{ fontSize: '11px', color: '#6c757d', marginLeft: '4px' }}>
-                          ({reviewCount})
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </Col>
-              </Row>
-            </Card>
-
             {/* Image Gallery */}
             <Card style={{ marginBottom: '24px', borderRadius: '12px', padding: 0, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
                 <img
@@ -833,6 +842,51 @@ const PackageDetail = () => {
                   ))}
                 </div>
               )}
+            </Card>
+
+            {/* Quick Info Bar */}
+            <Card style={{ marginBottom: '24px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+              <Row gutter={[16, 16]}>
+                <Col xs={12} sm={6}>
+                  <div style={{ textAlign: 'center' }}>
+                    <EnvironmentOutlined style={{ fontSize: '24px', color: '#FF6B35', marginBottom: '8px' }} />
+                    <div style={{ fontSize: '12px', color: '#6c757d', fontFamily: 'Poppins, sans-serif' }}>Destination</div>
+                    <div style={{ fontWeight: '600', fontSize: '14px', fontFamily: 'Poppins, sans-serif', color: '#212529' }}>{packageData.destination}</div>
+                </div>
+                </Col>
+                <Col xs={12} sm={6}>
+                  <div style={{ textAlign: 'center' }}>
+                    <ClockCircleOutlined style={{ fontSize: '24px', color: '#FF6B35', marginBottom: '8px' }} />
+                    <div style={{ fontSize: '12px', color: '#6c757d', fontFamily: 'Poppins, sans-serif' }}>Duration</div>
+                    <div style={{ fontWeight: '600', fontSize: '14px', fontFamily: 'Poppins, sans-serif', color: '#212529' }}>
+                      {packageData.duration?.days}D/{packageData.duration?.nights}N
+                </div>
+              </div>
+                </Col>
+                <Col xs={12} sm={6}>
+                  <div style={{ textAlign: 'center' }}>
+                    <UserOutlined style={{ fontSize: '24px', color: '#FF6B35', marginBottom: '8px' }} />
+                    <div style={{ fontSize: '12px', color: '#6c757d', fontFamily: 'Poppins, sans-serif' }}>Group Size</div>
+                    <div style={{ fontWeight: '600', fontSize: '14px', fontFamily: 'Poppins, sans-serif', color: '#212529' }}>
+                      Max {packageData.groupSize?.max || 20}
+              </div>
+            </div>
+                </Col>
+                <Col xs={12} sm={6}>
+                  <div style={{ textAlign: 'center' }}>
+                    <StarFilled style={{ fontSize: '24px', color: '#ffc107', marginBottom: '8px' }} />
+                    <div style={{ fontSize: '12px', color: '#6c757d', fontFamily: 'Poppins, sans-serif' }}>Rating</div>
+                    <div style={{ fontWeight: '600', fontSize: '14px', fontFamily: 'Poppins, sans-serif', color: '#212529' }}>
+                      {(averageRating || packageData.rating?.average || 0).toFixed(1)}/5
+                      {reviewCount > 0 && (
+                        <span style={{ fontSize: '11px', color: '#6c757d', marginLeft: '4px' }}>
+                          ({reviewCount})
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </Col>
+              </Row>
             </Card>
 
             {/* Tabs for Details */}
@@ -1380,36 +1434,49 @@ const PackageDetail = () => {
                 <CreditCardOutlined /> Book Now & Pay
               </button>
 
+              {/* Payment Security & Benefits */}
               <div style={{
                 display: 'flex',
-                justifyContent: 'center',
+                flexDirection: 'column',
                 gap: '8px',
                 marginBottom: '16px',
-                flexWrap: 'wrap'
+                padding: '12px',
+                backgroundColor: '#f8f9fa',
+                borderRadius: '8px'
               }}>
-                <img src="https://i.imgur.com/WPX6jaB.png" alt="UPI" style={{ height: '24px' }} />
-                <img src="https://i.imgur.com/3P1qxPj.png" alt="Cards" style={{ height: '24px' }} />
-                <img src="https://i.imgur.com/DqKZgL3.png" alt="Netbanking" style={{ height: '24px' }} />
-              </div>
-
-              <div style={{
-                textAlign: 'center',
-                fontSize: '11px',
-                color: '#6c757d',
-                marginBottom: '12px'
-              }}>
-                <SafetyOutlined /> 100% Secure Payment via Razorpay
-              </div>
-
-              <div style={{
-                fontSize: '12px',
-                color: '#6c757d',
-                textAlign: 'center',
-                marginBottom: '16px',
-                fontFamily: 'Poppins, sans-serif'
-              }}>
-                ✓ Instant Confirmation<br />
-                ✓ Free Cancellation Available
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontSize: '12px',
+                  color: '#495057',
+                  fontFamily: 'Poppins, sans-serif'
+                }}>
+                  <SafetyOutlined style={{ color: '#28a745', fontSize: '16px' }} />
+                  <span>100% Secure Payment via Razorpay</span>
+                </div>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontSize: '12px',
+                  color: '#495057',
+                  fontFamily: 'Poppins, sans-serif'
+                }}>
+                  <CheckCircleOutlined style={{ color: '#28a745', fontSize: '16px' }} />
+                  <span>Instant Confirmation</span>
+                </div>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontSize: '12px',
+                  color: '#495057',
+                  fontFamily: 'Poppins, sans-serif'
+                }}>
+                  <CheckCircleOutlined style={{ color: '#28a745', fontSize: '16px' }} />
+                  <span>Free Cancellation Available</span>
+                </div>
               </div>
 
               {/* Contact */}

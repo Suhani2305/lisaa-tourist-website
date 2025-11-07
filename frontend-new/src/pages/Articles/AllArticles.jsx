@@ -14,6 +14,7 @@ const AllArticles = () => {
   const [selectedType, setSelectedType] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(12);
+  const [totalArticles, setTotalArticles] = useState(0);
 
   useEffect(() => {
     fetchAllArticles();
@@ -134,22 +135,26 @@ const AllArticles = () => {
       <Header />
       
       <div style={{ 
-        backgroundColor: '#f8f9fa', 
+        backgroundColor: 'white', 
         minHeight: '100vh',
         paddingBottom: '60px'
       }}>
         {/* Container */}
         <div style={{ 
-          maxWidth: '1200px', 
+          maxWidth: '1800px', 
           margin: '0 auto',
-          padding: window.innerWidth <= 768 ? '20px 20px' : '40px 20px'
+          padding: isSmall ? '20px 8px' : isMobile ? '30px 12px' : window.innerWidth <= 1024 ? '40px 32px' : '60px 120px',
+          paddingTop: isMobile ? '40px' : '60px',
+          position: 'relative',
+          zIndex: 1
         }}>
-          {/* Breadcrumb & Title */}
+          {/* Breadcrumb */}
           <div style={{ 
-            fontSize: window.innerWidth <= 768 ? '11px' : '14px', 
+            fontSize: isSmall ? '11px' : isMobile ? '12px' : '14px', 
             color: '#6c757d',
-            marginBottom: '12px',
-            fontFamily: 'Poppins, sans-serif'
+            marginBottom: '20px',
+            fontFamily: 'Poppins, sans-serif',
+            textAlign: 'center'
           }}>
             <span 
               onClick={() => {
@@ -161,147 +166,145 @@ const AllArticles = () => {
                 color: '#6c757d',
                 transition: 'color 0.2s ease'
               }}
-              onMouseEnter={(e) => e.currentTarget.style.color = '#ff6b35'}
+              onMouseEnter={(e) => e.currentTarget.style.color = '#FF6B35'}
               onMouseLeave={(e) => e.currentTarget.style.color = '#6c757d'}
             >
               Home
             </span>
             <span style={{ margin: '0 8px', color: '#6c757d' }}> &gt; </span>
-            <span style={{ color: '#212529' }}>Travel Articles</span>
+            <span style={{ color: '#212529', fontWeight: '600' }}>Travel Articles</span>
           </div>
+
+          {/* Title */}
           <h1 style={{ 
-            fontSize: window.innerWidth <= 768 ? '1.5rem' : '2rem',
-            fontWeight: '700',
-            color: '#212529',
-            margin: '0 0 12px 0',
-            fontFamily: 'Poppins, sans-serif'
+            fontSize: isSmall ? '1.8rem' : isMobile ? '2.2rem' : '3rem', 
+            fontWeight: '800', 
+            color: '#FF6B35',
+            margin: '0 auto 16px auto',
+            fontFamily: "'Playfair Display', 'Georgia', serif",
+            lineHeight: '1.2',
+            textAlign: 'center',
+            letterSpacing: '-0.02em',
+            textShadow: '0 2px 4px rgba(255, 107, 53, 0.1)'
           }}>
             Travel Articles
           </h1>
+
+          {/* Description */}
           <p style={{
-            fontSize: window.innerWidth <= 768 ? '14px' : '16px',
+            fontSize: isSmall ? '13px' : isMobile ? '14px' : '16px',
             color: '#6c757d',
-            margin: '0 0 24px 0',
-            fontFamily: 'Poppins, sans-serif'
+            margin: '0 auto 40px auto',
+            fontFamily: 'Poppins, sans-serif',
+            lineHeight: '1.6',
+            maxWidth: '700px',
+            textAlign: 'center'
           }}>
             Explore our collection of travel guides, stories, and experiences
           </p>
 
-          {/* Filters Section */}
+          {/* Search and Filter Section */}
           <div style={{
-            backgroundColor: 'white',
-            padding: isSmall ? '16px' : isMobile ? '20px' : '24px',
-            borderRadius: '12px',
-            marginBottom: '30px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+            display: 'flex',
+            gap: isSmall ? '8px' : '12px',
+            alignItems: 'center',
+            flexWrap: 'nowrap',
+            marginBottom: '24px'
           }}>
             {/* Search Bar */}
-            <div style={{ marginBottom: '20px' }}>
-              <div style={{ position: 'relative' }}>
-                <SearchOutlined style={{
-                  position: 'absolute',
-                  left: '16px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  color: '#6c757d',
-                  fontSize: '16px'
-                }} />
-                <input
-                  type="text"
-                  placeholder="Search articles by title, author, or content..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+            <div style={{ 
+              flex: '0 0 70%',
+              position: 'relative',
+              minWidth: '0'
+            }}>
+              <SearchOutlined style={{
+                position: 'absolute',
+                left: isSmall ? '16px' : '20px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                color: '#FF6B35',
+                fontSize: isSmall ? '16px' : '18px',
+                zIndex: 1
+              }} />
+              <input
+                type="text"
+                placeholder="Search articles by title, author, or content..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: isSmall ? '12px 20px 12px 44px' : '16px 24px 16px 50px',
+                  border: '2px solid #FF6B35',
+                  borderRadius: '25px',
+                  fontSize: isSmall ? '14px' : '16px',
+                  outline: 'none',
+                  backgroundColor: 'white',
+                  color: '#212529',
+                  fontWeight: '500',
+                  boxShadow: '0 2px 4px rgba(255, 107, 53, 0.2)',
+                  fontFamily: 'Poppins, sans-serif',
+                  transition: 'all 0.2s ease'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#FF6B35';
+                  e.target.style.boxShadow = '0 4px 8px rgba(255, 107, 53, 0.3)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = '#FF6B35';
+                  e.target.style.boxShadow = '0 2px 4px rgba(255, 107, 53, 0.2)';
+                }}
+              />
+            </div>
+
+            {/* Filter Dropdown */}
+            {types.length > 1 && (
+              <div style={{
+                flex: '0 0 30%',
+                position: 'relative'
+              }}>
+                <select
+                  value={selectedType}
+                  onChange={(e) => {
+                    setSelectedType(e.target.value);
+                    setCurrentPage(1);
+                  }}
                   style={{
                     width: '100%',
-                    padding: isSmall ? '10px 14px 10px 40px' : '12px 16px 12px 44px',
-                    border: '2px solid #e9ecef',
-                    borderRadius: '8px',
-                    fontSize: isSmall ? '13px' : '14px',
+                    padding: isSmall ? '12px 20px' : '16px 24px',
+                    border: '2px solid #FF6B35',
+                    borderRadius: '25px',
+                    fontSize: isSmall ? '14px' : '16px',
                     outline: 'none',
-                    transition: 'border-color 0.3s',
+                    backgroundColor: 'white',
+                    color: '#212529',
+                    fontWeight: '500',
+                    cursor: 'pointer',
                     fontFamily: 'Poppins, sans-serif',
-                    backgroundColor: '#f8f9fa',
-                    color: '#212529'
+                    boxShadow: '0 2px 4px rgba(255, 107, 53, 0.2)',
+                    transition: 'all 0.2s ease',
+                    appearance: 'none',
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23FF6B35' d='M6 9L1 4h10z'/%3E%3C/svg%3E")`,
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right 16px center',
+                    paddingRight: isSmall ? '40px' : '45px'
                   }}
                   onFocus={(e) => {
                     e.target.style.borderColor = '#FF6B35';
-                    e.target.style.backgroundColor = '#ffffff';
-                    e.target.style.color = '#212529';
+                    e.target.style.boxShadow = '0 4px 8px rgba(255, 107, 53, 0.3)';
                   }}
                   onBlur={(e) => {
-                    e.target.style.borderColor = '#e9ecef';
-                    e.target.style.backgroundColor = '#f8f9fa';
-                    e.target.style.color = '#212529';
+                    e.target.style.borderColor = '#FF6B35';
+                    e.target.style.boxShadow = '0 2px 4px rgba(255, 107, 53, 0.2)';
                   }}
-                />
-              </div>
-            </div>
-
-            {/* Type Filters */}
-            {types.length > 1 && (
-              <div style={{ marginBottom: '16px' }}>
-                <div style={{
-                  fontSize: isSmall ? '12px' : '13px',
-                  fontWeight: '600',
-                  color: '#495057',
-                  marginBottom: '12px',
-                  fontFamily: 'Poppins, sans-serif'
-                }}>
-                  Filter by Type:
-                </div>
-                <div style={{
-                  display: 'flex',
-                  gap: isSmall ? '6px' : '8px',
-                  flexWrap: 'wrap'
-                }}>
+                >
                   {types.map(type => (
-                    <button
-                      key={type}
-                      onClick={() => setSelectedType(type)}
-                      style={{
-                        padding: isSmall ? '6px 12px' : '8px 16px',
-                        backgroundColor: selectedType === type ? '#FF6B35' : '#f8f9fa',
-                        color: selectedType === type ? 'white' : '#495057',
-                        border: selectedType === type ? 'none' : '1px solid #dee2e6',
-                        borderRadius: '20px',
-                        fontSize: isSmall ? '11px' : '13px',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        transition: 'all 0.3s',
-                        fontFamily: 'Poppins, sans-serif',
-                        textTransform: 'capitalize'
-                      }}
-                      onMouseEnter={(e) => {
-                        if (selectedType !== type) {
-                          e.target.style.backgroundColor = '#e9ecef';
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (selectedType !== type) {
-                          e.target.style.backgroundColor = '#f8f9fa';
-                        }
-                      }}
-                    >
+                    <option key={type} value={type}>
                       {type === 'all' ? 'All Types' : type.replace('_', ' ')}
-                    </button>
+                    </option>
                   ))}
-                </div>
+                </select>
               </div>
             )}
-
-            {/* Results Count */}
-            <div style={{
-              marginTop: '16px',
-              paddingTop: '16px',
-              borderTop: '1px solid #e9ecef',
-              fontSize: isSmall ? '12px' : '13px',
-              color: '#6c757d',
-              textAlign: 'center',
-              fontFamily: 'Poppins, sans-serif'
-            }}>
-              Showing <strong style={{ color: '#FF6B35' }}>{filteredArticles.length}</strong> {filteredArticles.length === 1 ? 'article' : 'articles'}
-              {totalArticles > 0 && ` (${totalArticles} total)`}
-            </div>
           </div>
 
           {/* Articles Grid */}
@@ -439,6 +442,20 @@ const AllArticles = () => {
               ))}
             </div>
           )}
+
+          {/* Results Count */}
+          <div style={{
+            marginTop: '24px',
+            paddingTop: '24px',
+            borderTop: '1px solid #e9ecef',
+            fontSize: isSmall ? '12px' : '14px',
+            color: '#6c757d',
+            textAlign: 'center',
+            fontFamily: 'Poppins, sans-serif'
+          }}>
+            Showing <strong style={{ color: '#FF6B35' }}>{filteredArticles.length}</strong> {filteredArticles.length === 1 ? 'article' : 'articles'}
+            {totalArticles > filteredArticles.length && ` of ${totalArticles} total`}
+          </div>
         </div>
       </div>
       

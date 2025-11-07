@@ -288,8 +288,8 @@ const ContactUs = () => {
                         Office Address
                       </TypographyText>
                       <TypographyText type="secondary">
-                        123 Travel Street, Tourism District<br />
-                        Mumbai, Maharashtra 400001, India
+                        U.G. 58, P.C.F. PLAZA, MINT HOUSE<br />
+                        VARANASI, UP 221001, India
                       </TypographyText>
                     </div>
                   </div>
@@ -315,8 +315,7 @@ const ContactUs = () => {
                         Phone Number
                       </TypographyText>
                       <TypographyText type="secondary">
-                        +91 98765 43210<br />
-                        +91 98765 43211
+                        +91 9263616263
                       </TypographyText>
                     </div>
                   </div>
@@ -342,8 +341,7 @@ const ContactUs = () => {
                         Email Address
                       </TypographyText>
                       <TypographyText type="secondary">
-                        info@lisaatours.com<br />
-                        support@lisaatours.com
+                        Lsiaatech@gmail.com
                       </TypographyText>
                     </div>
                   </div>
@@ -387,7 +385,7 @@ const ContactUs = () => {
                 bodyStyle={{ padding: 0 }}
               >
                 <iframe
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d241316.67292555945!2d72.74109953749857!3d19.08219783958033!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3be7c6306644edc1%3A0x5da4ed8f8d648c69!2sMumbai%2C%20Maharashtra!5e0!3m2!1sen!2sin!4v1678901234567!5m2!1sen!2sin"
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3609.1234567890!2d83.0104!3d25.3176!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x398e2db76febcf4d%3A0x681b0c5e8b0c5e8b!2sVaranasi%2C%20Uttar%20Pradesh!5e0!3m2!1sen!2sin!4v1678901234567!5m2!1sen!2sin"
                   width="100%"
                   height="300"
                   style={{ border: 0 }}

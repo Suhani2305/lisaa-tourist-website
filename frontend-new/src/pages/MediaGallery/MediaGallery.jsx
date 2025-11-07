@@ -245,6 +245,93 @@ const MediaGallery = () => {
     <>
       <Header />
       <div style={{ minHeight: '100vh', backgroundColor: '#f8f9fa', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+      
+      {/* Hero Section */}
+      <div
+        style={{
+          background: 'linear-gradient(135deg, #FF6B35 0%, #f15a29 100%)',
+          padding: window.innerWidth <= 768 ? '60px 20px' : '80px 20px',
+          textAlign: 'center',
+          color: 'white',
+          position: 'relative',
+          overflow: 'hidden'
+        }}
+      >
+        {/* Decorative Elements */}
+        <div style={{
+          position: 'absolute',
+          top: '-50px',
+          right: '-50px',
+          width: '200px',
+          height: '200px',
+          borderRadius: '50%',
+          background: 'rgba(255, 255, 255, 0.1)',
+          zIndex: 0
+        }} />
+        <div style={{
+          position: 'absolute',
+          bottom: '-30px',
+          left: '-30px',
+          width: '150px',
+          height: '150px',
+          borderRadius: '50%',
+          background: 'rgba(255, 255, 255, 0.08)',
+          zIndex: 0
+        }} />
+        
+        {/* Breadcrumb */}
+        <div style={{ 
+          fontSize: window.innerWidth <= 768 ? '11px' : '14px', 
+          color: 'rgba(255, 255, 255, 0.9)',
+          marginBottom: '16px',
+          fontFamily: "'Poppins', sans-serif",
+          position: 'relative',
+          zIndex: 1
+        }}>
+          <span 
+            onClick={() => navigate('/')}
+            style={{ 
+              cursor: 'pointer',
+              color: 'rgba(255, 255, 255, 0.9)',
+              transition: 'color 0.2s ease'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.color = '#ffffff'}
+            onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255, 255, 255, 0.9)'}
+          >
+            Home
+          </span>
+          <span style={{ margin: '0 8px', color: 'rgba(255, 255, 255, 0.9)' }}> &gt; </span>
+          <span style={{ color: '#ffffff' }}>Media Gallery</span>
+        </div>
+
+        {/* Title */}
+        <h1 style={{
+          fontSize: window.innerWidth <= 768 ? '1.8rem' : window.innerWidth <= 1024 ? '2.5rem' : '3rem',
+          fontWeight: '700',
+          color: 'white',
+          margin: '0 0 16px 0',
+          fontFamily: "'Poppins', sans-serif",
+          lineHeight: '1.2',
+          textShadow: '2px 2px 4px rgba(0,0,0,0.2)',
+          position: 'relative',
+          zIndex: 1
+        }}>
+          📸 Media Gallery
+        </h1>
+        <p style={{
+          fontSize: window.innerWidth <= 768 ? '14px' : '18px',
+          color: 'rgba(255, 255, 255, 0.95)',
+          margin: '0 auto',
+          maxWidth: '600px',
+          fontFamily: "'Poppins', sans-serif",
+          lineHeight: '1.6',
+          position: 'relative',
+          zIndex: 1
+        }}>
+          Explore our collection of images, videos, and media from amazing destinations
+        </p>
+      </div>
+
       {/* Main Content Section */}
       <section style={{ 
         paddingTop: '0',
@@ -253,8 +340,10 @@ const MediaGallery = () => {
         paddingRight: window.innerWidth <= 480 ? "8px" : window.innerWidth <= 768 ? "12px" : window.innerWidth <= 1024 ? "32px" : window.innerWidth <= 1400 ? "120px" : "250px",
         backgroundColor: "#f8f9fa", 
         boxSizing: "border-box",
-        marginTop: '0',
-        flex: '1'
+        marginTop: window.innerWidth <= 768 ? '-40px' : '-60px',
+        flex: '1',
+        position: 'relative',
+        zIndex: 1
       }}>
         <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
           {/* Container */}
@@ -262,84 +351,52 @@ const MediaGallery = () => {
             padding: window.innerWidth <= 768 ? '20px 0' : '40px 0',
             minHeight: '400px'
           }}>
-            {/* Breadcrumb & Title */}
-            <div style={{ 
-              fontSize: window.innerWidth <= 768 ? '11px' : '14px', 
-              color: '#6c757d',
-              marginBottom: '12px',
-              fontFamily: "'Poppins', sans-serif"
-            }}>
-              <span 
-                onClick={() => navigate('/')}
-                style={{ 
-                  cursor: 'pointer',
-                  color: '#6c757d',
-                  transition: 'color 0.2s ease'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.color = '#ff6b35'}
-                onMouseLeave={(e) => e.currentTarget.style.color = '#6c757d'}
-              >
-                Home
-              </span>
-              <span style={{ margin: '0 8px', color: '#6c757d' }}> &gt; </span>
-              <span style={{ color: '#212529' }}>Media Gallery</span>
-            </div>
-            <h1 style={{
-              fontSize: window.innerWidth <= 768 ? '1.5rem' : '2rem',
-              fontWeight: '700',
-              color: '#212529',
-              margin: '0 0 12px 0',
-              fontFamily: "'Poppins', sans-serif",
-              lineHeight: '1.3'
-            }}>
-              Media Gallery
-            </h1>
-            <p style={{
-              fontSize: window.innerWidth <= 768 ? '14px' : '16px',
-              color: '#6c757d',
-              margin: '0 0 24px 0',
-              fontFamily: "'Poppins', sans-serif"
-            }}>
-              Explore our collection of images, videos, and media from amazing destinations
-            </p>
 
-            {/* Filters Section */}
+            {/* Filters Section - Compact - Overlay on Hero */}
             <div style={{
               backgroundColor: 'white',
-              padding: window.innerWidth <= 480 ? '16px' : window.innerWidth <= 768 ? '20px' : '24px',
+              padding: window.innerWidth <= 480 ? '12px' : window.innerWidth <= 768 ? '14px' : '24px',
               borderRadius: '12px',
-              marginBottom: '30px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+              marginBottom: window.innerWidth <= 768 ? '20px' : '30px',
+              marginTop: window.innerWidth <= 768 ? '-30px' : '-60px',
+              marginLeft: window.innerWidth <= 768 ? '0' : '20px',
+              marginRight: window.innerWidth <= 768 ? '0' : '20px',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+              position: 'relative',
+              zIndex: 2,
+              border: '1px solid rgba(255, 255, 255, 0.3)'
             }}>
+              {/* Search Bar Row */}
               <div style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: '12px',
-                alignItems: 'center',
-                marginBottom: '20px'
+                marginBottom: window.innerWidth <= 768 ? '12px' : '16px'
               }}>
-                <div style={{ position: 'relative', flex: '1 1 200px', maxWidth: '100%' }}>
+                <div style={{ 
+                  position: 'relative', 
+                  width: '100%'
+                }}>
                   <SearchOutlined style={{
                     position: 'absolute',
-                    left: '16px',
+                    left: '12px',
                     top: '50%',
                     transform: 'translateY(-50%)',
                     color: '#6c757d',
-                    fontSize: '16px',
+                    fontSize: window.innerWidth <= 768 ? '14px' : '16px',
                     zIndex: 1
                   }} />
                   <Input
                     placeholder="Search media..."
                     value={searchText}
                     onChange={(e) => setSearchText(e.target.value)}
-                    size="large"
+                    size={window.innerWidth <= 768 ? 'middle' : 'large'}
                     style={{ 
                       borderRadius: '8px',
-                      paddingLeft: '44px',
+                      paddingLeft: window.innerWidth <= 768 ? '36px' : '44px',
                       fontFamily: "'Poppins', sans-serif",
                       backgroundColor: '#f8f9fa',
                       border: '2px solid #e9ecef',
-                      color: '#212529'
+                      color: '#212529',
+                      fontSize: window.innerWidth <= 768 ? '13px' : '14px',
+                      width: '100%'
                     }}
                     onFocus={(e) => {
                       e.target.style.borderColor = '#FF6B35';
@@ -351,6 +408,16 @@ const MediaGallery = () => {
                     }}
                   />
                 </div>
+              </div>
+
+              {/* Filters Row */}
+              <div style={{
+                display: 'flex',
+                flexDirection: 'row',
+                gap: window.innerWidth <= 768 ? '8px' : '12px',
+                alignItems: 'center',
+                marginBottom: window.innerWidth <= 768 ? '12px' : '20px'
+              }}>
                 <ConfigProvider
                   theme={{
                     token: {
@@ -361,14 +428,15 @@ const MediaGallery = () => {
                   }}
                 >
                   <Select
-                    placeholder="Type"
+                    placeholder="All Types"
                     value={filterType}
                     onChange={setFilterType}
-                    size="large"
+                    size={window.innerWidth <= 768 ? 'middle' : 'large'}
                     style={{ 
-                      width: window.innerWidth <= 768 ? '100%' : '150px',
+                      flex: '1',
                       borderRadius: '8px',
-                      fontFamily: "'Poppins', sans-serif"
+                      fontFamily: "'Poppins', sans-serif",
+                      fontSize: window.innerWidth <= 768 ? '13px' : '14px'
                     }}
                   >
                     <Option value="all">All Types</Option>
@@ -378,14 +446,15 @@ const MediaGallery = () => {
                     <Option value="document">Documents</Option>
                   </Select>
                   <Select
-                    placeholder="Category"
+                    placeholder="All Categories"
                     value={filterCategory}
                     onChange={setFilterCategory}
-                    size="large"
+                    size={window.innerWidth <= 768 ? 'middle' : 'large'}
                     style={{ 
-                      width: window.innerWidth <= 768 ? '100%' : '180px',
+                      flex: '1',
                       borderRadius: '8px',
-                      fontFamily: "'Poppins', sans-serif"
+                      fontFamily: "'Poppins', sans-serif",
+                      fontSize: window.innerWidth <= 768 ? '13px' : '14px'
                     }}
                   >
                     <Option value="all">All Categories</Option>
@@ -399,11 +468,11 @@ const MediaGallery = () => {
                 </ConfigProvider>
               </div>
               
-              {/* Results Count */}
+              {/* Results Count - Compact */}
               <div style={{
-                paddingTop: '16px',
+                paddingTop: window.innerWidth <= 768 ? '8px' : '16px',
                 borderTop: '1px solid #e9ecef',
-                fontSize: window.innerWidth <= 480 ? '12px' : '13px',
+                fontSize: window.innerWidth <= 480 ? '11px' : window.innerWidth <= 768 ? '12px' : '13px',
                 color: '#6c757d',
                 textAlign: 'center',
                 fontFamily: "'Poppins', sans-serif"
@@ -461,13 +530,13 @@ const MediaGallery = () => {
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: window.innerWidth <= 480 
-                  ? '1fr' 
+                  ? 'repeat(2, 1fr)' 
                   : window.innerWidth <= 768 
-                    ? 'repeat(2, 1fr)' 
+                    ? 'repeat(3, 1fr)' 
                     : window.innerWidth <= 1024
-                      ? 'repeat(3, 1fr)'
+                      ? 'repeat(4, 1fr)'
                       : 'repeat(4, 1fr)',
-                gap: window.innerWidth <= 480 ? '12px' : window.innerWidth <= 768 ? '16px' : '20px',
+                gap: window.innerWidth <= 480 ? '4px' : window.innerWidth <= 768 ? '6px' : '12px',
               }}>
                 {filteredMedia.map((media) => (
                   <div
@@ -476,13 +545,13 @@ const MediaGallery = () => {
                     style={{
                       position: 'relative',
                       width: '100%',
-                      aspectRatio: '4/3',
-                      borderRadius: window.innerWidth <= 480 ? '12px' : window.innerWidth <= 768 ? '15px' : '20px',
+                      aspectRatio: '1/1',
+                      borderRadius: window.innerWidth <= 480 ? '0' : window.innerWidth <= 768 ? '4px' : '8px',
                       overflow: 'hidden',
                       cursor: 'pointer',
                       backgroundColor: '#f8fafc',
-                      boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
-                      transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
+                      transition: 'transform 0.2s ease, box-shadow 0.2s ease',
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.transform = 'translateY(-6px)';
@@ -686,7 +755,7 @@ const MediaGallery = () => {
         }}
       >
         {selectedMedia && selectedMedia.type === 'image' && previewImage ? (
-          <div style={{ textAlign: 'center' }}>
+          <div style={{ textAlign: 'center', position: 'relative' }}>
             <img
               src={previewImage}
               alt={selectedMedia.alt}
@@ -700,6 +769,97 @@ const MediaGallery = () => {
                 e.target.src = 'https://via.placeholder.com/800x600?text=Image+Not+Found';
               }}
             />
+            {/* Action Buttons - Mobile View */}
+            <div style={{
+              position: 'absolute',
+              bottom: window.innerWidth <= 768 ? '20px' : '30px',
+              right: window.innerWidth <= 768 ? '20px' : '30px',
+              zIndex: 10,
+              display: 'flex',
+              gap: '12px',
+              flexDirection: 'row'
+            }}>
+              {/* Download Button */}
+              <Button
+                type="primary"
+                icon={<DownloadOutlined />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDownload(selectedMedia);
+                }}
+                size="large"
+                style={{
+                  backgroundColor: '#52c41a',
+                  borderColor: '#52c41a',
+                  fontFamily: "'Poppins', sans-serif",
+                  borderRadius: '50%',
+                  width: window.innerWidth <= 768 ? '56px' : '64px',
+                  height: window.innerWidth <= 768 ? '56px' : '64px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 4px 12px rgba(82, 196, 26, 0.3)',
+                  fontSize: window.innerWidth <= 768 ? '20px' : '24px',
+                  padding: 0
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'scale(1.1)';
+                  e.currentTarget.style.boxShadow = '0 6px 16px rgba(82, 196, 26, 0.4)';
+                  e.currentTarget.style.backgroundColor = '#73d13d';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'scale(1)';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(82, 196, 26, 0.3)';
+                  e.currentTarget.style.backgroundColor = '#52c41a';
+                }}
+              />
+              {/* Like Button */}
+              <Button
+                type="primary"
+                icon={selectedMedia.isLiked ? <HeartFilled /> : <HeartOutlined />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleLike(selectedMedia, e);
+                }}
+                size="large"
+                style={{
+                  backgroundColor: selectedMedia.isLiked ? '#ff4d4f' : '#ff6b35',
+                  borderColor: selectedMedia.isLiked ? '#ff4d4f' : '#ff6b35',
+                  fontFamily: "'Poppins', sans-serif",
+                  borderRadius: '50%',
+                  width: window.innerWidth <= 768 ? '56px' : '64px',
+                  height: window.innerWidth <= 768 ? '56px' : '64px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: selectedMedia.isLiked 
+                    ? '0 4px 12px rgba(255, 77, 79, 0.4)' 
+                    : '0 4px 12px rgba(255, 107, 53, 0.3)',
+                  fontSize: window.innerWidth <= 768 ? '20px' : '24px',
+                  padding: 0
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'scale(1.1)';
+                  if (selectedMedia.isLiked) {
+                    e.currentTarget.style.boxShadow = '0 6px 16px rgba(255, 77, 79, 0.5)';
+                    e.currentTarget.style.backgroundColor = '#ff7875';
+                  } else {
+                    e.currentTarget.style.boxShadow = '0 6px 16px rgba(255, 107, 53, 0.4)';
+                    e.currentTarget.style.backgroundColor = '#f15a29';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'scale(1)';
+                  if (selectedMedia.isLiked) {
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(255, 77, 79, 0.4)';
+                    e.currentTarget.style.backgroundColor = '#ff4d4f';
+                  } else {
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(255, 107, 53, 0.3)';
+                    e.currentTarget.style.backgroundColor = '#ff6b35';
+                  }
+                }}
+              />
+            </div>
           </div>
         ) : selectedMedia && selectedMedia.type === 'video' ? (
           <video
@@ -776,24 +936,113 @@ const MediaGallery = () => {
         {selectedMedia && (
           <div style={{ 
             marginTop: '30px', 
-            padding: '30px', 
+            padding: window.innerWidth <= 768 ? '20px' : '30px', 
             backgroundColor: '#f8f9fa', 
             borderRadius: '12px',
             fontFamily: "'Poppins', sans-serif"
           }}>
-            <h4 style={{
-              fontFamily: "'Poppins', sans-serif",
-              fontWeight: '600',
-              fontSize: '20px',
-              color: '#1a1a1a',
-              marginBottom: '15px'
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'flex-start',
+              marginBottom: '15px',
+              flexWrap: 'wrap',
+              gap: '12px'
             }}>
-              {selectedMedia.title}
-            </h4>
+              <h4 style={{
+                fontFamily: "'Poppins', sans-serif",
+                fontWeight: '600',
+                fontSize: window.innerWidth <= 768 ? '18px' : '20px',
+                color: '#1a1a1a',
+                margin: 0,
+                flex: '1'
+              }}>
+                {selectedMedia.title}
+              </h4>
+              {/* Action Buttons for Desktop - In Info Section */}
+              {window.innerWidth > 768 && (
+                <div style={{
+                  display: 'flex',
+                  gap: '12px',
+                  alignItems: 'center'
+                }}>
+                  <Button
+                    type="primary"
+                    icon={<DownloadOutlined />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDownload(selectedMedia);
+                    }}
+                    size="large"
+                    style={{
+                      backgroundColor: '#52c41a',
+                      borderColor: '#52c41a',
+                      fontFamily: "'Poppins', sans-serif",
+                      borderRadius: '8px',
+                      height: '40px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      fontWeight: '600'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#73d13d';
+                      e.currentTarget.style.borderColor = '#73d13d';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = '#52c41a';
+                      e.currentTarget.style.borderColor = '#52c41a';
+                    }}
+                  >
+                    Download
+                  </Button>
+                  <Button
+                    type="primary"
+                    icon={selectedMedia.isLiked ? <HeartFilled /> : <HeartOutlined />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleLike(selectedMedia, e);
+                    }}
+                    size="large"
+                    style={{
+                      backgroundColor: selectedMedia.isLiked ? '#ff4d4f' : '#ff6b35',
+                      borderColor: selectedMedia.isLiked ? '#ff4d4f' : '#ff6b35',
+                      fontFamily: "'Poppins', sans-serif",
+                      borderRadius: '8px',
+                      height: '40px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      fontWeight: '600'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (selectedMedia.isLiked) {
+                        e.currentTarget.style.backgroundColor = '#ff7875';
+                        e.currentTarget.style.borderColor = '#ff7875';
+                      } else {
+                        e.currentTarget.style.backgroundColor = '#f15a29';
+                        e.currentTarget.style.borderColor = '#f15a29';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (selectedMedia.isLiked) {
+                        e.currentTarget.style.backgroundColor = '#ff4d4f';
+                        e.currentTarget.style.borderColor = '#ff4d4f';
+                      } else {
+                        e.currentTarget.style.backgroundColor = '#ff6b35';
+                        e.currentTarget.style.borderColor = '#ff6b35';
+                      }
+                    }}
+                  >
+                    {selectedMedia.isLiked ? 'Liked' : 'Like'} ({selectedMedia.likes || 0})
+                  </Button>
+                </div>
+              )}
+            </div>
             <p style={{ 
               color: '#666', 
               marginBottom: '15px',
-              fontSize: '14px',
+              fontSize: window.innerWidth <= 768 ? '13px' : '14px',
               lineHeight: '1.6'
             }}>
               {selectedMedia.description || 'No description available'}
@@ -811,7 +1060,8 @@ const MediaGallery = () => {
                     style={{
                       fontFamily: "'Poppins', sans-serif",
                       borderRadius: '6px',
-                      padding: '4px 12px'
+                      padding: '4px 12px',
+                      fontSize: window.innerWidth <= 768 ? '12px' : '13px'
                     }}
                   >
                     {tag}
@@ -822,11 +1072,12 @@ const MediaGallery = () => {
             <div style={{ 
               marginTop: '20px', 
               display: 'flex', 
-              gap: '30px', 
-              fontSize: '14px', 
+              gap: window.innerWidth <= 768 ? '15px' : '30px', 
+              fontSize: window.innerWidth <= 768 ? '12px' : '14px', 
               color: '#666',
               paddingTop: '20px',
-              borderTop: '1px solid #e0e0e0'
+              borderTop: '1px solid #e0e0e0',
+              flexWrap: 'wrap'
             }}>
               <span style={{ fontFamily: "'Poppins', sans-serif" }}>
                 👁️ {selectedMedia.views || 0} views

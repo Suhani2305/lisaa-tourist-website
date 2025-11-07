@@ -48,11 +48,13 @@ const TopAttractions = () => {
         }}>
           <div>
             <h2 style={{
-              fontSize: isSmall ? "22px" : isMobile ? "26px" : "36px",
-              fontWeight: "700",
+              fontSize: isSmall ? "1.8rem" : isMobile ? "2.2rem" : "3rem",
+              fontWeight: "800",
               color: "#212529",
               margin: "0 0 8px 0",
-              fontFamily: "Poppins, sans-serif"
+              fontFamily: "'Playfair Display', 'Georgia', serif",
+              letterSpacing: "-0.02em",
+              textShadow: "0 2px 4px rgba(0, 0, 0, 0.1)"
             }}>
               Top States in India
             </h2>
@@ -67,27 +69,37 @@ const TopAttractions = () => {
           <button
             onClick={() => navigate('/all-states')}
             style={{
-              padding: isSmall ? '8px 16px' : '10px 20px',
-              backgroundColor: 'transparent',
-              color: '#ff6b35',
-              border: '2px solid #ff6b35',
-              borderRadius: '8px',
-              fontSize: isSmall ? '14px' : '16px',
+              border: '2px solid #FF6B35',
+              color: '#FF6B35',
+              backgroundColor: 'white',
+              fontFamily: 'Poppins, sans-serif',
               fontWeight: '600',
+              height: isSmall ? '44px' : '48px',
+              padding: isSmall ? '0 20px' : '0 28px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              borderRadius: '25px',
               cursor: 'pointer',
+              fontSize: isSmall ? '14px' : '15px',
               transition: 'all 0.3s ease',
-              fontFamily: 'Poppins, sans-serif'
+              boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#ff6b35';
-              e.currentTarget.style.color = 'white';
+              e.currentTarget.style.borderColor = '#FF6B35';
+              e.currentTarget.style.color = '#FF6B35';
+              e.currentTarget.style.backgroundColor = '#fff5f2';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(255, 107, 53, 0.2)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-              e.currentTarget.style.color = '#ff6b35';
+              e.currentTarget.style.borderColor = '#FF6B35';
+              e.currentTarget.style.color = '#FF6B35';
+              e.currentTarget.style.backgroundColor = 'white';
+              e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
             }}
           >
-            See all →
+            See all
           </button>
         </div>
 

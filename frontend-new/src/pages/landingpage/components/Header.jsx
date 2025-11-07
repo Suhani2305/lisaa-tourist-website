@@ -200,7 +200,7 @@ const Header = () => {
                 overflow: 'hidden',
                 textOverflow: 'ellipsis'
               }}>
-                Lisaa Tours & Travels
+                LSIAA Tours & Travels
               </h2>
             </div>
 

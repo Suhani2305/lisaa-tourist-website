@@ -155,11 +155,13 @@ const PopularTours = () => {
         }}>
           <div style={{ flex: '1', minWidth: '200px' }}>
             <h2 style={{
-              fontSize: window.innerWidth <= 480 ? "22px" : window.innerWidth <= 768 ? "26px" : "36px",
-              fontWeight: "700",
+              fontSize: window.innerWidth <= 480 ? "1.8rem" : window.innerWidth <= 768 ? "2.2rem" : "3rem",
+              fontWeight: "800",
               color: "#212529",
               margin: "0 0 8px 0",
-              fontFamily: "Poppins, sans-serif"
+              fontFamily: "'Playfair Display', 'Georgia', serif",
+              letterSpacing: "-0.02em",
+              textShadow: "0 2px 4px rgba(0, 0, 0, 0.1)"
             }}>
               Popular Indian Tours
             </h2>
@@ -174,29 +176,39 @@ const PopularTours = () => {
           <button
             onClick={() => navigate('/package')}
             style={{
-              backgroundColor: 'transparent',
-              color: '#ff6b35',
-              border: '2px solid #ff6b35',
-              borderRadius: '8px',
-              padding: window.innerWidth <= 480 ? '8px 16px' : '10px 20px',
-              fontSize: window.innerWidth <= 480 ? '14px' : '16px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              transition: 'all 0.3s ease',
+              border: '2px solid #FF6B35',
+              color: '#FF6B35',
+              backgroundColor: 'white',
               fontFamily: 'Poppins, sans-serif',
+              fontWeight: '600',
+              height: window.innerWidth <= 480 ? '44px' : '48px',
+              padding: window.innerWidth <= 480 ? '0 20px' : '0 28px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              borderRadius: '25px',
+              cursor: 'pointer',
+              fontSize: window.innerWidth <= 480 ? '14px' : '15px',
+              transition: 'all 0.3s ease',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
               alignSelf: window.innerWidth <= 768 ? 'flex-start' : 'center',
               whiteSpace: 'nowrap'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#ff6b35';
-              e.currentTarget.style.color = 'white';
+              e.currentTarget.style.borderColor = '#FF6B35';
+              e.currentTarget.style.color = '#FF6B35';
+              e.currentTarget.style.backgroundColor = '#fff5f2';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(255, 107, 53, 0.2)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-              e.currentTarget.style.color = '#ff6b35';
+              e.currentTarget.style.borderColor = '#FF6B35';
+              e.currentTarget.style.color = '#FF6B35';
+              e.currentTarget.style.backgroundColor = 'white';
+              e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
             }}
           >
-            See all →
+            See all
           </button>
         </div>
 

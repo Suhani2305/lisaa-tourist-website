@@ -50,8 +50,8 @@ const Footer = () => {
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: window.innerWidth <= 768 ? '10px' : '12px' }}>
                 <p style={{ margin: 0, lineHeight: '1.6', fontSize: window.innerWidth <= 480 ? '12px' : window.innerWidth <= 768 ? '13px' : '14px', opacity: 0.9 }}>
-                  <strong style={{ color: '#ff6b35' }}>Lisaa Tours & Travels</strong><br />
-                  Rajasthan, India
+                  <strong style={{ color: '#ff6b35' }}>LSIAA Tours & Travels</strong><br />
+                  U.G. 58, P.C.F. PLAZA, MINT HOUSE, VARANASI, UP 221001
                 </p>
                 <p style={{ margin: 0, fontSize: window.innerWidth <= 480 ? '12px' : window.innerWidth <= 768 ? '13px' : '14px', opacity: 0.9, display: 'flex', alignItems: 'center', gap: '8px', justifyContent: window.innerWidth <= 768 ? 'center' : 'flex-start' }}>
                   <span style={{ fontSize: '16px' }}>📞</span>
@@ -240,7 +240,7 @@ const Footer = () => {
             fontSize: window.innerWidth <= 480 ? '12px' : '13px',
             lineHeight: '1.5'
           }}>
-            © {new Date().getFullYear()} Copyright Lisaa Tours & Travels. All rights reserved.
+            © {new Date().getFullYear()} Copyright LSIAA Tours & Travels. All rights reserved.
           </div>
         </div>
       </div>

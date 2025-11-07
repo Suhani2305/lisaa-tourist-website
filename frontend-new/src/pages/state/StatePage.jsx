@@ -99,19 +99,23 @@ const StatePage = () => {
     <>
       <Header />
       
-      <div style={{ minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
-        {/* Hero Section */}
+      <div style={{ minHeight: '100vh', backgroundColor: 'white' }}>
+        {/* Main Content */}
         <div style={{
           maxWidth: isMobile ? '100%' : '1800px',
-          margin: isSmall ? '20px auto' : isMobile ? '30px auto' : '40px auto',
-          padding: isSmall ? '0 8px' : isMobile ? '0 12px' : window.innerWidth <= 1024 ? '0 32px' : '0 250px'
+          margin: '0 auto',
+          padding: isSmall ? '20px 8px' : isMobile ? '30px 12px' : window.innerWidth <= 1024 ? '40px 32px' : '60px 250px',
+          paddingTop: isMobile ? '40px' : '60px',
+          position: 'relative',
+          zIndex: 1
         }}>
-          {/* Breadcrumb & Title */}
+          {/* Breadcrumb */}
           <div style={{ 
             fontSize: isSmall ? '11px' : isMobile ? '12px' : '14px', 
             color: '#6c757d',
-            marginBottom: '12px',
-            fontFamily: 'Poppins, sans-serif'
+            marginBottom: '20px',
+            fontFamily: 'Poppins, sans-serif',
+            textAlign: 'center'
           }}>
             <span 
               onClick={() => {
@@ -123,7 +127,7 @@ const StatePage = () => {
                 color: '#6c757d',
                 transition: 'color 0.2s ease'
               }}
-              onMouseEnter={(e) => e.currentTarget.style.color = '#ff6b35'}
+              onMouseEnter={(e) => e.currentTarget.style.color = '#FF6B35'}
               onMouseLeave={(e) => e.currentTarget.style.color = '#6c757d'}
             >
               Home
@@ -136,7 +140,7 @@ const StatePage = () => {
                 color: '#6c757d',
                 transition: 'color 0.2s ease'
               }}
-              onMouseEnter={(e) => e.currentTarget.style.color = '#ff6b35'}
+              onMouseEnter={(e) => e.currentTarget.style.color = '#FF6B35'}
               onMouseLeave={(e) => e.currentTarget.style.color = '#6c757d'}
             >
               States
@@ -144,101 +148,147 @@ const StatePage = () => {
             {state && (
               <>
                 <span style={{ margin: '0 8px', color: '#6c757d' }}> &gt; </span>
-                <span style={{ color: '#212529' }}>{state.name}</span>
+                <span style={{ color: '#212529', fontWeight: '600' }}>{state.name}</span>
               </>
             )}
           </div>
+
+          {/* Title */}
           <h1 style={{ 
-            fontSize: isSmall ? '1.2rem' : isMobile ? '1.5rem' : '2rem', 
-            fontWeight: '700', 
-            color: '#212529',
-            margin: '0 0 24px 0',
-            fontFamily: 'Poppins, sans-serif'
+            fontSize: isSmall ? '1.8rem' : isMobile ? '2.2rem' : '3rem', 
+            fontWeight: '800', 
+            color: '#FF6B35',
+            margin: '0 auto 40px auto',
+            fontFamily: "'Playfair Display', 'Georgia', serif",
+            lineHeight: '1.2',
+            textAlign: 'center',
+            letterSpacing: '-0.02em',
+            textShadow: '0 2px 4px rgba(255, 107, 53, 0.1)'
           }}>
             Explore {state.name}
           </h1>
-          <Card style={{
-            borderRadius: isMobile ? '12px' : '16px',
+          
+          {/* Description Card with 3D Effect */}
+          <div style={{
+            position: 'relative',
+            marginTop: isMobile ? '-10px' : '-20px',
             marginBottom: isSmall ? '20px' : isMobile ? '30px' : '40px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+            zIndex: 2
           }}>
-            {/* Hero Image */}
-            {state.heroImage && (
-              <div style={{
-                width: '100%',
-                height: isSmall ? '200px' : isMobile ? '300px' : '400px',
-                marginBottom: '24px',
-                borderRadius: '12px',
-                overflow: 'hidden'
+            <Card style={{
+              borderRadius: '16px 16px 0 0',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+              border: 'none',
+              transform: 'translateZ(0)',
+              transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+              backgroundColor: 'white',
+              marginBottom: '0'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-4px) translateZ(0)';
+              e.currentTarget.style.boxShadow = '0 12px 32px rgba(0,0,0,0.2)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0) translateZ(0)';
+              e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.15)';
+            }}
+            >
+              {/* Hero Image */}
+              {state.heroImage && (
+                <div style={{
+                  width: '100%',
+                  height: isSmall ? '200px' : isMobile ? '300px' : '400px',
+                  marginBottom: '24px',
+                  borderRadius: '12px',
+                  overflow: 'hidden',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                }}>
+                  <img
+                    src={state.heroImage}
+                    alt={state.name}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      imageRendering: 'high-quality',
+                      WebkitImageRendering: 'high-quality',
+                      loading: 'lazy',
+                      transition: 'transform 0.3s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'scale(1.05)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'scale(1)';
+                    }}
+                  />
+                </div>
+              )}
+
+              <h2 style={{
+                fontSize: isSmall ? '1.2rem' : isMobile ? '1.5rem' : '1.75rem',
+                fontWeight: '700',
+                color: '#212529',
+                marginBottom: isSmall ? '12px' : '16px',
+                fontFamily: 'Poppins, sans-serif'
               }}>
-                <img
-                  src={state.heroImage}
-                  alt={state.name}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                    imageRendering: 'high-quality',
-                    WebkitImageRendering: 'high-quality'
-                  }}
-                />
+                {state.name}
+              </h2>
+              <p style={{
+                fontSize: isSmall ? '13px' : isMobile ? '14px' : '16px',
+                color: '#6c757d',
+                lineHeight: '1.6',
+                margin: 0,
+                whiteSpace: 'pre-wrap'
+              }}>
+                {state.description}
+              </p>
+
+              {/* State Info */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: isSmall || isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: '16px',
+                marginTop: '24px',
+                paddingTop: '24px',
+                borderTop: '1px solid #e9ecef'
+              }}>
+                {state.capital && (
+                  <div>
+                    <strong style={{ color: '#FF6B35' }}>Capital:</strong>
+                    <div style={{ color: '#6c757d', marginTop: '4px' }}>{state.capital}</div>
+                  </div>
+                )}
+                {state.area && (
+                  <div>
+                    <strong style={{ color: '#FF6B35' }}>Area:</strong>
+                    <div style={{ color: '#6c757d', marginTop: '4px' }}>{state.area}</div>
+                  </div>
+                )}
+                {state.population && (
+                  <div>
+                    <strong style={{ color: '#FF6B35' }}>Population:</strong>
+                    <div style={{ color: '#6c757d', marginTop: '4px' }}>{state.population}</div>
+                  </div>
+                )}
+                {state.bestTimeToVisit && (
+                  <div>
+                    <strong style={{ color: '#FF6B35' }}>Best Time:</strong>
+                    <div style={{ color: '#6c757d', marginTop: '4px' }}>{state.bestTimeToVisit}</div>
+                  </div>
+                )}
               </div>
-            )}
-
-            <h2 style={{
-              fontSize: isSmall ? '1.2rem' : isMobile ? '1.5rem' : '1.75rem',
-              fontWeight: '700',
-              color: '#212529',
-              marginBottom: isSmall ? '12px' : '16px',
-              fontFamily: 'Poppins, sans-serif'
-            }}>
-              {state.name}
-            </h2>
-            <p style={{
-              fontSize: isSmall ? '13px' : isMobile ? '14px' : '16px',
-              color: '#6c757d',
-              lineHeight: '1.6',
-              margin: 0,
-              whiteSpace: 'pre-wrap'
-            }}>
-              {state.description}
-            </p>
-
-            {/* State Info */}
+            </Card>
+            
+            {/* Orange Accent Bar */}
             <div style={{
-              display: 'grid',
-              gridTemplateColumns: isSmall ? '1fr' : 'repeat(auto-fit, minmax(200px, 1fr))',
-              gap: '16px',
-              marginTop: '24px',
-              paddingTop: '24px',
-              borderTop: '1px solid #e9ecef'
-            }}>
-              {state.capital && (
-                <div>
-                  <strong style={{ color: '#FF6B35' }}>Capital:</strong>
-                  <div style={{ color: '#6c757d', marginTop: '4px' }}>{state.capital}</div>
-                </div>
-              )}
-              {state.area && (
-                <div>
-                  <strong style={{ color: '#FF6B35' }}>Area:</strong>
-                  <div style={{ color: '#6c757d', marginTop: '4px' }}>{state.area}</div>
-                </div>
-              )}
-              {state.population && (
-                <div>
-                  <strong style={{ color: '#FF6B35' }}>Population:</strong>
-                  <div style={{ color: '#6c757d', marginTop: '4px' }}>{state.population}</div>
-                </div>
-              )}
-              {state.bestTimeToVisit && (
-                <div>
-                  <strong style={{ color: '#FF6B35' }}>Best Time:</strong>
-                  <div style={{ color: '#6c757d', marginTop: '4px' }}>{state.bestTimeToVisit}</div>
-                </div>
-              )}
-            </div>
-          </Card>
+              height: '8px',
+              background: 'linear-gradient(90deg, #FF6B35 0%, #f15a29 100%)',
+              borderRadius: '0 0 8px 8px',
+              marginTop: '0',
+              boxShadow: '0 2px 8px rgba(255, 107, 53, 0.3)'
+            }} />
+          </div>
 
           {/* Cities Section */}
           <div style={{ marginBottom: isSmall ? '20px' : isMobile ? '30px' : '40px' }}>
@@ -266,7 +316,8 @@ const StatePage = () => {
                               height: '180px',
                               objectFit: 'cover',
                               imageRendering: 'high-quality',
-                              WebkitImageRendering: 'high-quality'
+                              WebkitImageRendering: 'high-quality',
+                              transition: 'transform 0.3s ease'
                             }}
                             loading="lazy"
                           />
@@ -283,7 +334,29 @@ const StatePage = () => {
                           </div>
                         )
                       }
-                      style={{ borderRadius: '12px', overflow: 'hidden' }}
+                      style={{
+                        borderRadius: '12px',
+                        overflow: 'hidden',
+                        border: '2px solid #FF6B35',
+                        transition: 'all 0.3s ease',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.boxShadow = '0 8px 24px rgba(255, 107, 53, 0.4), 0 0 20px rgba(255, 107, 53, 0.2)';
+                        e.currentTarget.style.transform = 'translateY(-4px)';
+                        const img = e.currentTarget.querySelector('img');
+                        if (img) {
+                          img.style.transform = 'scale(1.1)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        const img = e.currentTarget.querySelector('img');
+                        if (img) {
+                          img.style.transform = 'scale(1)';
+                        }
+                      }}
                     >
                       <Card.Meta
                         title={city.name}

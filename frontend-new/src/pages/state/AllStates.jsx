@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { stateService } from '../../services';
-import { Spin, message, Pagination } from 'antd';
-import { ArrowLeftOutlined } from '@ant-design/icons';
+import { Spin, message } from 'antd';
+import { ArrowLeftOutlined, SearchOutlined } from '@ant-design/icons';
 import Header from '../landingpage/components/Header';
 import Footer from '../landingpage/components/Footer';
 
@@ -13,10 +13,9 @@ const AllStates = () => {
   const [states, setStates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(12);
-
   const isSmall = window.innerWidth <= 480;
   const isMobile = window.innerWidth <= 768;
+  const pageSize = isMobile ? 6 : 12;
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -115,19 +114,23 @@ const AllStates = () => {
   return (
     <>
       <Header />
-      <div style={{ minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
+      <div style={{ minHeight: '100vh', backgroundColor: 'white' }}>
       {/* Main Content */}
       <div style={{
         maxWidth: isMobile ? '100%' : '1800px',
         margin: '0 auto',
-        padding: isSmall ? '16px 8px' : isMobile ? '20px 12px' : window.innerWidth <= 1024 ? '24px 32px' : '24px 250px'
+        padding: isSmall ? '20px 8px' : isMobile ? '30px 12px' : window.innerWidth <= 1024 ? '40px 32px' : '60px 250px',
+        paddingTop: isMobile ? '40px' : '60px',
+        position: 'relative',
+        zIndex: 1
       }}>
-        {/* Breadcrumb & Title */}
+        {/* Breadcrumb */}
         <div style={{ 
           fontSize: isSmall ? '11px' : isMobile ? '12px' : '14px', 
           color: '#6c757d',
-          marginBottom: '12px',
-          fontFamily: 'Poppins, sans-serif'
+          marginBottom: '20px',
+          fontFamily: 'Poppins, sans-serif',
+          textAlign: 'center'
         }}>
           <span 
             onClick={() => {
@@ -139,107 +142,141 @@ const AllStates = () => {
               color: '#6c757d',
               transition: 'color 0.2s ease'
             }}
-            onMouseEnter={(e) => e.currentTarget.style.color = '#ff6b35'}
+            onMouseEnter={(e) => e.currentTarget.style.color = '#FF6B35'}
             onMouseLeave={(e) => e.currentTarget.style.color = '#6c757d'}
           >
             Home
           </span>
           <span style={{ margin: '0 8px', color: '#6c757d' }}> &gt; </span>
-          <span style={{ color: '#212529' }}>States</span>
+          <span style={{ color: '#212529', fontWeight: '600' }}>All States</span>
         </div>
+
+        {/* Title */}
         <h1 style={{ 
-          fontSize: isSmall ? '1.2rem' : isMobile ? '1.5rem' : '2rem', 
-          fontWeight: '700', 
-          color: '#212529',
-          margin: '0 0 24px 0',
-          fontFamily: 'Poppins, sans-serif'
+          fontSize: isSmall ? '1.8rem' : isMobile ? '2.2rem' : '3rem', 
+          fontWeight: '800', 
+          color: '#FF6B35',
+          margin: '0 auto 16px auto',
+          fontFamily: "'Playfair Display', 'Georgia', serif",
+          lineHeight: '1.2',
+          textAlign: 'center',
+          letterSpacing: '-0.02em',
+          textShadow: '0 2px 4px rgba(255, 107, 53, 0.1)'
         }}>
           Explore All Indian States
         </h1>
-        {/* Filters Section */}
+
+        {/* Description */}
+        <p style={{
+          fontSize: isSmall ? '13px' : isMobile ? '14px' : '16px',
+          color: '#6c757d',
+          margin: '0 auto 40px auto',
+          fontFamily: 'Poppins, sans-serif',
+          lineHeight: '1.6',
+          maxWidth: '700px',
+          textAlign: 'center'
+        }}>
+          Discover the diverse beauty and rich culture of all 29 states across India
+        </p>
+        {/* Search and Filter Section */}
         <div style={{
-          backgroundColor: 'white',
-          padding: isSmall ? '16px' : isMobile ? '20px' : '24px',
-          borderRadius: isMobile ? '10px' : '12px',
-          marginBottom: '24px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+          display: 'flex',
+          gap: isSmall ? '8px' : '12px',
+          alignItems: 'center',
+          flexWrap: 'nowrap',
+          marginBottom: '24px'
         }}>
           {/* Search Bar */}
-          <div style={{ marginBottom: '20px' }}>
+          <div style={{ 
+            flex: '0 0 70%',
+            position: 'relative',
+            minWidth: '0'
+          }}>
+            <SearchOutlined style={{
+              position: 'absolute',
+              left: isSmall ? '16px' : '20px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: '#FF6B35',
+              fontSize: isSmall ? '16px' : '18px',
+              zIndex: 1
+            }} />
             <input
               type="text"
-              placeholder="🔍 Search states..."
+              placeholder="Search states by name..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               style={{
                 width: '100%',
-                padding: isSmall ? '10px 14px' : '12px 16px',
-                border: '2px solid #e9ecef',
-                borderRadius: '8px',
-                fontSize: isSmall ? '13px' : '14px',
+                padding: isSmall ? '12px 20px 12px 44px' : '16px 24px 16px 50px',
+                border: '2px solid #FF6B35',
+                borderRadius: '25px',
+                fontSize: isSmall ? '14px' : '16px',
                 outline: 'none',
-                transition: 'border-color 0.3s'
+                backgroundColor: 'white',
+                color: '#212529',
+                fontWeight: '500',
+                boxShadow: '0 2px 4px rgba(255, 107, 53, 0.2)',
+                fontFamily: 'Poppins, sans-serif',
+                transition: 'all 0.2s ease'
               }}
-              onFocus={(e) => e.target.style.borderColor = '#FF6B35'}
-              onBlur={(e) => e.target.style.borderColor = '#e9ecef'}
+              onFocus={(e) => {
+                e.target.style.borderColor = '#FF6B35';
+                e.target.style.boxShadow = '0 4px 8px rgba(255, 107, 53, 0.3)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = '#FF6B35';
+                e.target.style.boxShadow = '0 2px 4px rgba(255, 107, 53, 0.2)';
+              }}
             />
           </div>
 
-          {/* Region Filters */}
-          <div>
-            <div style={{
-              fontSize: isSmall ? '12px' : '13px',
-              fontWeight: '600',
-              color: '#495057',
-              marginBottom: '12px'
-            }}>
-              Filter by Region:
-            </div>
-            <div style={{
-              display: 'flex',
-              gap: isSmall ? '6px' : '8px',
-              flexWrap: 'wrap'
-            }}>
-              {regions.map(region => (
-                <button
-                  key={region}
-                  onClick={() => setSelectedRegion(region)}
-                  style={{
-                    padding: isSmall ? '6px 12px' : '8px 16px',
-                    backgroundColor: selectedRegion === region ? '#FF6B35' : '#f8f9fa',
-                    color: selectedRegion === region ? 'white' : '#495057',
-                    border: selectedRegion === region ? 'none' : '1px solid #dee2e6',
-                    borderRadius: '20px',
-                    fontSize: isSmall ? '11px' : '13px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s'
-                  }}
-                  onMouseEnter={(e) => {
-                    if (selectedRegion !== region) {
-                      e.target.style.backgroundColor = '#e9ecef';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (selectedRegion !== region) {
-                      e.target.style.backgroundColor = '#f8f9fa';
-                    }
-                  }}
-                >
-                  {region === 'all' ? 'All Regions' : region}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Results Count */}
+          {/* Filter Dropdown */}
           <div style={{
-            marginTop: '16px',
-            fontSize: isSmall ? '12px' : '13px',
-            color: '#6c757d',
-            textAlign: 'center'
+            flex: '0 0 30%',
+            position: 'relative'
           }}>
-            Showing <strong>{startIndex + 1}-{Math.min(endIndex, filteredStates.length)}</strong> of <strong>{filteredStates.length}</strong> states
+            <select
+              value={selectedRegion}
+              onChange={(e) => {
+                setSelectedRegion(e.target.value);
+                setCurrentPage(1);
+              }}
+              style={{
+                width: '100%',
+                padding: isSmall ? '12px 20px' : '16px 24px',
+                border: '2px solid #FF6B35',
+                borderRadius: '25px',
+                fontSize: isSmall ? '14px' : '16px',
+                outline: 'none',
+                backgroundColor: 'white',
+                color: '#212529',
+                fontWeight: '500',
+                cursor: 'pointer',
+                fontFamily: 'Poppins, sans-serif',
+                boxShadow: '0 2px 4px rgba(255, 107, 53, 0.2)',
+                transition: 'all 0.2s ease',
+                appearance: 'none',
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23FF6B35' d='M6 9L1 4h10z'/%3E%3C/svg%3E")`,
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right 16px center',
+                paddingRight: isSmall ? '40px' : '45px'
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = '#FF6B35';
+                e.target.style.boxShadow = '0 4px 8px rgba(255, 107, 53, 0.3)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = '#FF6B35';
+                e.target.style.boxShadow = '0 2px 4px rgba(255, 107, 53, 0.2)';
+              }}
+            >
+              {regions.map(region => (
+                <option key={region} value={region}>
+                  {region === 'all' ? 'All Regions' : region}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
@@ -398,34 +435,169 @@ const AllStates = () => {
           </div>
         )}
 
-        {/* Pagination */}
+        {/* Custom Pagination */}
         {!loading && filteredStates.length > 0 && totalPages > 1 && (
           <div style={{
             display: 'flex',
             justifyContent: 'center',
+            alignItems: 'center',
+            gap: '12px',
             marginTop: '40px',
-            marginBottom: '40px'
+            marginBottom: '40px',
+            flexWrap: 'wrap'
           }}>
-            <Pagination
-              current={currentPage}
-              total={filteredStates.length}
-              pageSize={pageSize}
-              showSizeChanger
-              showQuickJumper
-              showTotal={(total, range) => `${range[0]}-${range[1]} of ${total} states`}
-              onChange={(page, size) => {
-                setCurrentPage(page);
-                setPageSize(size);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+            {/* Previous Button */}
+            <button
+              onClick={() => {
+                if (currentPage > 1) {
+                  setCurrentPage(currentPage - 1);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
               }}
-              onShowSizeChange={(current, size) => {
-                setCurrentPage(1);
-                setPageSize(size);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+              disabled={currentPage === 1}
+              style={{
+                padding: isSmall ? '8px 16px' : '10px 20px',
+                backgroundColor: currentPage === 1 ? '#f5f5f5' : 'white',
+                color: currentPage === 1 ? '#b0b0b0' : '#212529',
+                border: '2px solid #e9ecef',
+                borderRadius: '8px',
+                fontSize: isSmall ? '13px' : '14px',
+                fontWeight: '600',
+                cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                transition: 'all 0.3s ease',
+                fontFamily: 'Poppins, sans-serif',
+                boxShadow: currentPage === 1 ? 'none' : '0 2px 4px rgba(0,0,0,0.05)'
               }}
-              pageSizeOptions={['12', '24', '48', '96']}
-              style={{ fontFamily: 'Poppins, sans-serif' }}
-            />
+              onMouseEnter={(e) => {
+                if (currentPage !== 1) {
+                  e.target.style.borderColor = '#FF6B35';
+                  e.target.style.boxShadow = '0 2px 8px rgba(255, 107, 53, 0.2)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (currentPage !== 1) {
+                  e.target.style.borderColor = '#e9ecef';
+                  e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
+                }
+              }}
+            >
+              ← Prev
+            </button>
+
+            {/* Page Numbers */}
+            <div style={{
+              display: 'flex',
+              gap: '8px',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              justifyContent: 'center'
+            }}>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
+                // Show first page, last page, current page, and pages around current
+                if (
+                  page === 1 ||
+                  page === totalPages ||
+                  (page >= currentPage - 1 && page <= currentPage + 1)
+                ) {
+                  return (
+                    <button
+                      key={page}
+                      onClick={() => {
+                        setCurrentPage(page);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      style={{
+                        minWidth: isSmall ? '36px' : '40px',
+                        height: isSmall ? '36px' : '40px',
+                        backgroundColor: currentPage === page ? '#FF6B35' : 'white',
+                        color: currentPage === page ? 'white' : '#212529',
+                        border: currentPage === page ? 'none' : '2px solid #e9ecef',
+                        borderRadius: '8px',
+                        fontSize: isSmall ? '13px' : '14px',
+                        fontWeight: currentPage === page ? '700' : '600',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease',
+                        fontFamily: 'Poppins, sans-serif',
+                        boxShadow: currentPage === page 
+                          ? '0 4px 12px rgba(255, 107, 53, 0.3)' 
+                          : '0 2px 4px rgba(0,0,0,0.05)'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (currentPage !== page) {
+                          e.target.style.borderColor = '#FF6B35';
+                          e.target.style.backgroundColor = '#fff5f2';
+                          e.target.style.boxShadow = '0 2px 8px rgba(255, 107, 53, 0.15)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (currentPage !== page) {
+                          e.target.style.borderColor = '#e9ecef';
+                          e.target.style.backgroundColor = 'white';
+                          e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
+                        }
+                      }}
+                    >
+                      {page}
+                    </button>
+                  );
+                } else if (
+                  page === currentPage - 2 ||
+                  page === currentPage + 2
+                ) {
+                  return (
+                    <span
+                      key={page}
+                      style={{
+                        color: '#6c757d',
+                        fontSize: '14px',
+                        padding: '0 4px'
+                      }}
+                    >
+                      ...
+                    </span>
+                  );
+                }
+                return null;
+              })}
+            </div>
+
+            {/* Next Button */}
+            <button
+              onClick={() => {
+                if (currentPage < totalPages) {
+                  setCurrentPage(currentPage + 1);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+              }}
+              disabled={currentPage === totalPages}
+              style={{
+                padding: isSmall ? '8px 16px' : '10px 20px',
+                backgroundColor: currentPage === totalPages ? '#f5f5f5' : 'white',
+                color: currentPage === totalPages ? '#b0b0b0' : '#212529',
+                border: '2px solid #e9ecef',
+                borderRadius: '8px',
+                fontSize: isSmall ? '13px' : '14px',
+                fontWeight: '600',
+                cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                transition: 'all 0.3s ease',
+                fontFamily: 'Poppins, sans-serif',
+                boxShadow: currentPage === totalPages ? 'none' : '0 2px 4px rgba(0,0,0,0.05)'
+              }}
+              onMouseEnter={(e) => {
+                if (currentPage !== totalPages) {
+                  e.target.style.borderColor = '#FF6B35';
+                  e.target.style.boxShadow = '0 2px 8px rgba(255, 107, 53, 0.2)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (currentPage !== totalPages) {
+                  e.target.style.borderColor = '#e9ecef';
+                  e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
+                }
+              }}
+            >
+              Next →
+            </button>
           </div>
         )}
       </div>

@@ -96,47 +96,70 @@ const TrendingDestinationsPage = () => {
   return (
     <>
       <Header />
-      <div style={{ minHeight: "100vh", backgroundColor: "#f8f9fa" }}>
-        {/* Main Content */}
-        <div style={{
-          maxWidth: isMobile ? "100%" : "1800px",
-          margin: "0 auto",
-          padding: isSmall ? "20px 8px" : isMobile ? "30px 12px" : window.innerWidth <= 1024 ? "40px 32px" : "60px 250px"
+      <div style={{ minHeight: "100vh", backgroundColor: "white", display: 'flex', flexDirection: 'column', position: 'relative' }}>
+      
+      {/* Main Content */}
+      <div style={{
+        maxWidth: isMobile ? "100%" : "1800px",
+        margin: "0 auto",
+        padding: isSmall ? "20px 8px" : isMobile ? "30px 12px" : window.innerWidth <= 1024 ? "40px 32px" : "60px 250px",
+        paddingTop: isMobile ? '40px' : '60px',
+        position: 'relative',
+        zIndex: 1
+      }}>
+        {/* Breadcrumb */}
+        <div style={{ 
+          fontSize: isSmall ? "11px" : isMobile ? "12px" : "14px", 
+          color: '#6c757d',
+          marginBottom: '20px',
+          fontFamily: "Poppins, sans-serif",
+          textAlign: 'center'
         }}>
-          {/* Breadcrumb & Title */}
-          <div style={{ 
-            fontSize: isSmall ? "11px" : isMobile ? "12px" : "14px", 
-            color: "#6c757d",
-            marginBottom: "12px",
-            fontFamily: "Poppins, sans-serif"
-          }}>
-            <span 
-              onClick={() => {
-                sessionStorage.setItem('scrollToTrendingDestinations', 'true');
-                navigate("/");
-              }}
-              style={{ 
-                cursor: "pointer",
-                color: "#6c757d",
-                transition: "color 0.2s ease"
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.color = "#ff6b35"}
-              onMouseLeave={(e) => e.currentTarget.style.color = "#6c757d"}
-            >
-              Home
-            </span>
-            <span style={{ margin: "0 8px", color: "#6c757d" }}> &gt; </span>
-            <span style={{ color: "#212529" }}>Trending Destinations</span>
-          </div>
+          <span 
+            onClick={() => {
+              sessionStorage.setItem('scrollToTrendingDestinations', 'true');
+              navigate("/");
+            }}
+            style={{ 
+              cursor: "pointer",
+              color: '#6c757d',
+              transition: "color 0.2s ease"
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.color = '#FF6B35'}
+            onMouseLeave={(e) => e.currentTarget.style.color = '#6c757d'}
+          >
+            Home
+          </span>
+          <span style={{ margin: "0 8px", color: '#6c757d' }}> &gt; </span>
+          <span style={{ color: '#212529', fontWeight: '600' }}>Trending Destinations</span>
+        </div>
+
+          {/* Title */}
           <h1 style={{ 
-            fontSize: isSmall ? "1.2rem" : isMobile ? "1.5rem" : "2rem", 
-            fontWeight: "700", 
-            color: "#212529", 
-            margin: "0 0 24px 0",
-            fontFamily: "Poppins, sans-serif"
+            fontSize: isSmall ? "1.8rem" : isMobile ? "2.2rem" : "3rem", 
+            fontWeight: "800", 
+            color: "#FF6B35", 
+            margin: "0 auto 16px auto",
+            fontFamily: "'Playfair Display', 'Georgia', serif",
+            lineHeight: "1.2",
+            textAlign: "center",
+            letterSpacing: "-0.02em",
+            textShadow: "0 2px 4px rgba(255, 107, 53, 0.1)"
           }}>
             Trending Destinations
           </h1>
+          <p style={{
+            fontSize: isSmall ? "13px" : isMobile ? "14px" : "16px",
+            color: '#6c757d',
+            margin: "0 auto 40px auto",
+            maxWidth: '700px',
+            fontFamily: "Poppins, sans-serif",
+            lineHeight: '1.6',
+            textAlign: 'center'
+          }}>
+            Discover the most popular destinations and experiences across India
+          </p>
+
           {/* Loading State */}
           {loading ? (
             <div style={{
@@ -145,12 +168,12 @@ const TrendingDestinationsPage = () => {
               alignItems: 'center',
               padding: '60px 20px',
               backgroundColor: 'white',
-              borderRadius: '12px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+              borderRadius: '16px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
             }}>
               <div style={{ textAlign: 'center' }}>
                 <Spin size="large" />
-                <div style={{ marginTop: '16px', color: '#6c757d' }}>Loading trending destinations...</div>
+                <div style={{ marginTop: '16px', color: '#6c757d', fontFamily: "Poppins, sans-serif" }}>Loading trending destinations...</div>
               </div>
             </div>
           ) : filteredDestinations.length === 0 ? (
@@ -158,9 +181,10 @@ const TrendingDestinationsPage = () => {
               textAlign: 'center',
               padding: '60px 20px',
               backgroundColor: 'white',
-              borderRadius: '12px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-              color: '#6c757d'
+              borderRadius: '16px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+              color: '#6c757d',
+              fontFamily: "Poppins, sans-serif"
             }}>
               <p>No trending destinations available at the moment.</p>
               <p style={{ fontSize: '13px', marginTop: '8px' }}>Packages will appear here once they are added with trending categories.</p>

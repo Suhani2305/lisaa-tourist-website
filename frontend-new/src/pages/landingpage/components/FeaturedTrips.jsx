@@ -139,11 +139,13 @@ const FeaturedTrips = () => {
         }}>
           <div>
             <h2 style={{
-              fontSize: window.innerWidth <= 480 ? "22px" : window.innerWidth <= 768 ? "26px" : "36px",
+              fontSize: window.innerWidth <= 480 ? "1.8rem" : window.innerWidth <= 768 ? "2.2rem" : "3rem",
               margin: "0 0 8px 0",
               color: "#212529",
-              fontWeight: "700",
-              fontFamily: "Poppins, sans-serif"
+              fontWeight: "800",
+              fontFamily: "'Playfair Display', 'Georgia', serif",
+              letterSpacing: "-0.02em",
+              textShadow: "0 2px 4px rgba(0, 0, 0, 0.1)"
             }}>
               Featured trips
             </h2>

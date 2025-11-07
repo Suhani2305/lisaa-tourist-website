@@ -94,18 +94,19 @@ const HeroSection = () => {
           fontWeight: '500',
           lineHeight: '1.4'
         }}>
-          Discover the beauty of India with Lisaa Tours & Travels. 
+          Discover the beauty of India with LSIAA Tours & Travels. 
         </p>
         <h1 style={{ 
           fontSize: window.innerWidth <= 480 ? '1.8rem' : window.innerWidth <= 768 ? '2.5rem' : '3.5rem', 
-          fontWeight: '700', 
+          fontWeight: '800', 
           marginBottom: '20px',
           textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
-          fontFamily: "'Poppins', sans-serif",
-          lineHeight: '1.2'
+          fontFamily: "'Playfair Display', 'Georgia', serif",
+          lineHeight: '1.2',
+          letterSpacing: '-0.02em'
         }}>
           Explore Incredible India
-          <br />with Lisaa Tours & Travels
+          <br />with LSIAA Tours & Travels
         </h1>
       </div>
       

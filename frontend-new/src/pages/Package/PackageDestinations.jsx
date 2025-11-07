@@ -533,19 +533,23 @@ const PackageDestinations = () => {
   return (
     <>
       <Header />
-    <div style={{ backgroundColor: '#f8f9fa', minHeight: '100vh' }}>
+    <div style={{ backgroundColor: 'white', minHeight: '100vh' }}>
       {/* Main Content */}
         <div style={{
           maxWidth: window.innerWidth <= 768 ? '100%' : '1800px',
           margin: '0 auto',
-        padding: window.innerWidth <= 480 ? '16px 8px' : window.innerWidth <= 768 ? '20px 12px' : '24px 250px'
-      }}>
-        {/* Breadcrumb & Title */}
+          padding: window.innerWidth <= 480 ? '20px 8px' : window.innerWidth <= 768 ? '30px 12px' : window.innerWidth <= 1024 ? '40px 32px' : '60px 250px',
+          paddingTop: window.innerWidth <= 768 ? '40px' : '60px',
+          position: 'relative',
+          zIndex: 1
+        }}>
+        {/* Breadcrumb */}
         <div style={{ 
           fontSize: window.innerWidth <= 480 ? '11px' : window.innerWidth <= 768 ? '12px' : '14px', 
           color: '#6c757d',
-          marginBottom: '12px',
-          fontFamily: 'Poppins, sans-serif'
+          marginBottom: '20px',
+          fontFamily: 'Poppins, sans-serif',
+          textAlign: 'center'
         }}>
           <span 
             onClick={() => navigate('/')}
@@ -554,7 +558,7 @@ const PackageDestinations = () => {
               color: '#6c757d',
               transition: 'color 0.2s ease'
           }}
-            onMouseEnter={(e) => e.currentTarget.style.color = '#ff6b35'}
+            onMouseEnter={(e) => e.currentTarget.style.color = '#FF6B35'}
             onMouseLeave={(e) => e.currentTarget.style.color = '#6c757d'}
           >
             Home
@@ -569,55 +573,78 @@ const PackageDestinations = () => {
                   color: '#6c757d',
                   transition: 'color 0.2s ease'
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.color = '#ff6b35'}
+                onMouseEnter={(e) => e.currentTarget.style.color = '#FF6B35'}
                 onMouseLeave={(e) => e.currentTarget.style.color = '#6c757d'}
               >
                 Trending Destinations
               </span>
               <span style={{ margin: '0 8px', color: '#6c757d' }}> &gt; </span>
-              <span style={{ color: '#212529' }}>{urlTrendingCategory}</span>
+              <span style={{ color: '#212529', fontWeight: '600' }}>{urlTrendingCategory}</span>
             </>
           ) : (
             <>
               <span style={{ margin: '0 8px', color: '#6c757d' }}> &gt; </span>
-              <span style={{ color: '#212529' }}>Tours</span>
+              <span style={{ color: '#212529', fontWeight: '600' }}>Tours</span>
             </>
           )}
             </div>
+            {/* Title */}
             <h1 style={{ 
-          fontSize: window.innerWidth <= 480 ? '1.2rem' : window.innerWidth <= 768 ? '1.5rem' : '2rem', 
-          fontWeight: '700', 
-              color: '#212529',
-          margin: '0 0 24px 0',
-          fontFamily: 'Poppins, sans-serif'
+          fontSize: window.innerWidth <= 480 ? '1.8rem' : window.innerWidth <= 768 ? '2.2rem' : '3rem', 
+          fontWeight: '800', 
+              color: '#FF6B35',
+          margin: '0 auto 16px auto',
+          fontFamily: "'Playfair Display', 'Georgia', serif",
+          lineHeight: '1.2',
+          textAlign: 'center',
+          letterSpacing: '-0.02em',
+          textShadow: '0 2px 4px rgba(255, 107, 53, 0.1)'
             }}>
               {urlTrendingCategory ? `${urlTrendingCategory} Packages` : 'Travel Packages Across India'}
             </h1>
+
+            {/* Description/Subheading */}
             {urlTrendingCategory && (
-              <p style={{ 
-                fontSize: window.innerWidth <= 480 ? '12px' : '14px', 
+              <p style={{
+                fontSize: window.innerWidth <= 480 ? '13px' : window.innerWidth <= 768 ? '14px' : '16px',
                 color: '#6c757d',
-            margin: '0 0 24px 0',
-            fontFamily: 'Poppins, sans-serif'
+                margin: '0 auto 40px auto',
+                fontFamily: 'Poppins, sans-serif',
+                lineHeight: '1.6',
+                maxWidth: '700px',
+                textAlign: 'center'
               }}>
-                Explore packages in {urlTrendingCategory} category
+                Explore amazing {urlTrendingCategory.toLowerCase()} tour packages and discover the rich heritage, culture, and beauty of India
               </p>
             )}
-        {/* Packages Count */}
-        <div style={{
-          fontSize: window.innerWidth <= 480 ? '12px' : '14px',
-          color: '#6c757d',
-          marginBottom: window.innerWidth <= 480 ? '15px' : '30px'
-        }}>
-          {filteredPackages.length} packages found
-        </div>
+            {!urlTrendingCategory && (
+              <p style={{
+                fontSize: window.innerWidth <= 480 ? '13px' : window.innerWidth <= 768 ? '14px' : '16px',
+                color: '#6c757d',
+                margin: '0 auto 40px auto',
+                fontFamily: 'Poppins, sans-serif',
+                lineHeight: '1.6',
+                maxWidth: '700px',
+                textAlign: 'center'
+              }}>
+                Discover incredible travel packages across India and experience the diverse beauty, culture, and heritage of our incredible country
+              </p>
+            )}
 
-        {/* Search Bar */}
+        {/* Search Bar and Sort Controls */}
         <div style={{
+          display: 'flex',
+          gap: window.innerWidth <= 480 ? '8px' : '12px',
+          alignItems: 'center',
           marginBottom: window.innerWidth <= 480 ? '15px' : '30px',
-          position: 'relative'
+          flexWrap: 'nowrap'
         }}>
-          <div style={{ position: 'relative' }}>
+          {/* Search Bar */}
+          <div style={{ 
+            flex: '0 0 70%',
+            position: 'relative',
+            minWidth: '0'
+          }}>
             <SearchOutlined style={{
               position: 'absolute',
               left: window.innerWidth <= 480 ? '16px' : '20px',
@@ -627,9 +654,9 @@ const PackageDestinations = () => {
               fontSize: window.innerWidth <= 480 ? '16px' : '18px',
               zIndex: 1
             }} />
-          <input
-            type="text"
-            placeholder="Search packages, destinations..."
+            <input
+              type="text"
+              placeholder="Search packages, destinations..."
               value={filters.search || ''}
               onChange={(e) => {
                 const value = e.target.value;
@@ -659,66 +686,64 @@ const PackageDestinations = () => {
                 e.target.style.borderColor = '#FF6B35';
                 e.target.style.boxShadow = '0 2px 4px rgba(255, 107, 53, 0.2)';
               }}
-            style={{
-              width: '100%',
-                padding: window.innerWidth <= 480 ? '12px 20px 12px 44px' : '16px 24px 16px 50px',
-              border: '2px solid #FF6B35',
-              borderRadius: '25px',
-              fontSize: window.innerWidth <= 480 ? '14px' : '16px',
-              outline: 'none',
-              backgroundColor: 'white',
-              color: '#212529',
-              fontWeight: '500',
-                boxShadow: '0 2px 4px rgba(255, 107, 53, 0.2)',
-                fontFamily: 'Poppins, sans-serif',
-                transition: 'all 0.2s ease'
-            }}
-          />
-          </div>
-        </div>
-
-        {/* Sort Controls */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'flex-end',
-          alignItems: 'center',
-          marginBottom: window.innerWidth <= 480 ? '15px' : '30px',
-          flexWrap: 'wrap',
-          gap: '10px'
-        }}>
-
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: window.innerWidth <= 480 ? '8px' : '12px',
-            flexWrap: 'wrap'
-          }}>
-            <label style={{
-              fontSize: window.innerWidth <= 480 ? '12px' : '14px',
-              fontWeight: '600',
-              color: '#495057'
-            }}>
-              Sort by:
-            </label>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
               style={{
-                padding: window.innerWidth <= 480 ? '8px 12px' : '10px 16px',
+                width: '100%',
+                padding: window.innerWidth <= 480 ? '12px 20px 12px 44px' : '16px 24px 16px 50px',
                 border: '2px solid #FF6B35',
                 borderRadius: '25px',
-                fontSize: window.innerWidth <= 480 ? '12px' : '14px',
+                fontSize: window.innerWidth <= 480 ? '14px' : '16px',
                 outline: 'none',
                 backgroundColor: 'white',
                 color: '#212529',
                 fontWeight: '500',
-                cursor: 'pointer'
+                boxShadow: '0 2px 4px rgba(255, 107, 53, 0.2)',
+                fontFamily: 'Poppins, sans-serif',
+                transition: 'all 0.2s ease'
+              }}
+            />
+          </div>
+
+          {/* Sort Controls */}
+          <div style={{
+            flex: '0 0 30%',
+            position: 'relative'
+          }}>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              style={{
+                width: '100%',
+                padding: window.innerWidth <= 480 ? '12px 20px' : '16px 24px',
+                border: '2px solid #FF6B35',
+                borderRadius: '25px',
+                fontSize: window.innerWidth <= 480 ? '14px' : '16px',
+                outline: 'none',
+                backgroundColor: 'white',
+                color: '#212529',
+                fontWeight: '500',
+                cursor: 'pointer',
+                fontFamily: 'Poppins, sans-serif',
+                boxShadow: '0 2px 4px rgba(255, 107, 53, 0.2)',
+                transition: 'all 0.2s ease',
+                appearance: 'none',
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23FF6B35' d='M6 9L1 4h10z'/%3E%3C/svg%3E")`,
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right 16px center',
+                paddingRight: window.innerWidth <= 480 ? '40px' : '45px'
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = '#FF6B35';
+                e.target.style.boxShadow = '0 4px 8px rgba(255, 107, 53, 0.3)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = '#FF6B35';
+                e.target.style.boxShadow = '0 2px 4px rgba(255, 107, 53, 0.2)';
               }}
             >
-              <option value="name">Name</option>
-              <option value="price-low">Price: Low to High</option>
-              <option value="price-high">Price: High to Low</option>
-              <option value="duration">Duration</option>
+              <option value="name">Sort by: Name</option>
+              <option value="price-low">Sort by: Price Low to High</option>
+              <option value="price-high">Sort by: Price High to Low</option>
+              <option value="duration">Sort by: Duration</option>
             </select>
           </div>
         </div>
@@ -948,6 +973,33 @@ const PackageDestinations = () => {
             </div>
           ))}
         </div>
+        
+        {/* Results Count Section */}
+        {filteredPackages.length > 0 && (
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            marginTop: window.innerWidth <= 768 ? '30px' : '40px',
+            marginBottom: window.innerWidth <= 768 ? '20px' : '30px'
+          }}>
+            <div style={{
+              padding: window.innerWidth <= 480 ? '12px 20px' : '16px 32px',
+              backgroundColor: '#f8f9fa',
+              borderRadius: '16px',
+              border: '1px solid rgba(255, 107, 53, 0.1)'
+            }}>
+              <p style={{
+                color: '#495057',
+                fontSize: window.innerWidth <= 480 ? '13px' : '15px',
+                margin: '0',
+                fontFamily: 'Poppins, sans-serif',
+                fontWeight: '500'
+              }}>
+                Showing <span style={{ color: '#FF6B35', fontWeight: '700' }}>{filteredPackages.length}</span> {filteredPackages.length === 1 ? 'package' : 'packages'}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* No Results */}
         {filteredPackages.length === 0 && (
