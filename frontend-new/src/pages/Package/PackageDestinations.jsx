@@ -13,13 +13,18 @@ const PackageDestinations = () => {
   const [filteredPackages, setFilteredPackages] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // Get trendingCategory from URL params
+  // Get URL params
   const urlParams = new URLSearchParams(location.search);
   const urlTrendingCategory = urlParams.get('category') || urlParams.get('trendingCategory');
+  const urlSearch = urlParams.get('search') || '';
+  const urlStartDate = urlParams.get('startDate') || '';
+  const urlEndDate = urlParams.get('endDate') || '';
+  
+  console.log('📋 PackageDestinations URL params:', { urlSearch, urlStartDate, urlEndDate, urlTrendingCategory });
   
   const [filters, setFilters] = useState({
     category: 'All',
-    trendingCategory: urlTrendingCategory || '',
+    trendingCategory: '',
     search: '',
     destination: '',
     minPrice: null,
@@ -35,41 +40,104 @@ const PackageDestinations = () => {
   const searchDebounceTimerRef = useRef(null);
   const [wishlistItems, setWishlistItems] = useState([]);
   const [wishlistLoading, setWishlistLoading] = useState({});
+  const hasInitialFetch = useRef(false);
 
-  const fetchPackages = useCallback(async (searchQuery = null) => {
+  // Fetch packages - only depends on URL params to avoid infinite loops
+  const fetchPackages = useCallback(async () => {
     try {
       setLoading(true);
-      const currentTrendingCategory = urlTrendingCategory || filters.trendingCategory;
       
-      // Build API params with all filters (use searchQuery param or filters.search)
+      // Build API params from URL params only (don't use filters state here)
       const params = {};
-      if (currentTrendingCategory) params.trendingCategory = currentTrendingCategory;
-      if (filters.category && filters.category !== 'All') params.category = filters.category;
-      if (filters.destination) params.destination = filters.destination;
-      // Use searchQuery if provided, otherwise use filters.search
-      const searchTerm = searchQuery !== null ? searchQuery : filters.search;
-      if (searchTerm) params.search = searchTerm;
-      if (filters.minPrice) params.minPrice = filters.minPrice;
-      if (filters.maxPrice) params.maxPrice = filters.maxPrice;
       
+      // Use URL params directly
+      if (urlSearch && urlSearch.trim()) {
+        params.search = urlSearch.trim();
+        console.log('🔍 Searching with URL term:', urlSearch.trim());
+      }
+      
+      if (urlTrendingCategory) {
+        // Use trendingCategory parameter (not category) for trending categories like "Wellness & Spirituality"
+        params.trendingCategory = urlTrendingCategory;
+        console.log('📂 Trending category filter from URL:', urlTrendingCategory);
+      }
+      
+      if (urlStartDate) {
+        params.startDate = urlStartDate;
+        console.log('📅 Start date:', urlStartDate);
+      }
+      if (urlEndDate) {
+        params.endDate = urlEndDate;
+        console.log('📅 End date:', urlEndDate);
+      }
+      
+      // Also include client-side filters (destination, price) if set
+      // Use current filters state directly (not in dependencies to avoid loops)
+      const currentFilters = filters;
+      if (currentFilters.destination) params.destination = currentFilters.destination;
+      if (currentFilters.minPrice) params.minPrice = currentFilters.minPrice;
+      if (currentFilters.maxPrice) params.maxPrice = currentFilters.maxPrice;
+      
+      console.log('📡 Fetching packages with params:', params);
       const data = await tourService.getAllTours(params);
-      setPackages(data);
+      console.log('✅ Received packages:', Array.isArray(data) ? data.length : 'not array', data);
+      
+      // Handle both array and object response
+      const packagesArray = Array.isArray(data) ? data : (data?.tours || []);
+      setPackages(packagesArray);
       
       // Extract unique destinations for filter dropdown
-      const uniqueDestinations = [...new Set(data.map(pkg => pkg.destination).filter(Boolean))].sort();
+      const uniqueDestinations = [...new Set(packagesArray.map(pkg => pkg.destination).filter(Boolean))].sort();
       setDestinations(uniqueDestinations);
     } catch (error) {
+      console.error('❌ Fetch packages error:', error);
       message.error('Failed to load packages');
-      console.error(error);
     } finally {
       setLoading(false);
     }
-  }, [urlTrendingCategory, filters.trendingCategory, filters.category, filters.destination, filters.minPrice, filters.maxPrice]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlTrendingCategory, urlSearch, urlStartDate, urlEndDate]);
 
-  // Initial fetch and when non-search filters change
+  // Update filters state from URL params (for display purposes only) - only if URL has params
   useEffect(() => {
-    fetchPackages();
-  }, [urlTrendingCategory, filters.trendingCategory, filters.category, filters.destination, filters.minPrice, filters.maxPrice]);
+    // Only update filters if URL actually has search params (user came from search)
+    if (urlSearch || urlTrendingCategory) {
+      setFilters(prev => ({
+        ...prev,
+        search: urlSearch || '',
+        trendingCategory: urlTrendingCategory || ''
+      }));
+    } else {
+      // Clear filters if no URL params (normal page load)
+      setFilters(prev => ({
+        ...prev,
+        search: '',
+        trendingCategory: ''
+      }));
+    }
+  }, [urlSearch, urlTrendingCategory]);
+
+  // Initial fetch and when URL params change - only trigger on URL changes
+  useEffect(() => {
+    // Prevent multiple fetches on initial mount
+    if (!hasInitialFetch.current) {
+      hasInitialFetch.current = true;
+      console.log('🔄 Initial fetch triggered');
+      // If no URL params, fetch all packages without filters
+      if (!urlSearch && !urlTrendingCategory && !urlStartDate && !urlEndDate) {
+        console.log('📦 No URL params - fetching all packages');
+        fetchPackages();
+      } else {
+        console.log('🔍 URL params present - fetching with filters:', { urlSearch, urlTrendingCategory, urlStartDate, urlEndDate });
+        fetchPackages();
+      }
+    } else {
+      // Only fetch if URL params actually changed
+      console.log('🔄 URL params changed - fetching:', { urlSearch, urlTrendingCategory, urlStartDate, urlEndDate });
+      fetchPackages();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlTrendingCategory, urlSearch, urlStartDate, urlEndDate]);
 
   // Fetch wishlist status for all packages
   const fetchWishlistStatus = async () => {
@@ -302,8 +370,10 @@ const PackageDestinations = () => {
       priceRange: '',
       durationRange: ''
     });
-    // Clear URL params
+    // Clear URL params and fetch all packages
     navigate('/package', { replace: true });
+    // Reset the initial fetch flag so it fetches again
+    hasInitialFetch.current = false;
   };
 
   const handlePackageClick = (packageId) => {
@@ -318,16 +388,16 @@ const PackageDestinations = () => {
       <div 
         onClick={(e) => handleWishlistToggle(e, packageId)}
         style={{
-          position: 'absolute',
-          top: '10px',
-          right: '10px',
+      position: 'absolute',
+      top: '10px',
+      right: '10px',
           width: '40px',
           height: '40px',
-          borderRadius: '50%',
+      borderRadius: '50%',
           backgroundColor: 'rgba(255, 255, 255, 0.95)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
           boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
           cursor: 'pointer',
           transition: 'all 0.3s ease',
@@ -351,8 +421,8 @@ const PackageDestinations = () => {
         ) : (
           <HeartOutlined style={{ fontSize: '18px', color: '#6c757d' }} />
         )}
-      </div>
-    );
+    </div>
+  );
   };
 
   const categories = [
@@ -377,11 +447,11 @@ const PackageDestinations = () => {
       <>
         <Header />
         <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ textAlign: 'center' }}>
-            <Spin size="large" />
+        <div style={{ textAlign: 'center' }}>
+          <Spin size="large" />
             <div style={{ marginTop: '16px', color: '#6c757d', fontFamily: 'Poppins, sans-serif' }}>Loading packages...</div>
-          </div>
         </div>
+      </div>
         <Footer />
       </>
     );
@@ -390,11 +460,11 @@ const PackageDestinations = () => {
   return (
     <>
       <Header />
-      <div style={{ backgroundColor: '#f8f9fa', minHeight: '100vh' }}>
+    <div style={{ backgroundColor: '#f8f9fa', minHeight: '100vh' }}>
       {/* Main Content */}
-      <div style={{
-        maxWidth: window.innerWidth <= 768 ? '100%' : '1800px',
-        margin: '0 auto',
+        <div style={{
+          maxWidth: window.innerWidth <= 768 ? '100%' : '1800px',
+          margin: '0 auto',
         padding: window.innerWidth <= 480 ? '16px 8px' : window.innerWidth <= 768 ? '20px 12px' : '24px 250px'
       }}>
         {/* Breadcrumb & Title */}
@@ -407,10 +477,10 @@ const PackageDestinations = () => {
           <span 
             onClick={() => navigate('/')}
             style={{ 
-              cursor: 'pointer',
+            cursor: 'pointer',
               color: '#6c757d',
               transition: 'color 0.2s ease'
-            }}
+          }}
             onMouseEnter={(e) => e.currentTarget.style.color = '#ff6b35'}
             onMouseLeave={(e) => e.currentTarget.style.color = '#6c757d'}
           >
@@ -440,26 +510,26 @@ const PackageDestinations = () => {
               <span style={{ color: '#212529' }}>Tours</span>
             </>
           )}
-        </div>
-        <h1 style={{ 
+            </div>
+            <h1 style={{ 
           fontSize: window.innerWidth <= 480 ? '1.2rem' : window.innerWidth <= 768 ? '1.5rem' : '2rem', 
           fontWeight: '700', 
-          color: '#212529',
+              color: '#212529',
           margin: '0 0 24px 0',
           fontFamily: 'Poppins, sans-serif'
-        }}>
-          {urlTrendingCategory ? `${urlTrendingCategory} Packages` : 'Travel Packages Across India'}
-        </h1>
-        {urlTrendingCategory && (
-          <p style={{ 
-            fontSize: window.innerWidth <= 480 ? '12px' : '14px', 
-            color: '#6c757d',
+            }}>
+              {urlTrendingCategory ? `${urlTrendingCategory} Packages` : 'Travel Packages Across India'}
+            </h1>
+            {urlTrendingCategory && (
+              <p style={{ 
+                fontSize: window.innerWidth <= 480 ? '12px' : '14px', 
+                color: '#6c757d',
             margin: '0 0 24px 0',
             fontFamily: 'Poppins, sans-serif'
-          }}>
-            Explore packages in {urlTrendingCategory} category
-          </p>
-        )}
+              }}>
+                Explore packages in {urlTrendingCategory} category
+              </p>
+            )}
         {/* Packages Count */}
         <div style={{
           fontSize: window.innerWidth <= 480 ? '12px' : '14px',
@@ -484,13 +554,29 @@ const PackageDestinations = () => {
               fontSize: window.innerWidth <= 480 ? '16px' : '18px',
               zIndex: 1
             }} />
-            <input
-              type="text"
-              placeholder="Search packages, destinations..."
+          <input
+            type="text"
+            placeholder="Search packages, destinations..."
               value={filters.search || ''}
               onChange={(e) => {
                 const value = e.target.value;
+                // Update local filter state (for display only)
                 handleFilterChange('search', value);
+              }}
+              onKeyPress={(e) => {
+                // Only search when Enter is pressed or search button is clicked
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  const searchValue = e.target.value.trim();
+                  // Update URL to trigger fetch
+                  const params = new URLSearchParams(location.search);
+                  if (searchValue) {
+                    params.set('search', searchValue);
+                  } else {
+                    params.delete('search');
+                  }
+                  navigate(`/package?${params.toString()}`, { replace: true });
+                }
               }}
               onFocus={(e) => {
                 e.target.style.borderColor = '#FF6B35';
@@ -500,21 +586,21 @@ const PackageDestinations = () => {
                 e.target.style.borderColor = '#FF6B35';
                 e.target.style.boxShadow = '0 2px 4px rgba(255, 107, 53, 0.2)';
               }}
-              style={{
-                width: '100%',
+            style={{
+              width: '100%',
                 padding: window.innerWidth <= 480 ? '12px 20px 12px 44px' : '16px 24px 16px 50px',
-                border: '2px solid #FF6B35',
-                borderRadius: '25px',
-                fontSize: window.innerWidth <= 480 ? '14px' : '16px',
-                outline: 'none',
-                backgroundColor: 'white',
-                color: '#212529',
-                fontWeight: '500',
+              border: '2px solid #FF6B35',
+              borderRadius: '25px',
+              fontSize: window.innerWidth <= 480 ? '14px' : '16px',
+              outline: 'none',
+              backgroundColor: 'white',
+              color: '#212529',
+              fontWeight: '500',
                 boxShadow: '0 2px 4px rgba(255, 107, 53, 0.2)',
                 fontFamily: 'Poppins, sans-serif',
                 transition: 'all 0.2s ease'
-              }}
-            />
+            }}
+          />
           </div>
         </div>
 
@@ -599,40 +685,40 @@ const PackageDestinations = () => {
               display: 'grid',
               gridTemplateColumns: window.innerWidth <= 768 ? '1fr' : 'repeat(2, 1fr)',
               gap: window.innerWidth <= 480 ? '16px' : '20px'
-            }}>
+          }}>
               {/* Category Filter */}
-              <div>
-                <label style={{
-                  display: 'block',
+            <div>
+              <label style={{
+                display: 'block',
                   fontSize: window.innerWidth <= 480 ? '12px' : '14px',
-                  fontWeight: '600',
-                  color: '#495057',
+                fontWeight: '600',
+                color: '#495057',
                   marginBottom: '8px',
                   fontFamily: 'Poppins, sans-serif'
-                }}>
-                  Category
-                </label>
-                <select
-                  value={filters.category}
-                  onChange={(e) => handleFilterChange('category', e.target.value)}
-                  style={{
-                    width: '100%',
+              }}>
+                Category
+              </label>
+              <select
+                value={filters.category}
+                onChange={(e) => handleFilterChange('category', e.target.value)}
+                style={{
+                  width: '100%',
                     padding: window.innerWidth <= 480 ? '10px 12px' : '12px 16px',
-                    border: '2px solid #FF6B35',
-                    borderRadius: '8px',
-                    fontSize: window.innerWidth <= 480 ? '12px' : '14px',
-                    outline: 'none',
-                    backgroundColor: 'white',
-                    color: '#212529',
-                    fontWeight: '500',
+                  border: '2px solid #FF6B35',
+                  borderRadius: '8px',
+                  fontSize: window.innerWidth <= 480 ? '12px' : '14px',
+                  outline: 'none',
+                  backgroundColor: 'white',
+                  color: '#212529',
+                  fontWeight: '500',
                     cursor: 'pointer',
                     fontFamily: 'Poppins, sans-serif'
-                  }}
-                >
-                  {categories.map(category => (
-                    <option key={category.value} value={category.value}>{category.label}</option>
-                  ))}
-                </select>
+                }}
+              >
+                {categories.map(category => (
+                  <option key={category.value} value={category.value}>{category.label}</option>
+                ))}
+              </select>
               </div>
 
               {/* Destination Filter */}
@@ -1085,7 +1171,7 @@ const PackageDestinations = () => {
           </div>
         )}
       </div>
-      </div>
+    </div>
       <Footer />
     </>
   );

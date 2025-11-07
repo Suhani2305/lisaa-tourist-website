@@ -45,24 +45,32 @@ const inquiryRoutes = require('./routes/inquiryRoutes');
 const offerRoutes = require('./routes/offerRoutes');
 const mediaRoutes = require('./routes/mediaRoutes');
 const analyticsRoutes = require('./routes/analyticsRoutes');
+const socialAuthRoutes = require('./routes/socialAuthRoutes');
+const emailSchedulerRoutes = require('./routes/emailSchedulerRoutes');
+const { cacheMiddleware } = require('./middleware/cache');
 
 // API Routes
+// Apply caching to GET routes (5 minute cache for read-heavy endpoints)
+app.use('/api/tours', cacheMiddleware(300), tourRoutes);
+app.use('/api/articles', cacheMiddleware(300), articleRoutes);
+app.use('/api/states', cacheMiddleware(300), stateRoutes);
+app.use('/api/destinations', cacheMiddleware(300), destinationRoutes);
+
+// Non-cached routes (dynamic data)
 app.use('/api/users', userRoutes);
-app.use('/api/destinations', destinationRoutes);
-app.use('/api/tours', tourRoutes);
+app.use('/api/auth/social', socialAuthRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/otp', otpRoutes);
 app.use('/api/admin', adminAuthRoutes);
 app.use('/api/payment', paymentRoutes);
-app.use('/api/articles', articleRoutes);
-app.use('/api/states', stateRoutes);
 app.use('/api/cities', cityRoutes);
 app.use('/api/inquiries', inquiryRoutes);
 app.use('/api/offers', offerRoutes);
 app.use('/api/media', mediaRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/emails', emailSchedulerRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

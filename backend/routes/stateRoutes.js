@@ -28,37 +28,45 @@ router.get('/', async (req, res) => {
 
     const states = await queryBuilder.exec();
     
-    // Add tour count for each state (including both tours and packages, including city tours)
-    const statesWithTourCount = await Promise.all(
-      states.map(async (state) => {
-        // Get all cities in this state
-        const cities = await City.find({ 
-          stateSlug: state.slug,
-          isActive: { $ne: false }
-        });
-        const citySlugs = cities.map(city => city.slug);
-        
-        // Count all tours and packages for this state
-        // 1. Direct state tours (by stateSlug)
-        // 2. Tours matching state name
-        // 3. Tours matching destination with state name
-        // 4. City tours (tours with citySlug matching cities in this state)
-        const tourCount = await Tour.countDocuments({
-          $or: [
-            { stateSlug: state.slug },
-            { state: { $regex: state.name, $options: 'i' } },
-            { destination: { $regex: state.name, $options: 'i' } },
-            ...(citySlugs.length > 0 ? [{ citySlug: { $in: citySlugs } }] : [])
-          ],
-          isActive: { $ne: false }
-        });
-        
-        return {
-          ...state.toObject(),
-          tours: tourCount
-        };
-      })
-    );
+    // Optimized: Get all cities grouped by state in one query (instead of N queries)
+    const allCities = await City.find({ isActive: { $ne: false } }).select('stateSlug slug');
+    const citiesByState = {};
+    allCities.forEach(city => {
+      if (!citiesByState[city.stateSlug]) {
+        citiesByState[city.stateSlug] = [];
+      }
+      citiesByState[city.stateSlug].push(city.slug);
+    });
+    
+    // Optimized: Count tours for all states in parallel (instead of sequential N+1 queries)
+    const stateSlugs = states.map(s => s.slug);
+    const tourCountPromises = states.map(async (state) => {
+      const citySlugs = citiesByState[state.slug] || [];
+      const count = await Tour.countDocuments({
+        $or: [
+          { stateSlug: state.slug },
+          { state: { $regex: state.name, $options: 'i' } },
+          { destination: { $regex: state.name, $options: 'i' } },
+          ...(citySlugs.length > 0 ? [{ citySlug: { $in: citySlugs } }] : [])
+        ],
+        isActive: { $ne: false }
+      });
+      return { stateSlug: state.slug, count };
+    });
+    
+    // Execute all count queries in parallel
+    const counts = await Promise.all(tourCountPromises);
+    const countMap = {};
+    counts.forEach(c => { countMap[c.stateSlug] = c.count; });
+    
+    // Map states with tour counts and convert to plain objects
+    const statesWithTourCount = states.map(state => {
+      const stateObj = state.toObject ? state.toObject() : state;
+      return {
+        ...stateObj,
+        tours: countMap[state.slug] || 0
+      };
+    });
     
     res.json(statesWithTourCount); // Return array with tour counts
   } catch (error) {

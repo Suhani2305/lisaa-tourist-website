@@ -144,7 +144,80 @@ const bookingSchema = new mongoose.Schema({
     },
     discountValue: Number
   },
-  notes: String
+  notes: String,
+  modificationRequests: [{
+    type: {
+      type: String,
+      enum: ['date_change', 'traveler_add', 'traveler_remove', 'traveler_update', 'special_request', 'other'],
+      required: true
+    },
+    status: {
+      type: String,
+      enum: ['pending', 'approved', 'rejected'],
+      default: 'pending'
+    },
+    requestedAt: {
+      type: Date,
+      default: Date.now
+    },
+    reviewedAt: Date,
+    reviewedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    requestDetails: {
+      // For date change
+      newStartDate: Date,
+      newEndDate: Date,
+      reason: String,
+      // For traveler changes
+      travelerToAdd: {
+        name: String,
+        age: Number,
+        type: {
+          type: String,
+          enum: ['adult', 'child', 'infant']
+        },
+        gender: {
+          type: String,
+          enum: ['male', 'female', 'other']
+        }
+      },
+      travelerToRemove: {
+        type: mongoose.Schema.Types.ObjectId
+      },
+      travelerToUpdate: {
+        travelerId: mongoose.Schema.Types.ObjectId,
+        updates: {
+          name: String,
+          age: Number,
+          type: String,
+          gender: String
+        }
+      },
+      // For special requests
+      newSpecialRequest: String,
+      // General
+      description: String,
+      adminNotes: String
+    },
+    priceDifference: {
+      type: Number,
+      default: 0
+    },
+    requiresPayment: {
+      type: Boolean,
+      default: false
+    }
+  }],
+  reminderSent: {
+    type: Boolean,
+    default: false
+  },
+  followUpEmailSent: {
+    type: Boolean,
+    default: false
+  }
 }, {
   timestamps: true
 });

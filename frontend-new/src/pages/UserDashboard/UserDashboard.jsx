@@ -16,7 +16,13 @@ import {
   Modal,
   Descriptions,
   Popconfirm,
-  Alert
+  Alert,
+  Form,
+  Input,
+  DatePicker,
+  InputNumber,
+  Select,
+  Rate
 } from 'antd';
 import {
   UserOutlined,
@@ -39,9 +45,18 @@ import {
   UserAddOutlined,
   InfoCircleOutlined,
   GiftOutlined,
+  ShareAltOutlined,
+  FacebookOutlined,
+  TwitterOutlined,
+  WhatsAppOutlined,
+  EditOutlined,
+  PlusOutlined,
+  MinusOutlined,
+  FileTextOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { authService, bookingService, paymentService, wishlistService } from '../../services';
+import dayjs from 'dayjs';
+import { authService, bookingService, paymentService, wishlistService, reviewService } from '../../services';
 import Header from '../landingpage/components/Header';
 import Footer from '../landingpage/components/Footer';
 
@@ -57,12 +72,98 @@ const UserDashboard = () => {
   const [wishlist, setWishlist] = useState([]);
   const [wishlistLoading, setWishlistLoading] = useState(false);
   const [removingWishlist, setRemovingWishlist] = useState({});
+  const [modificationModalVisible, setModificationModalVisible] = useState(false);
+  const [modificationType, setModificationType] = useState(null);
+  const [modificationForm] = Form.useForm();
+  const [submittingModification, setSubmittingModification] = useState(false);
+  const [completedBookings, setCompletedBookings] = useState([]);
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [reviewModalVisible, setReviewModalVisible] = useState(false);
+  const [selectedBookingForReview, setSelectedBookingForReview] = useState(null);
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewForm] = Form.useForm();
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchUserData();
     fetchWishlist();
+    fetchCompletedBookings();
+    fetchUserReviews();
   }, []);
+
+  const fetchCompletedBookings = async () => {
+    try {
+      const bookingsData = await bookingService.getMyBookings();
+      // Filter only completed bookings
+      const completed = Array.isArray(bookingsData) 
+        ? bookingsData.filter(booking => booking.status === 'completed')
+        : [];
+      setCompletedBookings(completed);
+    } catch (error) {
+      console.error('Error fetching completed bookings:', error);
+      setCompletedBookings([]);
+    }
+  };
+
+  const fetchUserReviews = async () => {
+    try {
+      setReviewsLoading(true);
+      const reviewsData = await reviewService.getUserReviews();
+      setReviews(Array.isArray(reviewsData) ? reviewsData : []);
+    } catch (error) {
+      console.error('Error fetching reviews:', error);
+      setReviews([]);
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
+
+  const handleOpenReviewModal = (booking) => {
+    setSelectedBookingForReview(booking);
+    setReviewModalVisible(true);
+    reviewForm.resetFields();
+    reviewForm.setFieldsValue({
+      bookingId: booking._id
+    });
+  };
+
+  const handleSubmitReview = async (values) => {
+    if (!selectedBookingForReview) return;
+
+    try {
+      setReviewSubmitting(true);
+      
+      const reviewData = {
+        tourId: selectedBookingForReview.tour?._id || selectedBookingForReview.tour,
+        bookingId: values.bookingId,
+        rating: values.rating,
+        title: values.title,
+        comment: values.comment,
+        images: values.images || []
+      };
+
+      const response = await reviewService.createReview(reviewData);
+
+      if (response.review) {
+        message.success('Review submitted successfully!');
+        setReviewModalVisible(false);
+        reviewForm.resetFields();
+        setSelectedBookingForReview(null);
+        // Refresh reviews and completed bookings
+        await fetchUserReviews();
+        await fetchCompletedBookings();
+      } else {
+        message.error(response.message || 'Failed to submit review');
+      }
+    } catch (error) {
+      console.error('❌ Error submitting review:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to submit review. Please try again.';
+      message.error(errorMessage);
+    } finally {
+      setReviewSubmitting(false);
+    }
+  };
 
   const fetchWishlist = async () => {
     try {
@@ -214,6 +315,45 @@ const UserDashboard = () => {
       totalPaid,
       daysUntilTravel
     };
+  };
+
+  const handleShareBooking = (platform) => {
+    if (!selectedBooking) return;
+
+    const bookingTitle = selectedBooking.tour?.title || 'My Booking';
+    const bookingDate = selectedBooking.travelDates?.startDate 
+      ? new Date(selectedBooking.travelDates.startDate).toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        })
+      : 'TBA';
+    const shareText = `I just booked "${bookingTitle}" for ${bookingDate}! Check out this amazing tour package.`;
+    const shareUrl = window.location.origin + `/package/${selectedBooking.tour?._id || ''}`;
+
+    let shareLink = '';
+
+    switch (platform) {
+      case 'facebook':
+        shareLink = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareText)}`;
+        break;
+      case 'twitter':
+        shareLink = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
+        break;
+      case 'whatsapp':
+        shareLink = `https://wa.me/?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`;
+        break;
+      case 'copy':
+        navigator.clipboard.writeText(shareUrl);
+        message.success('Booking link copied to clipboard!');
+        return;
+      default:
+        return;
+    }
+
+    if (shareLink) {
+      window.open(shareLink, '_blank', 'width=600,height=400');
+    }
   };
 
   const handleCancelBooking = async () => {
@@ -567,6 +707,181 @@ const UserDashboard = () => {
                 ),
               },
               {
+                key: 'reviews',
+                label: (
+                  <span>
+                    <EditOutlined style={{ color: '#FF6B35' }} />
+                    My Reviews
+                  </span>
+                ),
+                children: (
+                  <>
+                    {reviewsLoading ? (
+                      <div style={{ textAlign: 'center', padding: '40px' }}>
+                        <Spin size="large" />
+                      </div>
+                    ) : (
+                      <>
+                        <div style={{ marginBottom: '24px' }}>
+                          <Title level={4} style={{ fontFamily: 'Poppins, sans-serif' }}>
+                            Completed Journeys - Leave a Review
+                          </Title>
+                          <TypographyText type="secondary" style={{ fontFamily: 'Poppins, sans-serif' }}>
+                            Share your experience for completed bookings
+                          </TypographyText>
+                        </div>
+
+                        {completedBookings && completedBookings.length > 0 ? (
+                          <Row gutter={[16, 16]}>
+                            {completedBookings.map((booking) => {
+                              const tour = booking.tour;
+                              const hasReview = reviews.some(
+                                review => (review.booking?._id || review.booking) === booking._id
+                              );
+                              
+                              return (
+                                <Col xs={24} md={12} key={booking._id}>
+                                  <Card
+                                    hoverable
+                                    style={{ borderRadius: '8px', border: hasReview ? '2px solid #52c41a' : '1px solid #d9d9d9' }}
+                                  >
+                                    <Space direction="vertical" style={{ width: '100%' }} size="small">
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <Title level={5} style={{ margin: 0, fontFamily: 'Poppins, sans-serif' }}>
+                                          {tour?.title || 'Tour Package'}
+                                        </Title>
+                                        {hasReview && (
+                                          <Tag color="green" icon={<CheckCircleOutlined />}>
+                                            Reviewed
+                                          </Tag>
+                                        )}
+                                      </div>
+                                      
+                                      <Divider style={{ margin: '12px 0' }} />
+                                      
+                                      <TypographyText style={{ fontFamily: 'Poppins, sans-serif' }}>
+                                        <CalendarOutlined style={{ marginRight: '8px' }} />
+                                        {new Date(booking.travelDates?.startDate).toLocaleDateString()} - {new Date(booking.travelDates?.endDate).toLocaleDateString()}
+                                      </TypographyText>
+                                      
+                                      <TypographyText style={{ fontFamily: 'Poppins, sans-serif' }}>
+                                        <EnvironmentOutlined style={{ marginRight: '8px' }} />
+                                        {tour?.destination || 'N/A'}
+                                      </TypographyText>
+                                      
+                                      <TypographyText style={{ fontFamily: 'Poppins, sans-serif' }}>
+                                        Booking #{booking.bookingNumber || booking._id.slice(-6)}
+                                      </TypographyText>
+                                      
+                                      <Button 
+                                        type={hasReview ? "default" : "primary"}
+                                        block
+                                        icon={hasReview ? <EditOutlined /> : <EditOutlined />}
+                                        onClick={() => {
+                                          if (hasReview) {
+                                            message.info('You have already reviewed this booking');
+                                          } else {
+                                            handleOpenReviewModal(booking);
+                                          }
+                                        }}
+                                        style={{ 
+                                          marginTop: '12px', 
+                                          fontFamily: 'Poppins, sans-serif',
+                                          backgroundColor: hasReview ? '#f0f0f0' : '#FF6B35',
+                                          borderColor: hasReview ? '#d9d9d9' : '#FF6B35',
+                                          color: hasReview ? '#595959' : 'white'
+                                        }}
+                                      >
+                                        {hasReview ? 'Update Review' : 'Write a Review'}
+                                      </Button>
+                                    </Space>
+                                  </Card>
+                                </Col>
+                              );
+                            })}
+                          </Row>
+                        ) : (
+                          <Empty
+                            description="No completed journeys yet"
+                            image={Empty.PRESENTED_IMAGE_SIMPLE}
+                          >
+                            <TypographyText type="secondary" style={{ fontFamily: 'Poppins, sans-serif' }}>
+                              Complete a journey to leave a review
+                            </TypographyText>
+                          </Empty>
+                        )}
+
+                        {reviews && reviews.length > 0 && (
+                          <>
+                            <Divider style={{ margin: '32px 0' }} />
+                            <div style={{ marginBottom: '24px' }}>
+                              <Title level={4} style={{ fontFamily: 'Poppins, sans-serif' }}>
+                                Your Reviews
+                              </Title>
+                            </div>
+                            <Row gutter={[16, 16]}>
+                              {reviews.map((review) => {
+                                const tour = review.tour;
+                                return (
+                                  <Col xs={24} key={review._id}>
+                                    <Card style={{ borderRadius: '8px' }}>
+                                      <Space direction="vertical" style={{ width: '100%' }} size="small">
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                          <div style={{ flex: 1 }}>
+                                            <Title level={5} style={{ margin: 0, fontFamily: 'Poppins, sans-serif' }}>
+                                              {tour?.title || 'Tour Package'}
+                                            </Title>
+                                            <TypographyText type="secondary" style={{ fontFamily: 'Poppins, sans-serif' }}>
+                                              {tour?.destination || 'N/A'}
+                                            </TypographyText>
+                                          </div>
+                                          <Tag color="green" icon={<CheckCircleOutlined />}>
+                                            Reviewed
+                                          </Tag>
+                                        </div>
+                                        
+                                        <Divider style={{ margin: '12px 0' }} />
+                                        
+                                        <div>
+                                          <TypographyText strong style={{ fontFamily: 'Poppins, sans-serif' }}>
+                                            {review.title}
+                                          </TypographyText>
+                                          <div style={{ marginTop: '8px' }}>
+                                            <Rate disabled defaultValue={review.rating} style={{ fontSize: '14px' }} />
+                                          </div>
+                                          <Paragraph style={{ marginTop: '8px', fontFamily: 'Poppins, sans-serif' }}>
+                                            {review.comment}
+                                          </Paragraph>
+                                          <TypographyText type="secondary" style={{ fontSize: '12px', fontFamily: 'Poppins, sans-serif' }}>
+                                            Reviewed on {new Date(review.createdAt).toLocaleDateString('en-US', {
+                                              year: 'numeric',
+                                              month: 'long',
+                                              day: 'numeric'
+                                            })}
+                                          </TypographyText>
+                                        </div>
+                                        
+                                        <Button 
+                                          type="link"
+                                          onClick={() => navigate(`/package/${tour?._id || tour}`)}
+                                          style={{ padding: 0, fontFamily: 'Poppins, sans-serif' }}
+                                        >
+                                          View Package
+                                        </Button>
+                                      </Space>
+                                    </Card>
+                                  </Col>
+                                );
+                              })}
+                            </Row>
+                          </>
+                        )}
+                      </>
+                    )}
+                  </>
+                ),
+              },
+              {
                 key: 'settings',
                 label: (
                 <span>
@@ -711,7 +1026,24 @@ const UserDashboard = () => {
                 }
               >
                 <div style={{ fontFamily: 'Poppins, sans-serif' }}>
-                  {selectedBooking.travelers?.adults ? (
+                  {Array.isArray(selectedBooking.travelers) && selectedBooking.travelers.length > 0 ? (
+                    <div>
+                      {selectedBooking.travelers.map((traveler, index) => (
+                        <div key={index} style={{ marginBottom: '8px', padding: '8px', background: '#f8f9fa', borderRadius: '4px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                              <strong>{traveler.name}</strong>
+                              <Tag color="blue" style={{ marginLeft: '8px' }}>{traveler.type}</Tag>
+                              <span style={{ marginLeft: '8px', color: '#6c757d' }}>Age: {traveler.age}</span>
+                              <span style={{ marginLeft: '8px', color: '#6c757d' }}>
+                                {traveler.gender === 'male' ? <ManOutlined /> : traveler.gender === 'female' ? <WomanOutlined /> : <UserOutlined />}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : selectedBooking.travelers?.adults ? (
                     <>
                       <span>{selectedBooking.travelers.adults} Adult{selectedBooking.travelers.adults > 1 ? 's' : ''}</span>
                       {selectedBooking.travelers.children > 0 && (
@@ -1011,6 +1343,134 @@ const UserDashboard = () => {
               </Descriptions.Item>
             </Descriptions>
 
+            {/* Share Booking Section */}
+            <Divider style={{ margin: '24px 0' }}>Share Your Booking</Divider>
+            <div style={{ 
+              display: 'flex', 
+              gap: '12px', 
+              justifyContent: 'center',
+              flexWrap: 'wrap',
+              marginBottom: '16px'
+            }}>
+              <Button
+                type="primary"
+                icon={<FacebookOutlined />}
+                onClick={() => handleShareBooking('facebook')}
+                style={{
+                  backgroundColor: '#1877F2',
+                  borderColor: '#1877F2',
+                  fontFamily: 'Poppins, sans-serif'
+                }}
+              >
+                Share on Facebook
+              </Button>
+              <Button
+                type="primary"
+                icon={<TwitterOutlined />}
+                onClick={() => handleShareBooking('twitter')}
+                style={{
+                  backgroundColor: '#1DA1F2',
+                  borderColor: '#1DA1F2',
+                  fontFamily: 'Poppins, sans-serif'
+                }}
+              >
+                Share on Twitter
+              </Button>
+              <Button
+                type="primary"
+                icon={<WhatsAppOutlined />}
+                onClick={() => handleShareBooking('whatsapp')}
+                style={{
+                  backgroundColor: '#25D366',
+                  borderColor: '#25D366',
+                  fontFamily: 'Poppins, sans-serif'
+                }}
+              >
+                Share on WhatsApp
+              </Button>
+              <Button
+                icon={<ShareAltOutlined />}
+                onClick={() => handleShareBooking('copy')}
+                style={{
+                  fontFamily: 'Poppins, sans-serif'
+                }}
+              >
+                Copy Link
+              </Button>
+            </div>
+
+            {/* Modification Requests Section */}
+            {selectedBooking.status !== 'cancelled' && selectedBooking.status !== 'completed' && (
+              <>
+                <Divider style={{ margin: '24px 0' }}>Request Modifications</Divider>
+                <div style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                  gap: '12px',
+                  marginBottom: '16px'
+                }}>
+                  <Button
+                    icon={<CalendarOutlined />}
+                    onClick={() => {
+                      setModificationType('date_change');
+                      modificationForm.setFieldsValue({
+                        newStartDate: selectedBooking.travelDates?.startDate 
+                          ? (dayjs(selectedBooking.travelDates.startDate).isValid() ? dayjs(selectedBooking.travelDates.startDate) : null)
+                          : null,
+                        newEndDate: selectedBooking.travelDates?.endDate 
+                          ? (dayjs(selectedBooking.travelDates.endDate).isValid() ? dayjs(selectedBooking.travelDates.endDate) : null)
+                          : null
+                      });
+                      setModificationModalVisible(true);
+                    }}
+                    style={{ fontFamily: 'Poppins, sans-serif' }}
+                  >
+                    Change Dates
+                  </Button>
+                  <Button
+                    icon={<PlusOutlined />}
+                    onClick={() => {
+                      setModificationType('traveler_add');
+                      modificationForm.resetFields();
+                      setModificationModalVisible(true);
+                    }}
+                    style={{ fontFamily: 'Poppins, sans-serif' }}
+                  >
+                    Add Traveler
+                  </Button>
+                  {Array.isArray(selectedBooking.travelers) && selectedBooking.travelers.length > 0 && (
+                    <Button
+                      icon={<MinusOutlined />}
+                      onClick={() => {
+                        setModificationType('traveler_remove');
+                        modificationForm.resetFields();
+                        modificationForm.setFieldsValue({
+                          travelerToRemove: selectedBooking.travelers[0]._id || selectedBooking.travelers[0].id
+                        });
+                        setModificationModalVisible(true);
+                      }}
+                      style={{ fontFamily: 'Poppins, sans-serif' }}
+                    >
+                      Remove Traveler
+                    </Button>
+                  )}
+                  <Button
+                    icon={<FileTextOutlined />}
+                    onClick={() => {
+                      setModificationType('special_request');
+                      modificationForm.setFieldsValue({
+                        newSpecialRequest: selectedBooking.specialRequests || ''
+                      });
+                      setModificationModalVisible(true);
+                    }}
+                    style={{ fontFamily: 'Poppins, sans-serif' }}
+                  >
+                    Update Requests
+                  </Button>
+                </div>
+              </>
+            )}
+
             {/* Action Buttons */}
             <div style={{ marginTop: '24px', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
               {selectedBooking.payment?.status === 'paid' && (
@@ -1121,6 +1581,359 @@ const UserDashboard = () => {
               </Button>
             </div>
           </div>
+        )}
+      </Modal>
+
+      {/* Modification Request Modal */}
+      <Modal
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <EditOutlined style={{ fontSize: '24px', color: '#FF6B35' }} />
+            <span style={{ fontSize: '20px', fontFamily: 'Poppins, sans-serif' }}>
+              {modificationType === 'date_change' && 'Request Date Change'}
+              {modificationType === 'traveler_add' && 'Add Traveler'}
+              {modificationType === 'traveler_remove' && 'Remove Traveler'}
+              {modificationType === 'special_request' && 'Update Special Requests'}
+            </span>
+          </div>
+        }
+        open={modificationModalVisible}
+        onCancel={() => {
+          setModificationModalVisible(false);
+          setModificationType(null);
+          modificationForm.resetFields();
+        }}
+        onOk={async () => {
+          try {
+            const values = await modificationForm.validateFields();
+            setSubmittingModification(true);
+
+            let requestDetails = {};
+            let type = modificationType;
+
+            if (type === 'date_change') {
+              requestDetails = {
+                newStartDate: dayjs.isDayjs(values.newStartDate) ? values.newStartDate.toISOString() : values.newStartDate,
+                newEndDate: dayjs.isDayjs(values.newEndDate) ? values.newEndDate.toISOString() : values.newEndDate,
+                reason: values.reason
+              };
+            } else if (type === 'traveler_add') {
+              requestDetails = {
+                travelerToAdd: {
+                  name: values.name,
+                  age: values.age,
+                  type: values.type,
+                  gender: values.gender
+                },
+                reason: values.reason
+              };
+            } else if (type === 'traveler_remove') {
+              requestDetails = {
+                travelerToRemove: values.travelerToRemove,
+                reason: values.reason
+              };
+            } else if (type === 'special_request') {
+              // Special requests can be updated directly without admin approval
+              await bookingService.updateSpecialRequests(selectedBooking._id, values.newSpecialRequest);
+              message.success('Special requests updated successfully!');
+              setModificationModalVisible(false);
+              setModificationType(null);
+              modificationForm.resetFields();
+              fetchUserData(); // Refresh bookings
+              return;
+            }
+
+            await bookingService.requestModification(selectedBooking._id, {
+              type,
+              requestDetails,
+              reason: values.reason
+            });
+
+            message.success('Modification request submitted successfully! Admin will review it shortly.');
+            setModificationModalVisible(false);
+            setModificationType(null);
+            modificationForm.resetFields();
+            fetchUserData(); // Refresh bookings
+          } catch (error) {
+            console.error('Failed to submit modification request:', error);
+            message.error(error.message || 'Failed to submit modification request');
+          } finally {
+            setSubmittingModification(false);
+          }
+        }}
+        okText="Submit Request"
+        cancelText="Cancel"
+        okButtonProps={{ loading: submittingModification }}
+        width={600}
+        style={{ fontFamily: 'Poppins, sans-serif' }}
+      >
+        <Form
+          form={modificationForm}
+          layout="vertical"
+          style={{ fontFamily: 'Poppins, sans-serif' }}
+        >
+          {modificationType === 'date_change' && (
+            <>
+              <Form.Item
+                name="newStartDate"
+                label="New Start Date"
+                rules={[{ required: true, message: 'Please select new start date' }]}
+              >
+                <DatePicker
+                  style={{ width: '100%' }}
+                  format="YYYY-MM-DD"
+                />
+              </Form.Item>
+              <Form.Item
+                name="newEndDate"
+                label="New End Date"
+                rules={[{ required: true, message: 'Please select new end date' }]}
+              >
+                <DatePicker
+                  style={{ width: '100%' }}
+                  format="YYYY-MM-DD"
+                />
+              </Form.Item>
+              <Form.Item
+                name="reason"
+                label="Reason for Date Change"
+                rules={[{ required: true, message: 'Please provide a reason' }]}
+              >
+                <Input.TextArea
+                  rows={4}
+                  placeholder="Please explain why you need to change the travel dates..."
+                />
+              </Form.Item>
+            </>
+          )}
+
+          {modificationType === 'traveler_add' && (
+            <>
+              <Form.Item
+                name="name"
+                label="Traveler Name"
+                rules={[{ required: true, message: 'Please enter traveler name' }]}
+              >
+                <Input placeholder="Enter full name" />
+              </Form.Item>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item
+                    name="age"
+                    label="Age"
+                    rules={[{ required: true, message: 'Please enter age' }]}
+                  >
+                    <InputNumber
+                      style={{ width: '100%' }}
+                      min={0}
+                      max={120}
+                      placeholder="Age"
+                    />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item
+                    name="type"
+                    label="Type"
+                    rules={[{ required: true, message: 'Please select type' }]}
+                  >
+                    <Select placeholder="Select type">
+                      <Select.Option value="adult">Adult</Select.Option>
+                      <Select.Option value="child">Child</Select.Option>
+                      <Select.Option value="infant">Infant</Select.Option>
+                    </Select>
+                  </Form.Item>
+                </Col>
+              </Row>
+              <Form.Item
+                name="gender"
+                label="Gender"
+                rules={[{ required: true, message: 'Please select gender' }]}
+              >
+                <Select placeholder="Select gender">
+                  <Select.Option value="male">Male</Select.Option>
+                  <Select.Option value="female">Female</Select.Option>
+                  <Select.Option value="other">Other</Select.Option>
+                </Select>
+              </Form.Item>
+              <Alert
+                message="Note"
+                description="Adding a traveler may require additional payment. The amount will be calculated and you'll be notified."
+                type="info"
+                style={{ marginBottom: '16px' }}
+              />
+              <Form.Item
+                name="reason"
+                label="Reason (Optional)"
+              >
+                <Input.TextArea
+                  rows={3}
+                  placeholder="Any additional information..."
+                />
+              </Form.Item>
+            </>
+          )}
+
+          {modificationType === 'traveler_remove' && (
+            <>
+              <Form.Item
+                name="travelerToRemove"
+                label="Select Traveler to Remove"
+                rules={[{ required: true, message: 'Please select a traveler' }]}
+              >
+                <Select placeholder="Select traveler">
+                  {Array.isArray(selectedBooking.travelers) && selectedBooking.travelers.map((traveler, index) => (
+                    <Select.Option key={traveler._id || traveler.id || index} value={traveler._id || traveler.id}>
+                      {traveler.name} ({traveler.type}, Age: {traveler.age})
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+              <Alert
+                message="Note"
+                description="Removing a traveler may result in a partial refund. The refund amount will be calculated based on our cancellation policy."
+                type="info"
+                style={{ marginBottom: '16px' }}
+              />
+              <Form.Item
+                name="reason"
+                label="Reason for Removal"
+                rules={[{ required: true, message: 'Please provide a reason' }]}
+              >
+                <Input.TextArea
+                  rows={4}
+                  placeholder="Please explain why you need to remove this traveler..."
+                />
+              </Form.Item>
+            </>
+          )}
+
+          {modificationType === 'special_request' && (
+            <>
+              <Form.Item
+                name="newSpecialRequest"
+                label="Special Requests"
+                rules={[{ max: 500, message: 'Special requests cannot exceed 500 characters' }]}
+              >
+                <Input.TextArea
+                  rows={6}
+                  placeholder="Enter any special requests or requirements (e.g., dietary restrictions, accessibility needs, etc.)"
+                  maxLength={500}
+                  showCount
+                />
+              </Form.Item>
+              <Alert
+                message="Note"
+                description="Special requests are updated immediately without admin approval."
+                type="info"
+              />
+            </>
+          )}
+        </Form>
+      </Modal>
+
+      {/* Review Submission Modal */}
+      <Modal
+        title={
+          <div style={{ textAlign: 'center' }}>
+            <EditOutlined style={{ fontSize: '24px', color: '#FF6B35', marginBottom: '8px' }} />
+            <h3 style={{ margin: '8px 0 0 0', fontFamily: 'Poppins, sans-serif' }}>Write a Review</h3>
+          </div>
+        }
+        open={reviewModalVisible}
+        onCancel={() => {
+          setReviewModalVisible(false);
+          reviewForm.resetFields();
+          setSelectedBookingForReview(null);
+        }}
+        footer={null}
+        width={600}
+      >
+        {selectedBookingForReview && (
+          <Form
+            form={reviewForm}
+            layout="vertical"
+            onFinish={handleSubmitReview}
+          >
+            <Card style={{ marginBottom: '16px', backgroundColor: '#f8f9fa' }}>
+              <h4 style={{ margin: '0 0 8px 0', fontSize: '16px', fontFamily: 'Poppins, sans-serif' }}>Reviewing Package</h4>
+              <div style={{ fontSize: '14px', color: '#6c757d', fontFamily: 'Poppins, sans-serif' }}>
+                <div><strong>{selectedBookingForReview.tour?.title || 'Tour Package'}</strong></div>
+                <div>📍 {selectedBookingForReview.tour?.destination || 'N/A'}</div>
+                <div>📅 Booking #{selectedBookingForReview.bookingNumber || selectedBookingForReview._id.slice(-6)}</div>
+              </div>
+            </Card>
+
+            <Form.Item
+              name="bookingId"
+              hidden
+            >
+              <Input />
+            </Form.Item>
+
+            <Form.Item
+              name="rating"
+              label="Rating"
+              rules={[{ required: true, message: 'Please provide a rating' }]}
+            >
+              <Rate style={{ fontSize: '24px' }} />
+            </Form.Item>
+
+            <Form.Item
+              name="title"
+              label="Review Title"
+              rules={[
+                { required: true, message: 'Please enter a review title' },
+                { max: 100, message: 'Title cannot exceed 100 characters' }
+              ]}
+            >
+              <Input
+                placeholder="Give your review a title"
+                maxLength={100}
+                showCount
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="comment"
+              label="Your Review"
+              rules={[
+                { required: true, message: 'Please write your review' },
+                { max: 1000, message: 'Review cannot exceed 1000 characters' }
+              ]}
+            >
+              <Input.TextArea
+                rows={6}
+                placeholder="Share your experience with this package..."
+                maxLength={1000}
+                showCount
+              />
+            </Form.Item>
+
+            <Form.Item>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={reviewSubmitting}
+                size="large"
+                style={{
+                  width: '100%',
+                  height: '48px',
+                  backgroundColor: '#FF6B35',
+                  borderColor: '#FF6B35',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  fontFamily: 'Poppins, sans-serif'
+                }}
+              >
+                <EditOutlined /> Submit Review
+              </Button>
+            </Form.Item>
+
+            <div style={{ textAlign: 'center', fontSize: '11px', color: '#6c757d', fontFamily: 'Poppins, sans-serif' }}>
+              By submitting, you agree that your review is based on genuine experience
+            </div>
+          </Form>
         )}
       </Modal>
 

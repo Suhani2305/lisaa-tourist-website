@@ -17,8 +17,19 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: [true, 'Password is required'],
+    required: function() {
+      return !this.provider; // Password not required for social login
+    },
     minlength: [6, 'Password must be at least 6 characters']
+  },
+  provider: {
+    type: String,
+    enum: ['local', 'google', 'facebook'],
+    default: 'local'
+  },
+  providerId: {
+    type: String, // Social provider user ID
+    default: null
   },
   phone: {
     type: String,

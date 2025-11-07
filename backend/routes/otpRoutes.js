@@ -15,61 +15,89 @@ const generateOTP = () => {
 // Send OTP via SMS (Fast2SMS or MSG91)
 const sendSMS = async (phone, otp) => {
   try {
-    // Option 1: Fast2SMS Integration
-    // Uncomment and add your API key
-    /*
-    const response = await fetch('https://www.fast2sms.com/dev/bulkV2', {
-      method: 'POST',
-      headers: {
-        'authorization': 'YOUR_FAST2SMS_API_KEY',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        route: 'v3',
-        sender_id: 'TXTIND',
-        message: `Your OTP for Lisaa Tourist Admin Login is: ${otp}. Valid for 5 minutes.`,
-        language: 'english',
-        flash: 0,
-        numbers: phone
-      })
-    });
-    return await response.json();
-    */
-
+    const smsProvider = process.env.SMS_PROVIDER || 'fast2sms'; // 'fast2sms' or 'msg91'
+    
+    // Option 1: Fast2SMS Integration (Default)
+    if (smsProvider === 'fast2sms' && process.env.FAST2SMS_API_KEY) {
+      const response = await fetch('https://www.fast2sms.com/dev/bulkV2', {
+        method: 'POST',
+        headers: {
+          'authorization': process.env.FAST2SMS_API_KEY,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          route: 'v3',
+          sender_id: process.env.FAST2SMS_SENDER_ID || 'TXTIND',
+          message: `Your OTP for Lisaa Tourist Admin Login is: ${otp}. Valid for 5 minutes.`,
+          language: 'english',
+          flash: 0,
+          numbers: phone
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (result.return === true) {
+        return { success: true, message: 'OTP sent successfully', provider: 'Fast2SMS' };
+      } else {
+        throw new Error(result.message || 'Failed to send SMS via Fast2SMS');
+      }
+    }
+    
     // Option 2: MSG91 Integration
-    // Uncomment and add your API key
-    /*
-    const response = await fetch(`https://api.msg91.com/api/v5/otp?template_id=YOUR_TEMPLATE_ID&mobile=${phone}&authkey=YOUR_AUTH_KEY&otp=${otp}`, {
-      method: 'POST'
-    });
-    return await response.json();
-    */
-
-    // For now, just log (demo mode)
-    console.log(`SMS sent to ${phone}: OTP = ${otp}`);
-    return { success: true, message: 'OTP sent successfully' };
+    if (smsProvider === 'msg91' && process.env.MSG91_AUTH_KEY && process.env.MSG91_TEMPLATE_ID) {
+      const response = await fetch(
+        `https://api.msg91.com/api/v5/otp?template_id=${process.env.MSG91_TEMPLATE_ID}&mobile=${phone}&authkey=${process.env.MSG91_AUTH_KEY}&otp=${otp}`,
+        { method: 'POST' }
+      );
+      
+      const result = await response.json();
+      
+      if (result.type === 'success') {
+        return { success: true, message: 'OTP sent successfully', provider: 'MSG91' };
+      } else {
+        throw new Error(result.message || 'Failed to send SMS via MSG91');
+      }
+    }
+    
+    // Fallback: Demo mode (only if no SMS provider configured)
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('⚠️ SMS provider not configured. Running in demo mode.');
+      console.log(`[DEMO] SMS would be sent to ${phone}: OTP = ${otp}`);
+      return { success: true, message: 'OTP sent successfully (demo mode)', provider: 'demo' };
+    }
+    
+    // Production mode without SMS provider configured
+    throw new Error('SMS provider not configured. Please set FAST2SMS_API_KEY or MSG91 credentials in environment variables.');
     
   } catch (error) {
-    console.error('SMS sending error:', error);
+    console.error('SMS sending error:', error.message);
     throw error;
   }
 };
 
 // Send OTP endpoint
 router.post('/send-otp', async (req, res) => {
-  console.log('🔵 /api/otp/send-otp endpoint HIT');
   try {
     const { phone } = req.body;
-    console.log('📞 Received phone number:', phone);
 
     if (!phone) {
       return res.status(400).json({ message: 'Phone number is required' });
     }
 
-    // Validate phone number
-    const allowedPhones = ['9263616263', '8840206492'];
-    if (!allowedPhones.includes(phone)) {
-      return res.status(403).json({ message: 'Unauthorized phone number' });
+    // Validate phone number format (10 digits for India)
+    const phoneRegex = /^[6-9]\d{9}$/;
+    if (!phoneRegex.test(phone)) {
+      return res.status(400).json({ message: 'Invalid phone number format. Please enter a valid 10-digit Indian mobile number.' });
+    }
+
+    // In production, remove phone number restrictions
+    // For development/testing, you can keep allowed phones list
+    if (process.env.NODE_ENV === 'development' && process.env.ALLOWED_PHONES) {
+      const allowedPhones = process.env.ALLOWED_PHONES.split(',').map(p => p.trim());
+      if (!allowedPhones.includes(phone)) {
+        return res.status(403).json({ message: 'Unauthorized phone number for testing' });
+      }
     }
 
     // Generate OTP
@@ -82,32 +110,44 @@ router.post('/send-otp', async (req, res) => {
     });
 
     // Send SMS
-    await sendSMS(phone, otp);
+    const smsResult = await sendSMS(phone, otp);
 
-    console.log(`✅ OTP Generated for ${phone}: ${otp}`);
-    console.log(`📝 OTP stored in memory, expires in 5 minutes`);
+    // Log success (without OTP) in production
+    if (process.env.NODE_ENV === 'production') {
+      console.log(`✅ OTP sent successfully to ${phone} via ${smsResult.provider || 'SMS'}`);
+    } else {
+      // Development mode: log with OTP for testing
+      console.log(`✅ OTP Generated for ${phone}: ${otp}`);
+      console.log(`📝 OTP stored in memory, expires in 5 minutes`);
+    }
 
-    res.json({ 
+    // Production response (no OTP in response)
+    const response = { 
       success: true, 
-      message: 'OTP sent successfully',
-      // In production, don't send OTP in response
-      // Only for demo/development:
-      demo_otp: otp 
-    });
+      message: 'OTP sent successfully to your registered mobile number'
+    };
+
+    // Only include demo_otp in development mode
+    if (process.env.NODE_ENV === 'development' && smsResult.provider === 'demo') {
+      response.demo_otp = otp;
+      response.warning = 'SMS provider not configured. Running in demo mode.';
+    }
+
+    res.json(response);
 
   } catch (error) {
-    console.error('Send OTP error:', error);
-    res.status(500).json({ message: 'Failed to send OTP' });
+    console.error('Send OTP error:', error.message);
+    res.status(500).json({ 
+      message: error.message || 'Failed to send OTP. Please try again later.',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
 // Verify OTP endpoint  
 router.post('/verify-otp', async (req, res) => {
-  console.log('🔵 /api/otp/verify-otp endpoint HIT');
   try {
     const { phone, otp } = req.body;
-
-    console.log(`🔍 Verify OTP Request:`, { phone, otp, type: typeof otp });
 
     if (!phone || !otp) {
       return res.status(400).json({ message: 'Phone and OTP are required' });
@@ -116,29 +156,25 @@ router.post('/verify-otp', async (req, res) => {
     // Get stored OTP
     const storedData = otpStore.get(phone);
 
-    console.log(`📦 Stored OTP Data:`, storedData);
-
     if (!storedData) {
-      console.log(`❌ No OTP found for phone: ${phone}`);
-      return res.status(400).json({ message: 'OTP not found or expired' });
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`❌ No OTP found for phone: ${phone}`);
+      }
+      return res.status(400).json({ message: 'OTP not found or expired. Please request a new OTP.' });
     }
 
     // Check if expired
     if (Date.now() > storedData.expiresAt) {
       otpStore.delete(phone);
-      console.log(`⏰ OTP expired for phone: ${phone}`);
-      return res.status(400).json({ message: 'OTP expired' });
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`⏰ OTP expired for phone: ${phone}`);
+      }
+      return res.status(400).json({ message: 'OTP has expired. Please request a new OTP.' });
     }
 
     // Convert both to string for comparison
     const enteredOTP = String(otp).trim();
     const storedOTP = String(storedData.otp).trim();
-
-    console.log(`🔑 Comparing OTPs:`, { 
-      entered: enteredOTP, 
-      stored: storedOTP, 
-      match: enteredOTP === storedOTP 
-    });
 
     // Verify OTP
     if (storedOTP === enteredOTP) {
@@ -149,33 +185,37 @@ router.post('/verify-otp', async (req, res) => {
         verified: true // Add verified flag
       });
       
-      console.log(`✅ OTP Verified Successfully for phone: ${phone}`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`✅ OTP Verified Successfully for phone: ${phone}`);
+      }
+      
       return res.json({ 
         success: true, 
         message: 'OTP verified successfully',
         verified: true
       });
     } else {
-      console.log(`❌ Invalid OTP. Stored: ${storedOTP}, Entered: ${enteredOTP}`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`❌ Invalid OTP for phone: ${phone}`);
+      }
       return res.status(400).json({ 
-        message: 'Invalid OTP',
-        debug: `Expected: ${storedOTP}, Got: ${enteredOTP}` // Only for demo
+        message: 'Invalid OTP. Please check and try again.',
+        ...(process.env.NODE_ENV === 'development' && { 
+          debug: `Expected: ${storedOTP}, Got: ${enteredOTP}` 
+        })
       });
     }
 
   } catch (error) {
-    console.error('Verify OTP error:', error);
+    console.error('Verify OTP error:', error.message);
     res.status(500).json({ message: 'Failed to verify OTP' });
   }
 });
 
 // Reset Password endpoint (after OTP verification)
 router.post('/reset-password', async (req, res) => {
-  console.log('🔵 /api/otp/reset-password endpoint HIT');
   try {
     const { phone, email, newPassword } = req.body;
-
-    console.log(`🔐 Password Reset Request:`, { phone, email });
 
     if (!phone || !email || !newPassword) {
       return res.status(400).json({ message: 'Phone, email, and new password are required' });
@@ -201,7 +241,9 @@ router.post('/reset-password', async (req, res) => {
       // Update existing admin password
       adminUser.password = newPassword;
       await adminUser.save();
-      console.log(`✅ Password updated for existing admin: ${email}`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`✅ Password updated for existing admin: ${email}`);
+      }
     } else {
       // Create new admin user
       adminUser = new AdminUser({
@@ -211,7 +253,9 @@ router.post('/reset-password', async (req, res) => {
         role: email.includes('pushpendra') ? 'Super Admin' : 'Admin'
       });
       await adminUser.save();
-      console.log(`✅ New admin user created: ${email}`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`✅ New admin user created: ${email}`);
+      }
     }
 
     // Clear OTP after successful password reset

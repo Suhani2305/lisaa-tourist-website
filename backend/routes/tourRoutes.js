@@ -7,7 +7,7 @@ router.get('/', async (req, res) => {
   try {
     const { 
       page = 1, 
-      limit = 1000, // Increased default limit to show all packages
+      limit = 500, // Optimized default limit for better performance
       destination, 
       category, 
       trendingCategory, // Filter by trending category (Culture & Heritage, etc.)
@@ -30,10 +30,15 @@ router.get('/', async (req, res) => {
 
     // Add filters
     if (destination) query.destination = destination;
-    if (category) query.category = category;
+    if (category) {
+      // Support both category and tourType param names
+      query.category = category;
+    }
     if (trendingCategory) {
-      // Filter by trending category (can match multiple if array contains it)
-      query.trendingCategories = trendingCategory;
+      // Filter by trending category (search within trendingCategories array)
+      // Use $in operator to match if the array contains this trending category
+      query.trendingCategories = { $in: [trendingCategory] };
+      console.log('🔍 Filtering by trending category:', trendingCategory);
     }
     if (featured === 'true') query.featured = true;
     if (trending === 'true') query.trending = true;
@@ -44,7 +49,17 @@ router.get('/', async (req, res) => {
       if (maxPrice) query['price.adult'].$lte = parseInt(maxPrice);
     }
     if (search) {
-      query.$text = { $search: search };
+      // Use regex search for better results (searches in title, description, destination, city, state)
+      // This is more flexible than $text search which requires specific text index
+      query.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { shortDescription: { $regex: search, $options: 'i' } },
+        { destination: { $regex: search, $options: 'i' } },
+        { city: { $regex: search, $options: 'i' } },
+        { state: { $regex: search, $options: 'i' } }
+      ];
+      console.log('🔍 Search query:', search);
     }
 
     console.log('🔍 Fetching tours with query:', query);
@@ -62,8 +77,11 @@ router.get('/', async (req, res) => {
 
     console.log('✅ Found', tours.length, 'tours out of', total, 'total');
 
+    // Convert Mongoose documents to plain objects for better caching and JSON serialization
+    const toursPlain = tours.map(tour => tour.toObject ? tour.toObject() : tour);
+
     res.json({
-      tours,
+      tours: toursPlain,
       totalPages: limit === 'all' ? 1 : Math.ceil(total / limit),
       currentPage: parseInt(page),
       total

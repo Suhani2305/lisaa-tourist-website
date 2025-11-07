@@ -94,6 +94,29 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// Simple image upload endpoint (returns just URL) - optimized for direct Cloudinary upload
+router.post('/upload-image', upload.single('image'), uploadToCloudinary, async (req, res) => {
+  try {
+    if (!req.file || !req.file.cloudinary) {
+      return res.status(400).json({ message: 'No image uploaded or upload failed' });
+    }
+
+    const cloudinaryResult = req.file.cloudinary;
+
+    res.status(200).json({ 
+      success: true,
+      url: cloudinaryResult.secure_url,
+      publicId: cloudinaryResult.public_id,
+      width: cloudinaryResult.width,
+      height: cloudinaryResult.height,
+      bytes: cloudinaryResult.bytes
+    });
+  } catch (error) {
+    console.error('Upload image error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 // Upload single file
 router.post('/upload', upload.single('file'), uploadToCloudinary, async (req, res) => {
   try {
@@ -229,8 +252,9 @@ router.post('/', async (req, res) => {
       mediaData.category = normalizeCategory(mediaData.category);
     }
     
-    // If base64 is provided, upload to Cloudinary first
+    // If base64 is provided, upload to Cloudinary first (deprecated - use direct upload instead)
     if (mediaData.url && mediaData.url.startsWith('data:')) {
+      console.warn('⚠️ Base64 upload detected. Consider using /upload-image endpoint for better performance.');
       try {
         // Upload base64 to Cloudinary
         const result = await cloudinary.uploader.upload(mediaData.url, {
@@ -244,7 +268,10 @@ router.post('/', async (req, res) => {
         }
       } catch (uploadError) {
         console.error('Cloudinary upload error:', uploadError);
-        // Continue with base64 if Cloudinary fails
+        return res.status(400).json({ 
+          message: 'Failed to upload base64 image to Cloudinary. Please use /upload-image endpoint for direct file upload.',
+          error: uploadError.message 
+        });
       }
     }
     
@@ -348,7 +375,7 @@ router.delete('/:id', async (req, res) => {
           }
         } else {
           // Fallback: extract filename from URL
-          const urlParts = media.url.split('/');
+        const urlParts = media.url.split('/');
           const fileName = urlParts[urlParts.length - 1].split('.')[0];
           publicId = `lisaa-tourist-website/${fileName}`;
         }

@@ -166,15 +166,54 @@ router.post('/validate/:code', async (req, res) => {
       });
     }
     
-    // Check if tour is applicable (if applicableTours is specified)
-    if (tourId && offer.applicableTours && offer.applicableTours.length > 0) {
-      const isTourApplicable = offer.applicableTours.some(
-        tour => tour.toString() === tourId || tour._id?.toString() === tourId
-      );
-      if (!isTourApplicable) {
-        return res.status(400).json({ 
-          message: 'This offer is not applicable to the selected tour' 
-        });
+    // Check applicability
+    if (!offer.applicableToAll) {
+      // If not applicable to all, check specific restrictions
+      if (tourId) {
+        const Tour = require('../models/Tour');
+        const tour = await Tour.findById(tourId);
+        
+        if (!tour) {
+          return res.status(400).json({ message: 'Tour not found' });
+        }
+
+        // Check if tour is in applicableTours
+        if (offer.applicableTours && offer.applicableTours.length > 0) {
+          const isTourApplicable = offer.applicableTours.some(
+            tourId => tourId.toString() === tour._id.toString()
+          );
+          if (!isTourApplicable) {
+            return res.status(400).json({ 
+              message: 'This offer is not applicable to the selected tour' 
+            });
+          }
+        }
+        
+        // Check if city is applicable
+        if (offer.applicableCities && offer.applicableCities.length > 0) {
+          const isCityApplicable = offer.applicableCities.some(
+            city => city.toLowerCase() === tour.city?.toLowerCase() || 
+                    city.toLowerCase() === tour.citySlug?.toLowerCase()
+          );
+          if (!isCityApplicable) {
+            return res.status(400).json({ 
+              message: 'This offer is not applicable to tours in this city' 
+            });
+          }
+        }
+        
+        // Check if state is applicable
+        if (offer.applicableStates && offer.applicableStates.length > 0) {
+          const isStateApplicable = offer.applicableStates.some(
+            state => state.toLowerCase() === tour.state?.toLowerCase() || 
+                     state.toLowerCase() === tour.stateSlug?.toLowerCase()
+          );
+          if (!isStateApplicable) {
+            return res.status(400).json({ 
+              message: 'This offer is not applicable to tours in this state' 
+            });
+          }
+        }
       }
     }
     

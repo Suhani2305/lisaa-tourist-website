@@ -58,9 +58,19 @@ const offerSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  applicableToAll: {
+    type: Boolean,
+    default: false // If true, applies to all packages
+  },
   applicableTours: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Tour'
+  }],
+  applicableCities: [{
+    type: String // City names or slugs
+  }],
+  applicableStates: [{
+    type: String // State names or slugs
   }],
   customerTiers: [{
     type: String,
@@ -78,8 +88,8 @@ const offerSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Index for code lookup
-offerSchema.index({ code: 1 });
+// Note: code field already has unique: true which creates an index automatically
+// No need to manually create index for code
 
 // Index for active offers
 offerSchema.index({ status: 1, startDate: 1, endDate: 1 });

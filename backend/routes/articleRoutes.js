@@ -7,7 +7,7 @@ router.get('/', async (req, res) => {
   try {
     const { 
       page = 1, 
-      limit = 1000,
+      limit = 200, // Optimized default limit for better performance
       status,
       type,
       category,
@@ -46,8 +46,11 @@ router.get('/', async (req, res) => {
 
     console.log('✅ Found', articles.length, 'articles out of', total, 'total');
 
+    // Convert Mongoose documents to plain objects for better caching and JSON serialization
+    const articlesPlain = articles.map(article => article.toObject ? article.toObject() : article);
+
     res.json({
-      articles,
+      articles: articlesPlain,
       totalPages: limit === 'all' ? 1 : Math.ceil(total / limit),
       currentPage: parseInt(page),
       total
