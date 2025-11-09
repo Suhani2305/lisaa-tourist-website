@@ -1,343 +1,51 @@
 import React, { useState, useEffect } from 'react';
 import {
   Card,
-  Table,
   Button,
   Space,
-  Tag,
-  Image,
   Modal,
   Form,
   Input,
   Select,
-  DatePicker,
   message,
-  Popconfirm,
   Row,
   Col,
   Typography,
   Divider,
   InputNumber,
   Switch,
-  Tooltip,
-  Badge,
   Tabs,
-  Statistic,
-  Progress,
-  Timeline,
-  Descriptions,
-  Avatar,
-  Rate,
-  List,
-  Drawer,
-  Upload,
-  Grid,
-  Radio,
-  Checkbox,
-  Slider,
-  ColorPicker,
-  TimePicker,
-  Upload as AntUpload,
-  Cascader,
-  TreeSelect,
-  AutoComplete,
-  Mentions,
-  Transfer,
-  Tree,
-  Anchor,
-  BackTop,
-  Affix,
-  Breadcrumb,
-  Dropdown,
-  Menu,
-  Result,
-  Skeleton,
-  Spin,
-  Alert,
-  Empty,
-  ConfigProvider
+  Radio
 } from 'antd';
 import {
-  PlusOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  EyeOutlined,
-  CheckOutlined,
-  CloseOutlined,
-  ClockCircleOutlined,
-  DollarOutlined,
-  UserOutlined,
-  CalendarOutlined,
-  PhoneOutlined,
-  MailOutlined,
-  EnvironmentOutlined,
-  SearchOutlined,
-  FilterOutlined,
-  ExportOutlined,
-  ImportOutlined,
-  DownloadOutlined,
-  PrinterOutlined,
-  SendOutlined,
-  MessageOutlined,
-  FileTextOutlined,
-  CreditCardOutlined,
-  CarOutlined,
-  HomeOutlined,
-  StarOutlined,
-  TeamOutlined,
-  GlobalOutlined,
-  HeartOutlined,
-  CrownOutlined,
-  GiftOutlined,
-  TrophyOutlined,
-  BookOutlined,
-  CameraOutlined,
-  VideoCameraOutlined,
-  QuestionCircleOutlined,
-  ExclamationCircleOutlined,
-  InfoCircleOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-  PercentageOutlined,
-  TagsOutlined,
-  CopyOutlined,
-  ShareAltOutlined,
-  QrcodeOutlined,
-  FileOutlined,
-  EditOutlined as EditIcon,
-  EyeOutlined as ViewIcon,
-  LinkOutlined,
-  PictureOutlined,
-  SoundOutlined,
-  FilePdfOutlined,
-  FileWordOutlined,
-  FileExcelOutlined,
-  FilePptOutlined,
-  UploadOutlined,
-  FolderOutlined,
-  FileImageOutlined,
-  PlayCircleOutlined,
-  AudioOutlined,
-  FileZipOutlined,
-  CloudUploadOutlined,
-  DeleteOutlined as DeleteIcon,
-  StarOutlined as StarIcon,
-  HeartOutlined as HeartIcon,
-  DownloadOutlined as DownloadIcon,
-  SettingOutlined,
-  ToolOutlined,
-  ApiOutlined,
-  DatabaseOutlined,
-  CloudOutlined,
-  WifiOutlined,
-  MobileOutlined,
-  DesktopOutlined,
-  TabletOutlined,
-  LaptopOutlined,
-  MonitorOutlined,
-  PrinterOutlined as PrinterIcon,
-  ScanOutlined,
-  CameraOutlined as CameraIcon,
-  VideoCameraOutlined as VideoIcon,
-  AudioOutlined as AudioIcon,
-  SoundOutlined as SoundIcon,
-  BellOutlined,
-  NotificationOutlined,
-  MessageOutlined as MessageIcon,
-  CommentOutlined,
-  LikeOutlined,
-  DislikeOutlined,
-  ShareAltOutlined as ShareIcon,
-  RetweetOutlined,
-  ForwardOutlined,
-  BackwardOutlined,
-  UpOutlined,
-  DownOutlined,
-  LeftOutlined,
-  RightOutlined,
-  VerticalAlignTopOutlined,
-  VerticalAlignBottomOutlined,
-  VerticalAlignMiddleOutlined,
-  MenuOutlined,
-  BorderOutlined,
-  BorderInnerOutlined,
-  BorderOuterOutlined,
-  BorderTopOutlined,
-  BorderBottomOutlined,
-  BorderLeftOutlined,
-  BorderRightOutlined,
-  // BorderOutlined,
-  // BorderOutlined,
-  FullscreenOutlined,
-  FullscreenExitOutlined,
-  CompressOutlined,
-  ExpandOutlined,
-  ArrowsAltOutlined,
-  ShrinkOutlined,
-  // MenuOutlined,
-  AppstoreOutlined,
-  BarsOutlined,
-  MenuFoldOutlined,
-  MenuUnfoldOutlined,
-  MoreOutlined,
-  EllipsisOutlined,
-  PlusCircleOutlined,
-  MinusCircleOutlined,
-  CloseCircleOutlined as CloseCircleIcon,
-  CheckCircleOutlined as CheckCircleIcon,
-  ExclamationCircleOutlined as ExclamationCircleIcon,
-  InfoCircleOutlined as InfoCircleIcon,
-  QuestionCircleOutlined as QuestionCircleIcon,
-  // ExclamationCircleOutlined,
-  // CloseCircleOutlined,
-  PauseCircleOutlined,
-  PlayCircleOutlined as PlayCircleIcon,
-  // RightOutlined,
-  // LeftOutlined,
-  DoubleRightOutlined,
-  DoubleLeftOutlined,
-  ReloadOutlined,
-  SyncOutlined,
-  LoadingOutlined,
-  SettingOutlined as SettingIcon,
-  ToolOutlined as ToolIcon,
-  ApiOutlined as ApiIcon,
-  DatabaseOutlined as DatabaseIcon,
-  CloudOutlined as CloudIcon,
-  WifiOutlined as WifiIcon,
-  MobileOutlined as MobileIcon,
-  DesktopOutlined as DesktopIcon,
-  TabletOutlined as TabletIcon,
-  LaptopOutlined as LaptopIcon,
-  MonitorOutlined as MonitorIcon,
-  PrinterOutlined as PrinterIconAlt,
-  ScanOutlined as ScanIcon,
-  CameraOutlined as CameraIconAlt,
-  VideoCameraOutlined as VideoIconAlt,
-  AudioOutlined as AudioIconAlt,
-  SoundOutlined as SoundIconAlt,
-  BellOutlined as BellIcon,
-  NotificationOutlined as NotificationIcon,
-  MessageOutlined as MessageIconAlt,
-  CommentOutlined as CommentIcon,
-  LikeOutlined as LikeIcon,
-  DislikeOutlined as DislikeIcon,
-  ShareAltOutlined as ShareIconAlt,
-  RetweetOutlined as RetweetIcon,
-  ForwardOutlined as ForwardIcon,
-  BackwardOutlined as BackwardIcon,
-  UpOutlined as UpIcon,
-  DownOutlined as DownIcon,
-  LeftOutlined as LeftIcon,
-  RightOutlined as RightIcon,
-  VerticalAlignTopOutlined as VerticalAlignTopIcon,
-  VerticalAlignBottomOutlined as VerticalAlignBottomIcon,
-  VerticalAlignMiddleOutlined as VerticalAlignMiddleIcon,
-  MenuOutlined as HorizontalIcon,
-  MenuOutlined as VerticalIcon,
-  BorderOutlined as BorderIcon,
-  BorderInnerOutlined as BorderInnerIcon,
-  BorderOuterOutlined as BorderOuterIcon,
-  BorderTopOutlined as BorderTopIcon,
-  BorderBottomOutlined as BorderBottomIcon,
-  BorderLeftOutlined as BorderLeftIcon,
-  BorderRightOutlined as BorderRightIcon,
-  BorderOutlined as BorderVerticleIcon,
-  BorderOutlined as BorderHorizontalIcon,
-  FullscreenOutlined as FullscreenIcon,
-  FullscreenExitOutlined as FullscreenExitIcon,
-  CompressOutlined as CompressIcon,
-  ExpandOutlined as ExpandIcon,
-  ArrowsAltOutlined as ArrowsAltIcon,
-  ShrinkOutlined as ShrinkIcon,
-  MenuOutlined as MenuIcon,
-  AppstoreOutlined as AppstoreIcon,
-  BarsOutlined as BarsIcon,
-  MenuFoldOutlined as MenuFoldIcon,
-  MenuUnfoldOutlined as MenuUnfoldIcon,
-  MoreOutlined as MoreIcon,
-  EllipsisOutlined as EllipsisIcon,
-  PlusCircleOutlined as PlusCircleIcon,
-  MinusCircleOutlined as MinusCircleIcon,
   SaveOutlined,
-  UndoOutlined,
-  RedoOutlined,
-  LockOutlined,
-  UnlockOutlined,
-  KeyOutlined,
-  SafetyOutlined,
-  SafetyCertificateOutlined,
-  SecurityScanOutlined,
-  BugOutlined,
-  CodeOutlined,
-  FileExcelOutlined as FileExcelIcon,
-  FilePdfOutlined as FilePdfIcon,
-  FileWordOutlined as FileWordIcon,
-  FilePptOutlined as FilePptIcon,
-  FileZipOutlined as FileZipIcon,
-  FileImageOutlined as FileImageIcon,
-  FileTextOutlined as FileTextIcon,
-  FileOutlined as FileIcon,
-  FolderOutlined as FolderIcon,
-  FolderOpenOutlined,
-  FolderAddOutlined,
-  MinusOutlined,
-  // EyeOutlined,
-  // FileZipOutlined,
-  // SyncOutlined,
-  // SafetyOutlined,
-  // SearchOutlined,
-  // CodeOutlined,
-  // FileOutlined,
-  // FileImageOutlined,
-  // VideoCameraOutlined,
-  // AudioOutlined,
-  // FileTextOutlined,
-  SwapOutlined,
-  // CopyOutlined,
-  // EditOutlined,
-  // DeleteOutlined,
-  // PlusOutlined,
-  // SyncOutlined,
-  // ReloadOutlined,
-  // ReloadOutlined,
-  SyncOutlined as FolderSyncIcon,
-  SafetyOutlined as FolderProtectIcon,
-  SearchOutlined as FolderSearchIcon,
-  CodeOutlined as FolderCodeIcon,
-  FileOutlined as FolderFileIcon,
-  FileImageOutlined as FolderImageIcon,
-  VideoCameraOutlined as FolderVideoIcon,
-  AudioOutlined as FolderAudioIcon,
-  FileTextOutlined as FolderDocumentIcon,
-  FileZipOutlined as FolderArchiveIcon,
-  CloudOutlined as FolderBackupIcon,
-  ReloadOutlined as FolderRestoreIcon,
-  SwapOutlined as FolderMoveIcon,
-  CopyOutlined as FolderCopyIcon,
-  EditOutlined as FolderRenameIcon,
-  DeleteOutlined as FolderDeleteIcon,
-  PlusOutlined as FolderCreateIcon,
-  SyncOutlined as FolderUpdateIcon,
-  ReloadOutlined as FolderRefreshIcon,
-  ReloadOutlined as FolderReloadIcon
+  ReloadOutlined
 } from '@ant-design/icons';
 
-// Import Google Font (Poppins) - Same as landing page
-const link = document.createElement("link");
-link.href = "https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap";
-link.rel = "stylesheet";
-document.head.appendChild(link);
+// Import Google Fonts (Poppins & Playfair Display)
+const link1 = document.createElement("link");
+link1.href = "https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap";
+link1.rel = "stylesheet";
+document.head.appendChild(link1);
 
-const { Title, Text, Paragraph } = Typography;
+const link2 = document.createElement("link");
+link2.href = "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&display=swap";
+link2.rel = "stylesheet";
+document.head.appendChild(link2);
+
+const { Title } = Typography;
 const { TextArea } = Input;
 const { Option } = Select;
-const { Meta } = Card;
 
 const Settings = () => {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('general');
-  const [form] = Form.useForm();
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const [generalForm] = Form.useForm();
+  const [appearanceForm] = Form.useForm();
+  const [notificationForm] = Form.useForm();
+  const [securityForm] = Form.useForm();
+  const [integrationForm] = Form.useForm();
   const [settings, setSettings] = useState({
     general: {
       siteName: 'Lisaa Tours & Travels',
@@ -425,6 +133,15 @@ const Settings = () => {
     }
   });
 
+  // Handle window resize
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   useEffect(() => {
     fetchSettings();
   }, []);
@@ -464,16 +181,211 @@ const Settings = () => {
   const handleResetSettings = (tab) => {
     Modal.confirm({
       title: 'Reset Settings',
-      content: 'Are you sure you want to reset all settings to default values?',
+      content: `Are you sure you want to reset ${tab} settings to default values?`,
       onOk: () => {
-        message.success('Settings reset to default values');
+        // Reset to default values
+        const defaultSettings = {
+          general: {
+            siteName: 'Lisaa Tours & Travels',
+            siteDescription: 'Your gateway to amazing travel experiences across India',
+            siteUrl: 'https://lisaatourism.com',
+            adminEmail: 'Lsiaatech@gmail.com',
+            supportEmail: 'Lsiaatech@gmail.com',
+            phoneNumber: '+91 9263616263',
+            address: '123 Tourism Street, Travel City, TC 12345',
+            timezone: 'Asia/Kolkata',
+            language: 'en',
+            currency: 'INR',
+            dateFormat: 'DD/MM/YYYY',
+            timeFormat: '24h'
+          },
+          appearance: {
+            primaryColor: '#ff6b35',
+            secondaryColor: '#f15a29',
+            fontFamily: 'Poppins',
+            logoUrl: '',
+            faviconUrl: '',
+            theme: 'light',
+            layout: 'default',
+            sidebarCollapsed: false,
+            showBreadcrumbs: true,
+            showFooter: true,
+            showHeader: true
+          },
+          notifications: {
+            emailNotifications: true,
+            smsNotifications: false,
+            pushNotifications: true,
+            bookingConfirmations: true,
+            paymentConfirmations: true,
+            cancellationNotifications: true,
+            reminderNotifications: true,
+            marketingEmails: false,
+            newsletterSubscriptions: true
+          },
+          security: {
+            twoFactorAuth: false,
+            sessionTimeout: 30,
+            passwordExpiry: 90,
+            loginAttempts: 5,
+            lockoutDuration: 15,
+            ipWhitelist: [],
+            sslEnabled: true,
+            backupEnabled: true,
+            backupFrequency: 'daily',
+            dataRetention: 365
+          },
+          integrations: {
+            googleAnalytics: '',
+            facebookPixel: '',
+            googleMaps: '',
+            paymentGateway: 'razorpay',
+            smsProvider: 'twilio',
+            emailProvider: 'sendgrid',
+            socialLogin: {
+              google: true,
+              facebook: true,
+              twitter: false,
+              linkedin: false
+            }
+          }
+        };
+        
+        setSettings(prev => ({
+          ...prev,
+          [tab]: defaultSettings[tab]
+        }));
+        
+        // Reset form
+        if (tab === 'general') generalForm.setFieldsValue(defaultSettings.general);
+        else if (tab === 'appearance') appearanceForm.setFieldsValue(defaultSettings.appearance);
+        else if (tab === 'notifications') notificationForm.setFieldsValue(defaultSettings.notifications);
+        else if (tab === 'security') securityForm.setFieldsValue(defaultSettings.security);
+        else if (tab === 'integrations') integrationForm.setFieldsValue(defaultSettings.integrations);
+        
+        message.success(`${tab.charAt(0).toUpperCase() + tab.slice(1)} settings reset to default values`);
+      }
+    });
+  };
+
+  const handleSaveAll = async () => {
+    try {
+      setLoading(true);
+      // Get all form values
+      const generalValues = generalForm.getFieldsValue();
+      const appearanceValues = appearanceForm.getFieldsValue();
+      const notificationValues = notificationForm.getFieldsValue();
+      const securityValues = securityForm.getFieldsValue();
+      const integrationValues = integrationForm.getFieldsValue();
+      
+      // Save all settings
+      await Promise.all([
+        handleSaveSettings('general', generalValues),
+        handleSaveSettings('appearance', appearanceValues),
+        handleSaveSettings('notifications', notificationValues),
+        handleSaveSettings('security', securityValues),
+        handleSaveSettings('integrations', integrationValues)
+      ]);
+      
+      message.success('All settings saved successfully!');
+    } catch (error) {
+      message.error('Failed to save all settings');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetAll = () => {
+    Modal.confirm({
+      title: 'Reset All Settings',
+      content: 'Are you sure you want to reset ALL settings to default values? This action cannot be undone.',
+      okText: 'Yes, Reset All',
+      okType: 'danger',
+      onOk: () => {
+        const defaultSettings = {
+          general: {
+            siteName: 'Lisaa Tours & Travels',
+            siteDescription: 'Your gateway to amazing travel experiences across India',
+            siteUrl: 'https://lisaatourism.com',
+            adminEmail: 'Lsiaatech@gmail.com',
+            supportEmail: 'Lsiaatech@gmail.com',
+            phoneNumber: '+91 9263616263',
+            address: '123 Tourism Street, Travel City, TC 12345',
+            timezone: 'Asia/Kolkata',
+            language: 'en',
+            currency: 'INR',
+            dateFormat: 'DD/MM/YYYY',
+            timeFormat: '24h'
+          },
+          appearance: {
+            primaryColor: '#ff6b35',
+            secondaryColor: '#f15a29',
+            fontFamily: 'Poppins',
+            logoUrl: '',
+            faviconUrl: '',
+            theme: 'light',
+            layout: 'default',
+            sidebarCollapsed: false,
+            showBreadcrumbs: true,
+            showFooter: true,
+            showHeader: true
+          },
+          notifications: {
+            emailNotifications: true,
+            smsNotifications: false,
+            pushNotifications: true,
+            bookingConfirmations: true,
+            paymentConfirmations: true,
+            cancellationNotifications: true,
+            reminderNotifications: true,
+            marketingEmails: false,
+            newsletterSubscriptions: true
+          },
+          security: {
+            twoFactorAuth: false,
+            sessionTimeout: 30,
+            passwordExpiry: 90,
+            loginAttempts: 5,
+            lockoutDuration: 15,
+            ipWhitelist: [],
+            sslEnabled: true,
+            backupEnabled: true,
+            backupFrequency: 'daily',
+            dataRetention: 365
+          },
+          integrations: {
+            googleAnalytics: '',
+            facebookPixel: '',
+            googleMaps: '',
+            paymentGateway: 'razorpay',
+            smsProvider: 'twilio',
+            emailProvider: 'sendgrid',
+            socialLogin: {
+              google: true,
+              facebook: true,
+              twitter: false,
+              linkedin: false
+            }
+          }
+        };
+        
+        setSettings(defaultSettings);
+        
+        // Reset all forms
+        generalForm.setFieldsValue(defaultSettings.general);
+        appearanceForm.setFieldsValue(defaultSettings.appearance);
+        notificationForm.setFieldsValue(defaultSettings.notifications);
+        securityForm.setFieldsValue(defaultSettings.security);
+        integrationForm.setFieldsValue(defaultSettings.integrations);
+        
+        message.success('All settings reset to default values');
       }
     });
   };
 
   const GeneralSettings = () => (
     <Form
-      form={form}
+      form={generalForm}
       layout="vertical"
       initialValues={settings.general}
       onFinish={(values) => handleSaveSettings('general', values)}
@@ -607,10 +519,33 @@ const Settings = () => {
       
       <div style={{ textAlign: 'right', marginTop: '24px' }}>
         <Space>
-          <Button onClick={() => handleResetSettings('general')} style={{ borderRadius: '8px' }}>
+          <Button 
+            onClick={() => handleResetSettings('general')} 
+            size={windowWidth <= 768 ? 'middle' : 'large'}
+            style={{ 
+              borderRadius: '8px',
+              fontFamily: "'Poppins', sans-serif",
+              fontWeight: '600',
+              height: windowWidth <= 768 ? '32px' : '40px'
+            }}
+          >
             Reset
           </Button>
-          <Button type="primary" htmlType="submit" loading={loading} style={{ borderRadius: '8px', background: '#ff6b35', border: 'none' }}>
+          <Button 
+            type="primary" 
+            htmlType="submit" 
+            loading={loading} 
+            size={windowWidth <= 768 ? 'middle' : 'large'}
+            style={{ 
+              borderRadius: '8px', 
+              background: '#ff6b35', 
+              border: 'none',
+              fontFamily: "'Poppins', sans-serif",
+              fontWeight: '600',
+              boxShadow: '0 4px 12px rgba(255, 107, 53, 0.3)',
+              height: windowWidth <= 768 ? '32px' : '40px'
+            }}
+          >
             Save Settings
           </Button>
         </Space>
@@ -620,7 +555,7 @@ const Settings = () => {
 
   const AppearanceSettings = () => (
     <Form
-      form={form}
+      form={appearanceForm}
       layout="vertical"
       initialValues={settings.appearance}
       onFinish={(values) => handleSaveSettings('appearance', values)}
@@ -748,10 +683,33 @@ const Settings = () => {
       
       <div style={{ textAlign: 'right', marginTop: '24px' }}>
         <Space>
-          <Button onClick={() => handleResetSettings('appearance')} style={{ borderRadius: '8px' }}>
+          <Button 
+            onClick={() => handleResetSettings('appearance')} 
+            size={windowWidth <= 768 ? 'middle' : 'large'}
+            style={{ 
+              borderRadius: '8px',
+              fontFamily: "'Poppins', sans-serif",
+              fontWeight: '600',
+              height: windowWidth <= 768 ? '32px' : '40px'
+            }}
+          >
             Reset
           </Button>
-          <Button type="primary" htmlType="submit" loading={loading} style={{ borderRadius: '8px', background: '#ff6b35', border: 'none' }}>
+          <Button 
+            type="primary" 
+            htmlType="submit" 
+            loading={loading} 
+            size={windowWidth <= 768 ? 'middle' : 'large'}
+            style={{ 
+              borderRadius: '8px', 
+              background: '#ff6b35', 
+              border: 'none',
+              fontFamily: "'Poppins', sans-serif",
+              fontWeight: '600',
+              boxShadow: '0 4px 12px rgba(255, 107, 53, 0.3)',
+              height: windowWidth <= 768 ? '32px' : '40px'
+            }}
+          >
             Save Settings
           </Button>
         </Space>
@@ -761,7 +719,7 @@ const Settings = () => {
 
   const NotificationSettings = () => (
     <Form
-      form={form}
+      form={notificationForm}
       layout="vertical"
       initialValues={settings.notifications}
       onFinish={(values) => handleSaveSettings('notifications', values)}
@@ -859,10 +817,33 @@ const Settings = () => {
       
       <div style={{ textAlign: 'right', marginTop: '24px' }}>
         <Space>
-          <Button onClick={() => handleResetSettings('notifications')} style={{ borderRadius: '8px' }}>
+          <Button 
+            onClick={() => handleResetSettings('notifications')} 
+            size={windowWidth <= 768 ? 'middle' : 'large'}
+            style={{ 
+              borderRadius: '8px',
+              fontFamily: "'Poppins', sans-serif",
+              fontWeight: '600',
+              height: windowWidth <= 768 ? '32px' : '40px'
+            }}
+          >
             Reset
           </Button>
-          <Button type="primary" htmlType="submit" loading={loading} style={{ borderRadius: '8px', background: '#ff6b35', border: 'none' }}>
+          <Button 
+            type="primary" 
+            htmlType="submit" 
+            loading={loading} 
+            size={windowWidth <= 768 ? 'middle' : 'large'}
+            style={{ 
+              borderRadius: '8px', 
+              background: '#ff6b35', 
+              border: 'none',
+              fontFamily: "'Poppins', sans-serif",
+              fontWeight: '600',
+              boxShadow: '0 4px 12px rgba(255, 107, 53, 0.3)',
+              height: windowWidth <= 768 ? '32px' : '40px'
+            }}
+          >
             Save Settings
           </Button>
         </Space>
@@ -872,7 +853,7 @@ const Settings = () => {
 
   const SecuritySettings = () => (
     <Form
-      form={form}
+      form={securityForm}
       layout="vertical"
       initialValues={settings.security}
       onFinish={(values) => handleSaveSettings('security', values)}
@@ -986,10 +967,33 @@ const Settings = () => {
       
       <div style={{ textAlign: 'right', marginTop: '24px' }}>
         <Space>
-          <Button onClick={() => handleResetSettings('security')} style={{ borderRadius: '8px' }}>
+          <Button 
+            onClick={() => handleResetSettings('security')} 
+            size={windowWidth <= 768 ? 'middle' : 'large'}
+            style={{ 
+              borderRadius: '8px',
+              fontFamily: "'Poppins', sans-serif",
+              fontWeight: '600',
+              height: windowWidth <= 768 ? '32px' : '40px'
+            }}
+          >
             Reset
           </Button>
-          <Button type="primary" htmlType="submit" loading={loading} style={{ borderRadius: '8px', background: '#ff6b35', border: 'none' }}>
+          <Button 
+            type="primary" 
+            htmlType="submit" 
+            loading={loading} 
+            size={windowWidth <= 768 ? 'middle' : 'large'}
+            style={{ 
+              borderRadius: '8px', 
+              background: '#ff6b35', 
+              border: 'none',
+              fontFamily: "'Poppins', sans-serif",
+              fontWeight: '600',
+              boxShadow: '0 4px 12px rgba(255, 107, 53, 0.3)',
+              height: windowWidth <= 768 ? '32px' : '40px'
+            }}
+          >
             Save Settings
           </Button>
         </Space>
@@ -999,7 +1003,7 @@ const Settings = () => {
 
   const IntegrationSettings = () => (
     <Form
-      form={form}
+      form={integrationForm}
       layout="vertical"
       initialValues={settings.integrations}
       onFinish={(values) => handleSaveSettings('integrations', values)}
@@ -1088,10 +1092,33 @@ const Settings = () => {
       
       <div style={{ textAlign: 'right', marginTop: '24px' }}>
         <Space>
-          <Button onClick={() => handleResetSettings('integrations')} style={{ borderRadius: '8px' }}>
+          <Button 
+            onClick={() => handleResetSettings('integrations')} 
+            size={windowWidth <= 768 ? 'middle' : 'large'}
+            style={{ 
+              borderRadius: '8px',
+              fontFamily: "'Poppins', sans-serif",
+              fontWeight: '600',
+              height: windowWidth <= 768 ? '32px' : '40px'
+            }}
+          >
             Reset
           </Button>
-          <Button type="primary" htmlType="submit" loading={loading} style={{ borderRadius: '8px', background: '#ff6b35', border: 'none' }}>
+          <Button 
+            type="primary" 
+            htmlType="submit" 
+            loading={loading} 
+            size={windowWidth <= 768 ? 'middle' : 'large'}
+            style={{ 
+              borderRadius: '8px', 
+              background: '#ff6b35', 
+              border: 'none',
+              fontFamily: "'Poppins', sans-serif",
+              fontWeight: '600',
+              boxShadow: '0 4px 12px rgba(255, 107, 53, 0.3)',
+              height: windowWidth <= 768 ? '32px' : '40px'
+            }}
+          >
             Save Settings
           </Button>
         </Space>
@@ -1100,54 +1127,102 @@ const Settings = () => {
   );
 
   return (
-    <div style={{ fontFamily: "'Poppins', sans-serif" }}>
-      {/* Header */}
+    <div style={{ 
+      padding: windowWidth <= 768 ? '16px' : '24px',
+      fontFamily: "'Poppins', sans-serif",
+      background: '#f5f5f5',
+      minHeight: '100vh'
+    }}>
+      {/* Header Section */}
       <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '24px',
-        padding: '20px 24px',
-        background: 'white',
-        borderRadius: '20px',
-        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
-        border: '1px solid rgba(255, 107, 53, 0.1)'
+        marginBottom: windowWidth <= 768 ? '20px' : '32px',
+        textAlign: 'center',
+        position: 'relative',
+        paddingTop: windowWidth <= 768 ? '40px' : '0'
       }}>
-        <div>
-          <Title level={3} style={{ margin: '0 0 8px 0', color: '#2c3e50', fontFamily: "'Poppins', sans-serif" }}>
-            ⚙️ Settings
-          </Title>
-          <Text style={{ fontSize: '14px', color: '#6c757d', fontFamily: "'Poppins', sans-serif" }}>
-            Configure your application settings and preferences
-          </Text>
-        </div>
+        <Title level={1} style={{ 
+          fontSize: windowWidth <= 768 ? '1.8rem' : windowWidth <= 1024 ? '2.5rem' : '3rem', 
+          fontWeight: '800', 
+          color: '#FF6B35',
+          margin: '0 auto 16px auto',
+          fontFamily: "'Playfair Display', 'Georgia', serif",
+          lineHeight: '1.2',
+          letterSpacing: '-0.02em',
+          textShadow: '0 2px 4px rgba(255, 107, 53, 0.1)',
+          textAlign: 'center'
+        }}>
+          Settings
+        </Title>
         
-        <Space>
+        <p style={{
+          fontSize: windowWidth <= 768 ? '13px' : windowWidth <= 1024 ? '14px' : '16px',
+          color: '#6c757d',
+          margin: '0 auto',
+          fontFamily: "'Poppins', sans-serif",
+          lineHeight: '1.6',
+          maxWidth: '700px',
+          textAlign: 'center'
+        }}>
+          Configure your application settings and preferences
+        </p>
+
+        <Space 
+          style={{ 
+            position: windowWidth <= 768 ? 'absolute' : 'absolute', 
+            top: windowWidth <= 768 ? '0' : '0', 
+            right: '0',
+            flexWrap: 'wrap',
+            justifyContent: 'flex-end',
+            gap: '8px'
+          }}
+        >
           <Button
+            type="primary"
             icon={<SaveOutlined />}
+            onClick={handleSaveAll}
+            loading={loading}
+            size={windowWidth <= 768 ? 'small' : 'large'}
             style={{
-              borderRadius: '12px',
+              borderRadius: '8px',
+              background: '#52c41a',
+              border: 'none',
               fontFamily: "'Poppins', sans-serif",
-              fontWeight: '600'
+              fontWeight: '600',
+              boxShadow: '0 4px 12px rgba(82, 196, 26, 0.3)',
+              height: windowWidth <= 768 ? '28px' : '40px',
+              padding: windowWidth <= 768 ? '0 8px' : '0 16px',
+              fontSize: windowWidth <= 768 ? '12px' : '14px'
             }}
           >
-            Save All
+            {windowWidth > 768 && 'Save All'}
           </Button>
           <Button
             icon={<ReloadOutlined />}
+            onClick={handleResetAll}
+            size={windowWidth <= 768 ? 'small' : 'large'}
             style={{
-              borderRadius: '12px',
+              borderRadius: '8px',
               fontFamily: "'Poppins', sans-serif",
-              fontWeight: '600'
+              fontWeight: '600',
+              height: windowWidth <= 768 ? '28px' : '40px',
+              padding: windowWidth <= 768 ? '0 8px' : '0 16px',
+              fontSize: windowWidth <= 768 ? '12px' : '14px'
             }}
           >
-            Reset All
+            {windowWidth > 768 && 'Reset All'}
           </Button>
         </Space>
       </div>
 
       {/* Settings Content */}
-      <Card style={{ borderRadius: '16px' }}>
+      <Card 
+        style={{ 
+          borderRadius: '12px',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+          border: 'none'
+        }}
+        bodyStyle={{ padding: windowWidth <= 768 ? '12px' : '20px' }}
+      >
         <Tabs
           activeKey={activeTab}
           onChange={setActiveTab}

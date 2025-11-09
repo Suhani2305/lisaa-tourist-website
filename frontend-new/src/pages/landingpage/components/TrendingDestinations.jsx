@@ -200,8 +200,8 @@ const TrendingDestinations = () => {
             display: window.innerWidth <= 768 ? "flex" : "grid",
             gridTemplateColumns: window.innerWidth <= 768 
               ? "none" 
-              : window.innerWidth <= 1024
-                ? "repeat(3, 1fr)"
+                : window.innerWidth <= 1024
+                  ? "repeat(3, 1fr)"
                 : "repeat(3, 1fr)",
             gridTemplateRows: window.innerWidth > 1024 && window.innerWidth > 768
               ? "repeat(2, 1fr)" 
@@ -248,7 +248,7 @@ const TrendingDestinations = () => {
               </div>
             );
           })}
-        </div>
+      </div>
         </div>
         
         {/* Custom scrollbar hide for mobile */}

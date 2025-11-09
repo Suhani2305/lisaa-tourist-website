@@ -34,7 +34,8 @@ import {
   Drawer,
   Upload,
   Radio,
-  Alert
+  Alert,
+  Pagination
 } from 'antd';
 import {
   PlusOutlined,
@@ -82,7 +83,8 @@ import {
   TagsOutlined,
   CopyOutlined,
   ShareAltOutlined,
-  QrcodeOutlined
+  QrcodeOutlined,
+  ReloadOutlined
 } from '@ant-design/icons';
 
 // Import Google Font (Poppins) - Same as landing page
@@ -102,6 +104,7 @@ const OffersManagement = () => {
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [editingOffer, setEditingOffer] = useState(null);
   const [form] = Form.useForm();
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const [searchText, setSearchText] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterType, setFilterType] = useState('all');
@@ -111,6 +114,27 @@ const OffersManagement = () => {
   const [availableCities, setAvailableCities] = useState([]);
   const [applicabilityType, setApplicabilityType] = useState('all'); // 'all', 'tours', 'cities', 'states'
   const [imageFileList, setImageFileList] = useState([]);
+  const [tablePage, setTablePage] = useState(1);
+  const [tablePageSize, setTablePageSize] = useState(window.innerWidth <= 768 ? 5 : 10);
+
+  // Handle window resize
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+      if (window.innerWidth <= 768) {
+        setTablePageSize(5);
+      } else {
+        setTablePageSize(10);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setTablePage(1);
+  }, [searchText, filterStatus, filterType]);
 
   useEffect(() => {
     fetchOffers();
@@ -350,6 +374,70 @@ const OffersManagement = () => {
     form.resetFields();
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleShare = async () => {
+    if (navigator.share && selectedOffer) {
+      try {
+        await navigator.share({
+          title: selectedOffer.title,
+          text: `Check out this offer: ${selectedOffer.code}`,
+          url: window.location.href
+        });
+        message.success('Offer shared successfully!');
+      } catch (error) {
+        if (error.name !== 'AbortError') {
+          // Fallback: Copy to clipboard
+          const shareText = `Offer: ${selectedOffer.title}\nCode: ${selectedOffer.code}\n${window.location.href}`;
+          navigator.clipboard.writeText(shareText).then(() => {
+            message.success('Offer details copied to clipboard!');
+          });
+        }
+      }
+    } else {
+      // Fallback: Copy to clipboard
+      if (selectedOffer) {
+        const shareText = `Offer: ${selectedOffer.title}\nCode: ${selectedOffer.code}\n${window.location.href}`;
+        navigator.clipboard.writeText(shareText).then(() => {
+          message.success('Offer details copied to clipboard!');
+        }).catch(() => {
+          message.info('Share functionality not available');
+        });
+      }
+    }
+  };
+
+  const handleQRCode = () => {
+    if (selectedOffer) {
+      const qrData = {
+        type: 'offer',
+        code: selectedOffer.code,
+        title: selectedOffer.title
+      };
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(JSON.stringify(qrData))}`;
+      
+      // Open QR code in new window or show in modal
+      Modal.info({
+        title: 'QR Code for Offer',
+        width: 400,
+        content: (
+          <div style={{ textAlign: 'center', padding: '20px' }}>
+            <img src={qrUrl} alt="QR Code" style={{ maxWidth: '100%' }} />
+            <p style={{ marginTop: '16px', fontFamily: "'Poppins', sans-serif" }}>
+              Scan to get offer code: <strong>{selectedOffer.code}</strong>
+            </p>
+          </div>
+        ),
+        okText: 'Close',
+        okButtonProps: {
+          style: { borderRadius: '8px' }
+        }
+      });
+    }
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'active': return 'green';
@@ -384,18 +472,71 @@ const OffersManagement = () => {
   const filteredOffers = offers.filter(offer => {
     const matchesSearch = offer.title.toLowerCase().includes(searchText.toLowerCase()) ||
                          offer.code.toLowerCase().includes(searchText.toLowerCase()) ||
-                         offer.description.toLowerCase().includes(searchText.toLowerCase());
+                         (offer.description || '').toLowerCase().includes(searchText.toLowerCase());
     const matchesStatus = filterStatus === 'all' || offer.status === filterStatus;
     const matchesType = filterType === 'all' || offer.type === filterType;
     
     return matchesSearch && matchesStatus && matchesType;
   });
 
+  // Get paginated offers
+  const getPaginatedOffers = () => {
+    const start = (tablePage - 1) * tablePageSize;
+    const end = start + tablePageSize;
+    return filteredOffers.slice(start, end);
+  };
+
+  const paginatedOffers = getPaginatedOffers();
+  const totalOffersCount = filteredOffers.length;
+
+  const handleExport = () => {
+    try {
+      // Create CSV headers
+      const headers = ['Code', 'Title', 'Type', 'Value', 'Status', 'Start Date', 'End Date', 'Usage Limit', 'Used Count', 'Min Amount', 'Max Discount'];
+      
+      // Create CSV rows
+      const rows = filteredOffers.map(offer => [
+        offer.code || 'N/A',
+        offer.title || 'N/A',
+        offer.type || 'N/A',
+        offer.value || 0,
+        offer.status || 'N/A',
+        offer.startDate || 'N/A',
+        offer.endDate || 'N/A',
+        offer.usageLimit || 'Unlimited',
+        offer.usedCount || 0,
+        offer.minAmount || 0,
+        offer.maxDiscount || 'N/A'
+      ]);
+      
+      // Combine headers and rows
+      const csvContent = [headers, ...rows]
+        .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+        .join('\n');
+      
+      // Create blob and download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `offers_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      message.success('Offers exported successfully!');
+    } catch (error) {
+      console.error('Export error:', error);
+      message.error('Failed to export offers');
+    }
+  };
+
   // Calculate statistics
   const totalOffers = offers.length;
   const activeOffers = offers.filter(o => o.status === 'active').length;
   const expiredOffers = offers.filter(o => o.status === 'expired').length;
-  const totalUsage = offers.reduce((sum, o) => sum + o.usedCount, 0);
+  const totalUsage = offers.reduce((sum, o) => sum + (o.usedCount || 0), 0);
 
   const columns = [
     {
@@ -591,215 +732,363 @@ const OffersManagement = () => {
   ];
 
   return (
-    <div style={{ fontFamily: "'Poppins', sans-serif" }}>
-      {/* Header */}
+    <div style={{ 
+      fontFamily: "'Poppins', sans-serif",
+      padding: windowWidth <= 768 ? '16px' : '24px',
+      background: '#f5f5f5',
+      minHeight: '100vh'
+    }}>
+      {/* Header Section */}
       <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '24px',
-        padding: '20px 24px',
-        background: 'white',
-        borderRadius: '20px',
-        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
-        border: '1px solid rgba(255, 107, 53, 0.1)'
+        marginBottom: windowWidth <= 768 ? '20px' : '32px',
+        textAlign: 'center'
       }}>
-        <div>
-          <Title level={3} style={{ margin: '0 0 8px 0', color: '#2c3e50', fontFamily: "'Poppins', sans-serif" }}>
-            🎟️ Offers & Coupons Management
-          </Title>
-          <Text style={{ fontSize: '14px', color: '#6c757d', fontFamily: "'Poppins', sans-serif" }}>
-            Create and manage promotional offers, discounts, and coupon codes
-          </Text>
-        </div>
-        
-        <Space>
-          <Button
-            icon={<ImportOutlined />}
-            style={{
-              borderRadius: '12px',
-              fontFamily: "'Poppins', sans-serif",
-              fontWeight: '600'
-            }}
-          >
-            Import
-          </Button>
-          <Button
-            icon={<ExportOutlined />}
-            style={{
-              borderRadius: '12px',
-              fontFamily: "'Poppins', sans-serif",
-              fontWeight: '600'
-            }}
-          >
-            Export
-          </Button>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => {
-              setApplicabilityType('all');
-              setImageFileList([]);
-              form.resetFields();
-              form.setFieldsValue({ applicabilityType: 'all' });
-              setModalVisible(true);
-            }}
-            style={{
-              borderRadius: '12px',
-              background: '#ff6b35',
-              border: 'none',
-              fontFamily: "'Poppins', sans-serif",
-              fontWeight: '600'
-            }}
-          >
-            Create Offer
-          </Button>
-        </Space>
+        <Title level={1} style={{ 
+          fontSize: windowWidth <= 768 ? '1.8rem' : windowWidth <= 1024 ? '2.5rem' : '3rem', 
+          fontWeight: '800', 
+          color: '#FF6B35',
+          margin: '0 auto 16px auto',
+          fontFamily: "'Playfair Display', 'Georgia', serif",
+          lineHeight: '1.2',
+          letterSpacing: '-0.02em',
+          textAlign: 'center'
+        }}>
+          Offers Management
+        </Title>
+        <p style={{ 
+          fontSize: windowWidth <= 768 ? '13px' : '16px',
+          color: '#6c757d',
+          margin: '0 auto',
+          fontFamily: "'Poppins', sans-serif",
+          textAlign: 'center',
+          maxWidth: '600px'
+        }}>
+          Create and manage promotional offers, discounts, and coupon codes
+        </p>
       </div>
 
       {/* Statistics Cards */}
-      <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
-        <Col xs={24} sm={12} md={6}>
-          <Card style={{ borderRadius: '16px', textAlign: 'center' }}>
+      <Row gutter={[windowWidth <= 768 ? 12 : 16, windowWidth <= 768 ? 12 : 16]} style={{ marginBottom: '24px' }}>
+        <Col xs={12} sm={12} lg={6}>
+          <Card style={{ 
+            borderRadius: '12px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+            border: 'none',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: 'white'
+          }}>
             <Statistic
-              title="Total Offers"
+              title={<span style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: windowWidth <= 768 ? '12px' : '14px' }}>Total Offers</span>}
               value={totalOffers}
-              prefix={<TagsOutlined style={{ color: '#ff6b35' }} />}
-              valueStyle={{ color: '#ff6b35', fontFamily: "'Poppins', sans-serif" }}
+              valueStyle={{ color: 'white', fontSize: windowWidth <= 768 ? '24px' : '32px', fontWeight: '700' }}
             />
           </Card>
         </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card style={{ borderRadius: '16px', textAlign: 'center' }}>
+        <Col xs={12} sm={12} lg={6}>
+          <Card style={{ 
+            borderRadius: '12px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+            border: 'none',
+            background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+            color: 'white'
+          }}>
             <Statistic
-              title="Active Offers"
+              title={<span style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: windowWidth <= 768 ? '12px' : '14px' }}>Active Offers</span>}
               value={activeOffers}
-              prefix={<CheckCircleOutlined style={{ color: '#52c41a' }} />}
-              valueStyle={{ color: '#52c41a', fontFamily: "'Poppins', sans-serif" }}
+              valueStyle={{ color: 'white', fontSize: windowWidth <= 768 ? '24px' : '32px', fontWeight: '700' }}
             />
           </Card>
         </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card style={{ borderRadius: '16px', textAlign: 'center' }}>
+        <Col xs={12} sm={12} lg={6}>
+          <Card style={{ 
+            borderRadius: '12px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+            border: 'none',
+            background: 'linear-gradient(135deg, #faad14 0%, #ffc53d 100%)',
+            color: 'white'
+          }}>
             <Statistic
-              title="Expired Offers"
+              title={<span style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: windowWidth <= 768 ? '12px' : '14px' }}>Expired Offers</span>}
               value={expiredOffers}
-              prefix={<CloseCircleOutlined style={{ color: '#ff4d4f' }} />}
-              valueStyle={{ color: '#ff4d4f', fontFamily: "'Poppins', sans-serif" }}
+              valueStyle={{ color: 'white', fontSize: windowWidth <= 768 ? '24px' : '32px', fontWeight: '700' }}
             />
           </Card>
         </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card style={{ borderRadius: '16px', textAlign: 'center' }}>
+        <Col xs={12} sm={12} lg={6}>
+          <Card style={{ 
+            borderRadius: '12px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+            border: 'none',
+            background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+            color: 'white'
+          }}>
             <Statistic
-              title="Total Usage"
+              title={<span style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: windowWidth <= 768 ? '12px' : '14px' }}>Total Usage</span>}
               value={totalUsage}
-              prefix={<UserOutlined style={{ color: '#1890ff' }} />}
-              valueStyle={{ color: '#1890ff', fontFamily: "'Poppins', sans-serif" }}
+              valueStyle={{ color: 'white', fontSize: windowWidth <= 768 ? '24px' : '32px', fontWeight: '700' }}
             />
           </Card>
         </Col>
       </Row>
 
-      {/* Filters */}
-      <Card style={{ marginBottom: '24px', borderRadius: '16px' }}>
-        <Row gutter={[16, 16]} align="middle">
-          <Col xs={24} sm={8} md={6}>
-            <Input
-              placeholder="Search offers..."
-              prefix={<SearchOutlined style={{ color: '#ff6b35' }} />}
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              style={{ borderRadius: '8px' }}
-            />
-          </Col>
-          <Col xs={12} sm={8} md={4}>
-            <Select
-              placeholder="Status"
-              value={filterStatus}
-              onChange={setFilterStatus}
-              style={{ width: '100%', borderRadius: '8px' }}
-            >
-              <Option value="all">All Status</Option>
-              <Option value="active">Active</Option>
-              <Option value="draft">Draft</Option>
-              <Option value="expired">Expired</Option>
-              <Option value="paused">Paused</Option>
-            </Select>
-          </Col>
-          <Col xs={12} sm={8} md={4}>
-            <Select
-              placeholder="Type"
-              value={filterType}
-              onChange={setFilterType}
-              style={{ width: '100%', borderRadius: '8px' }}
-            >
-              <Option value="all">All Types</Option>
-              <Option value="percentage">Percentage</Option>
-              <Option value="fixed">Fixed Amount</Option>
-              <Option value="free_shipping">Free Shipping</Option>
-              <Option value="buy_one_get_one">BOGO</Option>
-            </Select>
-          </Col>
-          <Col xs={24} sm={24} md={10}>
-            <Space>
-              <Button
-                icon={<FilterOutlined />}
-                style={{
-                  borderRadius: '8px',
-                  fontFamily: "'Poppins', sans-serif"
-                }}
-              >
-                More Filters
-              </Button>
-              <Text type="secondary" style={{ fontFamily: "'Poppins', sans-serif" }}>
-                Showing {filteredOffers.length} of {offers.length} offers
-              </Text>
-            </Space>
-          </Col>
+      {/* Actions Bar */}
+      <Card style={{ 
+        marginBottom: '24px',
+        borderRadius: '12px',
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+        border: 'none',
+        padding: windowWidth <= 768 ? '16px' : '20px'
+      }}>
+        <Row gutter={[12, 12]}>
+          {windowWidth <= 768 ? (
+            <>
+              <Col xs={16}>
+                <Input
+                  placeholder="Search offers..."
+                  prefix={<SearchOutlined />}
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  style={{ borderRadius: '8px' }}
+                />
+              </Col>
+              <Col xs={8}>
+                <Select
+                  placeholder="Status"
+                  value={filterStatus}
+                  onChange={setFilterStatus}
+                  style={{ width: '100%', borderRadius: '8px' }}
+                >
+                  <Option value="all">All Status</Option>
+                  <Option value="active">Active</Option>
+                  <Option value="draft">Draft</Option>
+                  <Option value="expired">Expired</Option>
+                  <Option value="paused">Paused</Option>
+                </Select>
+              </Col>
+              <Col xs={12}>
+                <Select
+                  placeholder="Type"
+                  value={filterType}
+                  onChange={setFilterType}
+                  style={{ width: '100%', borderRadius: '8px' }}
+                >
+                  <Option value="all">All Types</Option>
+                  <Option value="percentage">Percentage</Option>
+                  <Option value="fixed">Fixed Amount</Option>
+                  <Option value="free_shipping">Free Shipping</Option>
+                  <Option value="buy_one_get_one">BOGO</Option>
+                </Select>
+              </Col>
+              <Col xs={6}>
+                <Tooltip title="Refresh">
+                  <Button
+                    icon={<ReloadOutlined />}
+                    onClick={fetchOffers}
+                    loading={loading}
+                    size="middle"
+                    style={{ borderRadius: '8px', width: '100%' }}
+                  />
+                </Tooltip>
+              </Col>
+              <Col xs={6}>
+                <Tooltip title="Export">
+                  <Button
+                    icon={<ExportOutlined />}
+                    onClick={handleExport}
+                    size="middle"
+                    style={{ borderRadius: '8px', width: '100%' }}
+                  />
+                </Tooltip>
+              </Col>
+              <Col xs={24}>
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={() => {
+                    setApplicabilityType('all');
+                    setImageFileList([]);
+                    form.resetFields();
+                    form.setFieldsValue({ applicabilityType: 'all' });
+                    setModalVisible(true);
+                  }}
+                  size="middle"
+                  style={{ 
+                    borderRadius: '8px', 
+                    width: '100%',
+                    background: '#ff6b35',
+                    border: 'none',
+                    fontFamily: "'Poppins', sans-serif",
+                    fontWeight: '600'
+                  }}
+                >
+                  Create Offer
+                </Button>
+              </Col>
+            </>
+          ) : (
+            <>
+              <Col xs={24} sm={12} md={8} lg={6}>
+                <Input
+                  placeholder="Search offers..."
+                  prefix={<SearchOutlined />}
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  style={{ borderRadius: '8px' }}
+                />
+              </Col>
+              <Col xs={12} sm={6} md={4} lg={3}>
+                <Select
+                  placeholder="Status"
+                  value={filterStatus}
+                  onChange={setFilterStatus}
+                  style={{ width: '100%', borderRadius: '8px' }}
+                >
+                  <Option value="all">All Status</Option>
+                  <Option value="active">Active</Option>
+                  <Option value="draft">Draft</Option>
+                  <Option value="expired">Expired</Option>
+                  <Option value="paused">Paused</Option>
+                </Select>
+              </Col>
+              <Col xs={12} sm={6} md={4} lg={3}>
+                <Select
+                  placeholder="Type"
+                  value={filterType}
+                  onChange={setFilterType}
+                  style={{ width: '100%', borderRadius: '8px' }}
+                >
+                  <Option value="all">All Types</Option>
+                  <Option value="percentage">Percentage</Option>
+                  <Option value="fixed">Fixed Amount</Option>
+                  <Option value="free_shipping">Free Shipping</Option>
+                  <Option value="buy_one_get_one">BOGO</Option>
+                </Select>
+              </Col>
+              <Col xs={12} sm={6} md={4} lg={3}>
+                <Tooltip title="Refresh">
+                  <Button
+                    icon={<ReloadOutlined />}
+                    onClick={fetchOffers}
+                    loading={loading}
+                    size={windowWidth <= 768 ? 'middle' : 'large'}
+                    style={{ borderRadius: '8px', width: '100%' }}
+                  >
+                    {windowWidth > 768 && 'Refresh'}
+                  </Button>
+                </Tooltip>
+              </Col>
+              <Col xs={12} sm={6} md={4} lg={3}>
+                <Tooltip title="Export to CSV">
+                  <Button
+                    icon={<ExportOutlined />}
+                    onClick={handleExport}
+                    size={windowWidth <= 768 ? 'middle' : 'large'}
+                    style={{ borderRadius: '8px', width: '100%' }}
+                  >
+                    {windowWidth > 768 && 'Export'}
+                  </Button>
+                </Tooltip>
+              </Col>
+              <Col xs={24} sm={12} md={8} lg={6}>
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={() => {
+                    setApplicabilityType('all');
+                    setImageFileList([]);
+                    form.resetFields();
+                    form.setFieldsValue({ applicabilityType: 'all' });
+                    setModalVisible(true);
+                  }}
+                  size={windowWidth <= 768 ? 'middle' : 'large'}
+                  style={{ 
+                    borderRadius: '8px', 
+                    width: '100%',
+                    background: '#ff6b35',
+                    border: 'none',
+                    fontFamily: "'Poppins', sans-serif",
+                    fontWeight: '600'
+                  }}
+                >
+                  {windowWidth > 768 ? 'Create Offer' : 'Create'}
+                </Button>
+              </Col>
+            </>
+          )}
         </Row>
       </Card>
 
       {/* Offers Table */}
-      <Card style={{ borderRadius: '16px' }}>
+      <Card style={{ 
+        borderRadius: '12px',
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+        border: 'none'
+      }}>
         <Table
           columns={columns}
-          dataSource={filteredOffers}
+          dataSource={paginatedOffers}
           rowKey="id"
           loading={loading}
-          pagination={{
-            total: filteredOffers.length,
-            pageSize: 10,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} offers`,
-          }}
+          pagination={false}
           scroll={{ x: 1200 }}
+          rowClassName={(record, index) => index % 2 === 0 ? 'table-row-light' : 'table-row-dark'}
         />
+        
+        {/* Custom Pagination */}
+        <div style={{ 
+          marginTop: '24px', 
+          display: 'flex', 
+          justifyContent: 'center',
+          alignItems: 'center',
+          flexDirection: 'column',
+          gap: '12px'
+        }}>
+          <Pagination
+            current={tablePage}
+            total={totalOffersCount}
+            pageSize={tablePageSize}
+            onChange={(page, size) => {
+              setTablePage(page);
+              setTablePageSize(size);
+            }}
+            showSizeChanger
+            showQuickJumper
+            pageSizeOptions={['5', '10', '20', '50']}
+            style={{ textAlign: 'center' }}
+          />
+          <div style={{ 
+            textAlign: 'center',
+            color: '#6c757d',
+            fontSize: '14px',
+            fontFamily: "'Poppins', sans-serif"
+          }}>
+            {totalOffersCount > 0 
+              ? `${(tablePage - 1) * tablePageSize + 1}-${Math.min(tablePage * tablePageSize, totalOffersCount)} of ${totalOffersCount} offers`
+              : 'No offers found'
+            }
+          </div>
+        </div>
       </Card>
 
       {/* Offer Details Modal */}
       <Modal
         title={
           <div style={{ fontFamily: "'Poppins', sans-serif" }}>
-            🎟️ Offer Details - {selectedOffer?.title}
+            Offer Details - {selectedOffer?.title}
           </div>
         }
         open={detailModalVisible}
         onCancel={handleModalCancel}
         width={900}
         footer={[
-          <Button key="print" icon={<PrinterOutlined />} style={{ borderRadius: '8px' }}>
+          <Button key="print" icon={<PrinterOutlined />} onClick={handlePrint} style={{ borderRadius: '8px' }}>
             Print
           </Button>,
-          <Button key="share" icon={<ShareAltOutlined />} style={{ borderRadius: '8px' }}>
+          <Button key="share" icon={<ShareAltOutlined />} onClick={handleShare} style={{ borderRadius: '8px' }}>
             Share
           </Button>,
-          <Button key="qr" icon={<QrcodeOutlined />} style={{ borderRadius: '8px' }}>
+          <Button key="qr" icon={<QrcodeOutlined />} onClick={handleQRCode} style={{ borderRadius: '8px' }}>
             QR Code
-          </Button>,
-          <Button key="close" onClick={handleModalCancel} style={{ borderRadius: '8px' }}>
-            Close
           </Button>
         ]}
       >
@@ -880,11 +1169,51 @@ const OffersManagement = () => {
                   label: 'Details',
                   children: (
                     <div>
-                      <Card title="Description" size="small">
-                        <Text>{selectedOffer.description}</Text>
-                      </Card>
+                      <Row gutter={[16, 16]}>
+                        <Col span={16}>
+                          <Card title="Description" size="small">
+                            <Text>{selectedOffer.description || 'No description available'}</Text>
+                          </Card>
+                        </Col>
+                        <Col span={8}>
+                          <Card title="QR Code" size="small" style={{ textAlign: 'center' }}>
+                            {selectedOffer.code && (
+                              <>
+                                <img 
+                                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(selectedOffer.code)}`} 
+                                  alt="QR Code" 
+                                  style={{ 
+                                    maxWidth: '100%', 
+                                    height: 'auto',
+                                    border: '1px solid #e8e8e8',
+                                    borderRadius: '8px',
+                                    padding: '8px',
+                                    backgroundColor: '#fff'
+                                  }} 
+                                />
+                                <div style={{ marginTop: '12px' }}>
+                                  <Text strong style={{ display: 'block', marginBottom: '4px' }}>
+                                    Offer Code:
+                                  </Text>
+                                  <Text 
+                                    copyable 
+                                    style={{ 
+                                      fontSize: '16px', 
+                                      fontWeight: '600',
+                                      color: '#ff6b35',
+                                      fontFamily: "'Poppins', sans-serif"
+                                    }}
+                                  >
+                                    {selectedOffer.code}
+                                  </Text>
+                                </div>
+                              </>
+                            )}
+                          </Card>
+                        </Col>
+                      </Row>
                       <Card title="Terms & Conditions" size="small" style={{ marginTop: '16px' }}>
-                        <Text>{selectedOffer.terms}</Text>
+                        <Text>{selectedOffer.terms || 'No terms and conditions specified'}</Text>
                       </Card>
                       <Card title="Applicability" size="small" style={{ marginTop: '16px' }}>
                         <div>

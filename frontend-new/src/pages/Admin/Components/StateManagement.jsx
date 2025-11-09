@@ -20,6 +20,12 @@ import {
   Divider,
   Checkbox,
   DatePicker,
+  Typography,
+  Statistic,
+  Empty,
+  Badge,
+  Tooltip,
+  Pagination,
 } from 'antd';
 import dayjs from 'dayjs';
 import {
@@ -28,12 +34,17 @@ import {
   DeleteOutlined,
   MinusCircleOutlined,
   PlusCircleOutlined,
+  ReloadOutlined,
+  SearchOutlined,
+  AppstoreOutlined,
+  UnorderedListOutlined,
 } from '@ant-design/icons';
 import { stateService, tourService } from '../../../services';
 
 const { TextArea } = Input;
 const { Option } = Select;
 const { TabPane } = Tabs;
+const { Title, Text } = Typography;
 
 // Helper function to ensure date is a valid dayjs object
 const ensureDayjs = (val) => {
@@ -60,6 +71,37 @@ const StateManagement = () => {
   const [tourForm] = Form.useForm();
   const [imageUrls, setImageUrls] = useState(['']);
   const [itinerary, setItinerary] = useState([]);
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const [searchText, setSearchText] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [viewMode, setViewMode] = useState('table'); // 'table' or 'grid'
+  const [gridPage, setGridPage] = useState(1);
+  const [gridPageSize, setGridPageSize] = useState(window.innerWidth <= 768 ? 6 : 12);
+  const [tablePage, setTablePage] = useState(1);
+  const [tablePageSize, setTablePageSize] = useState(window.innerWidth <= 768 ? 5 : 10);
+
+  // Handle window resize
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+      if (window.innerWidth <= 768) {
+        setViewMode('grid'); // Auto switch to grid on mobile
+        setGridPageSize(6); // 6 items per page on mobile
+        setTablePageSize(5); // 5 items per page on mobile for table
+      } else {
+        setGridPageSize(12); // 12 items per page on desktop
+        setTablePageSize(10); // 10 items per page on desktop for table
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Reset to page 1 when filters or activeTab changes
+  useEffect(() => {
+    setGridPage(1);
+    setTablePage(1);
+  }, [searchText, statusFilter, activeTab]);
 
   useEffect(() => {
     fetchStates();
@@ -233,6 +275,59 @@ const StateManagement = () => {
     form.setFieldsValue({ slug });
   };
 
+  // Filter states/cities based on search and filters
+  const getFilteredData = () => {
+    let data = [];
+    if (activeTab === 'states') {
+      data = states;
+    } else if (activeTab === 'cities') {
+      data = cities;
+    } else {
+      data = cityTours;
+    }
+
+    return data.filter((item) => {
+      const matchesSearch = 
+        searchText === '' || 
+        item.name?.toLowerCase().includes(searchText.toLowerCase()) ||
+        item.title?.toLowerCase().includes(searchText.toLowerCase()) ||
+        item.slug?.toLowerCase().includes(searchText.toLowerCase());
+      
+      const isActive = item.isActive !== false;
+      const matchesStatus = 
+        statusFilter === 'all' || 
+        (statusFilter === 'active' && isActive) ||
+        (statusFilter === 'inactive' && !isActive);
+      
+      return matchesSearch && matchesStatus;
+    });
+  };
+
+  // Calculate statistics
+  const stats = {
+    states: {
+      total: states.length,
+      active: states.filter(s => s.isActive !== false).length,
+      featured: states.filter(s => s.featured).length,
+    },
+    cities: {
+      total: cities.length,
+      active: cities.filter(c => c.isActive !== false).length,
+      featured: cities.filter(c => c.featured).length,
+    },
+    tours: {
+      total: cityTours.length,
+      active: cityTours.filter(t => t.isActive !== false).length,
+      featured: cityTours.filter(t => t.featured).length,
+    }
+  };
+
+  const getCurrentStats = () => {
+    if (activeTab === 'states') return stats.states;
+    if (activeTab === 'cities') return stats.cities;
+    return stats.tours;
+  };
+
   const stateColumns = [
     {
       title: 'Name',
@@ -240,8 +335,10 @@ const StateManagement = () => {
       key: 'name',
       render: (text, record) => (
         <Space>
-          {record.featured && <Tag color="gold">Featured</Tag>}
-          <strong>{text}</strong>
+          {record.featured && <Tag color="#ff6b35" style={{ borderRadius: '6px', fontWeight: '600' }}>Featured</Tag>}
+          <Text strong style={{ fontFamily: "'Poppins', sans-serif" }}>
+            {text}
+          </Text>
         </Space>
       ),
     },
@@ -249,18 +346,28 @@ const StateManagement = () => {
       title: 'Slug',
       dataIndex: 'slug',
       key: 'slug',
+      render: (text) => (
+        <Text style={{ fontFamily: "'Poppins', sans-serif", color: '#666' }}>
+          {text}
+        </Text>
+      ),
     },
     {
       title: 'Capital',
       dataIndex: 'capital',
       key: 'capital',
+      render: (text) => (
+        <Text style={{ fontFamily: "'Poppins', sans-serif" }}>
+          {text || '-'}
+        </Text>
+      ),
     },
     {
       title: 'Status',
       dataIndex: 'isActive',
       key: 'isActive',
       render: (isActive) => (
-        <Tag color={isActive ? 'green' : 'red'}>
+        <Tag color={isActive ? 'success' : 'error'} style={{ borderRadius: '6px', fontWeight: '500' }}>
           {isActive ? 'Active' : 'Inactive'}
         </Tag>
       ),
@@ -268,28 +375,38 @@ const StateManagement = () => {
     {
       title: 'Actions',
       key: 'actions',
+      fixed: 'right',
       render: (_, record) => (
         <Space>
+          <Tooltip title="Edit State">
           <Button
+              type="primary"
             icon={<EditOutlined />}
             onClick={() => handleEdit(record)}
             size="small"
+              style={{ borderRadius: '6px' }}
           >
             Edit
           </Button>
+          </Tooltip>
           <Popconfirm
-            title="Are you sure you want to delete this state?"
+            title="Delete this state?"
+            description="This action cannot be undone."
             onConfirm={() => handleDelete(record._id, 'state')}
-            okText="Yes"
-            cancelText="No"
+            okText="Yes, Delete"
+            cancelText="Cancel"
+            okButtonProps={{ danger: true }}
           >
+            <Tooltip title="Delete State">
             <Button
-              icon={<DeleteOutlined />}
               danger
+                icon={<DeleteOutlined />}
               size="small"
+                style={{ borderRadius: '6px' }}
             >
               Delete
             </Button>
+            </Tooltip>
           </Popconfirm>
         </Space>
       ),
@@ -303,8 +420,10 @@ const StateManagement = () => {
       key: 'name',
       render: (text, record) => (
         <Space>
-          {record.featured && <Tag color="gold">Featured</Tag>}
-          <strong>{text}</strong>
+          {record.featured && <Tag color="#ff6b35" style={{ borderRadius: '6px', fontWeight: '600' }}>Featured</Tag>}
+          <Text strong style={{ fontFamily: "'Poppins', sans-serif" }}>
+            {text}
+          </Text>
         </Space>
       ),
     },
@@ -312,18 +431,28 @@ const StateManagement = () => {
       title: 'State',
       dataIndex: 'state',
       key: 'state',
+      render: (text) => (
+        <Text style={{ fontFamily: "'Poppins', sans-serif" }}>
+          {text}
+        </Text>
+      ),
     },
     {
       title: 'State Slug',
       dataIndex: 'stateSlug',
       key: 'stateSlug',
+      render: (text) => (
+        <Text style={{ fontFamily: "'Poppins', sans-serif", color: '#666' }}>
+          {text}
+        </Text>
+      ),
     },
     {
       title: 'Status',
       dataIndex: 'isActive',
       key: 'isActive',
       render: (isActive) => (
-        <Tag color={isActive ? 'green' : 'red'}>
+        <Tag color={isActive ? 'success' : 'error'} style={{ borderRadius: '6px', fontWeight: '500' }}>
           {isActive ? 'Active' : 'Inactive'}
         </Tag>
       ),
@@ -331,28 +460,38 @@ const StateManagement = () => {
     {
       title: 'Actions',
       key: 'actions',
+      fixed: 'right',
       render: (_, record) => (
         <Space>
+          <Tooltip title="Edit City">
           <Button
+              type="primary"
             icon={<EditOutlined />}
             onClick={() => handleEdit(record)}
             size="small"
+              style={{ borderRadius: '6px' }}
           >
             Edit
           </Button>
+          </Tooltip>
           <Popconfirm
-            title="Are you sure you want to delete this city?"
+            title="Delete this city?"
+            description="This action cannot be undone."
             onConfirm={() => handleDelete(record._id, 'city')}
-            okText="Yes"
-            cancelText="No"
+            okText="Yes, Delete"
+            cancelText="Cancel"
+            okButtonProps={{ danger: true }}
           >
+            <Tooltip title="Delete City">
             <Button
-              icon={<DeleteOutlined />}
               danger
+                icon={<DeleteOutlined />}
               size="small"
+                style={{ borderRadius: '6px' }}
             >
               Delete
             </Button>
+            </Tooltip>
           </Popconfirm>
         </Space>
       ),
@@ -366,8 +505,10 @@ const StateManagement = () => {
       key: 'title',
       render: (text, record) => (
         <Space>
-          {record.featured && <Tag color="gold">Featured</Tag>}
-          <strong>{text}</strong>
+          {record.featured && <Tag color="#ff6b35" style={{ borderRadius: '6px', fontWeight: '600' }}>Featured</Tag>}
+          <Text strong style={{ fontFamily: "'Poppins', sans-serif" }}>
+            {text}
+          </Text>
         </Space>
       ),
     },
@@ -375,28 +516,46 @@ const StateManagement = () => {
       title: 'City',
       dataIndex: 'city',
       key: 'city',
+      render: (text) => (
+        <Text style={{ fontFamily: "'Poppins', sans-serif" }}>
+          {text || '-'}
+        </Text>
+      ),
     },
     {
       title: 'State',
       dataIndex: 'state',
       key: 'state',
+      render: (text) => (
+        <Text style={{ fontFamily: "'Poppins', sans-serif" }}>
+          {text || '-'}
+        </Text>
+      ),
     },
     {
       title: 'Duration',
       key: 'duration',
-      render: (_, record) => `${record.duration?.days || 0}D/${record.duration?.nights || 0}N`,
+      render: (_, record) => (
+        <Tag style={{ borderRadius: '6px', fontFamily: "'Poppins', sans-serif" }}>
+          {record.duration?.days || 0}D / {record.duration?.nights || 0}N
+        </Tag>
+      ),
     },
     {
       title: 'Price',
       key: 'price',
-      render: (_, record) => `₹${record.price?.adult?.toLocaleString() || '0'}`,
+      render: (_, record) => (
+        <Text strong style={{ color: '#ff6b35', fontSize: '15px', fontFamily: "'Poppins', sans-serif" }}>
+          ₹{record.price?.adult?.toLocaleString() || '0'}
+        </Text>
+      ),
     },
     {
       title: 'Status',
       dataIndex: 'isActive',
       key: 'isActive',
       render: (isActive) => (
-        <Tag color={isActive ? 'green' : 'red'}>
+        <Tag color={isActive ? 'success' : 'error'} style={{ borderRadius: '6px', fontWeight: '500' }}>
           {isActive ? 'Active' : 'Inactive'}
         </Tag>
       ),
@@ -404,28 +563,38 @@ const StateManagement = () => {
     {
       title: 'Actions',
       key: 'actions',
+      fixed: 'right',
       render: (_, record) => (
         <Space>
+          <Tooltip title="Edit Tour">
           <Button
+              type="primary"
             icon={<EditOutlined />}
             onClick={() => handleEditTour(record)}
             size="small"
+              style={{ borderRadius: '6px' }}
           >
             Edit
           </Button>
+          </Tooltip>
           <Popconfirm
-            title="Are you sure you want to delete this city tour?"
+            title="Delete this city tour?"
+            description="This action cannot be undone."
             onConfirm={() => handleDeleteTour(record._id)}
-            okText="Yes"
-            cancelText="No"
+            okText="Yes, Delete"
+            cancelText="Cancel"
+            okButtonProps={{ danger: true }}
           >
+            <Tooltip title="Delete Tour">
             <Button
-              icon={<DeleteOutlined />}
               danger
+                icon={<DeleteOutlined />}
               size="small"
+                style={{ borderRadius: '6px' }}
             >
               Delete
             </Button>
+            </Tooltip>
           </Popconfirm>
         </Space>
       ),
@@ -594,44 +763,206 @@ const StateManagement = () => {
     }
   };
 
+  const filteredData = getFilteredData();
+  const currentStats = getCurrentStats();
+
+  // Calculate paginated data for grid view
+  const getPaginatedData = () => {
+    if (viewMode === 'table') return filteredData;
+    const startIndex = (gridPage - 1) * gridPageSize;
+    const endIndex = startIndex + gridPageSize;
+    return filteredData.slice(startIndex, endIndex);
+  };
+
+  const paginatedData = getPaginatedData();
+  const totalItems = filteredData.length;
+
   return (
-    <div style={{ padding: '24px' }}>
-      <Card>
-        <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ margin: 0, fontSize: '24px', fontWeight: '600' }}>States & Cities Management</h2>
+    <div style={{ 
+      padding: windowWidth <= 768 ? '16px' : '24px',
+      fontFamily: "'Poppins', sans-serif",
+      background: '#f5f5f5',
+      minHeight: '100vh'
+    }}>
+      {/* Header Section */}
+      <div style={{
+        marginBottom: windowWidth <= 768 ? '20px' : '32px',
+        textAlign: 'center'
+      }}>
+        <Title level={1} style={{ 
+          fontSize: windowWidth <= 768 ? '1.8rem' : windowWidth <= 1024 ? '2.5rem' : '3rem', 
+          fontWeight: '800', 
+          color: '#FF6B35',
+          margin: '0 auto 16px auto',
+          fontFamily: "'Playfair Display', 'Georgia', serif",
+          lineHeight: '1.2',
+          letterSpacing: '-0.02em',
+          textShadow: '0 2px 4px rgba(255, 107, 53, 0.1)',
+          textAlign: 'center'
+        }}>
+          States & Cities Management
+        </Title>
+        
+        <p style={{
+          fontSize: windowWidth <= 768 ? '13px' : windowWidth <= 1024 ? '14px' : '16px',
+          color: '#6c757d',
+          margin: '0 auto',
+          fontFamily: "'Poppins', sans-serif",
+          lineHeight: '1.6',
+          maxWidth: '700px',
+          textAlign: 'center'
+        }}>
+          Manage states, cities, and city tours
+        </p>
+      </div>
+
+      {/* Statistics Cards */}
+      <Row gutter={[windowWidth <= 768 ? 12 : 16, windowWidth <= 768 ? 12 : 16]} style={{ marginBottom: '24px' }}>
+        <Col xs={12} sm={12} lg={8}>
+          <Card style={{ 
+            borderRadius: '12px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+            border: 'none',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: 'white'
+          }}>
+            <Statistic
+              title={<span style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: windowWidth <= 768 ? '12px' : '14px' }}>Total {activeTab === 'states' ? 'States' : activeTab === 'cities' ? 'Cities' : 'Tours'}</span>}
+              value={currentStats.total}
+              valueStyle={{ color: 'white', fontSize: windowWidth <= 768 ? '24px' : '32px', fontWeight: '700' }}
+            />
+          </Card>
+        </Col>
+        <Col xs={12} sm={12} lg={8}>
+          <Card style={{ 
+            borderRadius: '12px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+            border: 'none',
+            background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+            color: 'white'
+          }}>
+            <Statistic
+              title={<span style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: windowWidth <= 768 ? '12px' : '14px' }}>Active</span>}
+              value={currentStats.active}
+              valueStyle={{ color: 'white', fontSize: windowWidth <= 768 ? '24px' : '32px', fontWeight: '700' }}
+            />
+          </Card>
+        </Col>
+        <Col xs={12} sm={12} lg={8}>
+          <Card style={{ 
+            borderRadius: '12px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+            border: 'none',
+            background: 'linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%)',
+            color: 'white'
+          }}>
+            <Statistic
+              title={<span style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: windowWidth <= 768 ? '12px' : '14px' }}>Featured</span>}
+              value={currentStats.featured}
+              valueStyle={{ color: 'white', fontSize: windowWidth <= 768 ? '24px' : '32px', fontWeight: '700' }}
+            />
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Actions Bar */}
+      <Card 
+        style={{ 
+          marginBottom: '24px',
+          borderRadius: '12px',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+          border: 'none'
+        }}
+        bodyStyle={{ padding: windowWidth <= 768 ? '12px' : '20px' }}
+      >
+        <Row gutter={[12, 12]} align="middle">
+          {/* Row 1: Search and Filter (mobile) / Search only (desktop) */}
+          <Col xs={16} sm={24} md={10}>
+            <Input
+              placeholder={`Search ${activeTab}...`}
+              prefix={<SearchOutlined />}
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              size={windowWidth <= 768 ? 'middle' : 'large'}
+              allowClear
+              style={{ borderRadius: '8px' }}
+            />
+          </Col>
+          <Col xs={8} sm={24} md={4}>
+            <Select
+              placeholder="Status"
+              value={statusFilter}
+              onChange={setStatusFilter}
+              size={windowWidth <= 768 ? 'middle' : 'large'}
+              style={{ width: '100%', borderRadius: '8px' }}
+            >
+              <Option value="all">All Status</Option>
+              <Option value="active">Active</Option>
+              <Option value="inactive">Inactive</Option>
+            </Select>
+          </Col>
+          
+          {/* Row 2: View Toggle, Refresh, Create (mobile) / All in one row (desktop) */}
+          <Col xs={6} sm={8} md={4}>
+            <Tooltip title="Table View">
+              <Button
+                type={viewMode === 'table' ? 'primary' : 'default'}
+                icon={<UnorderedListOutlined />}
+                onClick={() => setViewMode('table')}
+                size={windowWidth <= 768 ? 'middle' : 'large'}
+                style={{ borderRadius: '8px', width: '100%' }}
+              >
+                {windowWidth <= 768 && 'Table'}
+              </Button>
+            </Tooltip>
+          </Col>
+          <Col xs={6} sm={8} md={4}>
+            <Tooltip title="Grid View">
+              <Button
+                type={viewMode === 'grid' ? 'primary' : 'default'}
+                icon={<AppstoreOutlined />}
+                onClick={() => setViewMode('grid')}
+                size={windowWidth <= 768 ? 'middle' : 'large'}
+                style={{ borderRadius: '8px', width: '100%' }}
+              >
+                {windowWidth <= 768 && 'Grid'}
+              </Button>
+            </Tooltip>
+          </Col>
+          <Col xs={6} sm={8} md={3}>
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={() => {
+                if (activeTab === 'states') fetchStates();
+                else if (activeTab === 'cities') fetchCities();
+                else fetchCityTours();
+              }}
+              loading={loading}
+              size={windowWidth <= 768 ? 'middle' : 'large'}
+              style={{ borderRadius: '8px', width: '100%' }}
+            >
+              {windowWidth > 768 && 'Refresh'}
+            </Button>
+          </Col>
+          <Col xs={6} sm={24} md={3}>
           {activeTab !== 'city-tours' && (
             <Button
               type="primary"
               icon={<PlusOutlined />}
               onClick={handleAdd}
-              size="large"
+                size={windowWidth <= 768 ? 'middle' : 'large'}
+                style={{ 
+                  backgroundColor: '#ff6b35', 
+                  borderColor: '#ff6b35',
+                  borderRadius: '8px',
+                  fontWeight: '600',
+                  width: '100%'
+                }}
             >
-              Create {activeTab === 'states' ? 'State' : 'City'}
+                {windowWidth > 768 ? `Create ${activeTab === 'states' ? 'State' : 'City'}` : 'Create'}
             </Button>
           )}
-        </div>
-
-        <Tabs activeKey={activeTab} onChange={setActiveTab}>
-          <TabPane tab="States" key="states">
-            <Table
-              columns={stateColumns}
-              dataSource={states}
-              rowKey="_id"
-              loading={loading}
-              pagination={{ pageSize: 10 }}
-            />
-          </TabPane>
-          <TabPane tab="Cities" key="cities">
-            <Table
-              columns={cityColumns}
-              dataSource={cities}
-              rowKey="_id"
-              loading={loading}
-              pagination={{ pageSize: 10 }}
-            />
-          </TabPane>
-          <TabPane tab="City Tours" key="city-tours">
-            <div style={{ marginBottom: '16px' }}>
+            {activeTab === 'city-tours' && (
               <Button
                 type="primary"
                 icon={<PlusOutlined />}
@@ -643,18 +974,812 @@ const StateManagement = () => {
                   setSelectedCityForTour(null);
                   setTourModalVisible(true);
                 }}
-                size="large"
+                size={windowWidth <= 768 ? 'middle' : 'large'}
+                style={{ 
+                  backgroundColor: '#ff6b35', 
+                  borderColor: '#ff6b35',
+                  borderRadius: '8px',
+                  fontWeight: '600',
+                  width: '100%'
+                }}
               >
-                Create City Tour
+                {windowWidth > 768 ? 'Create Tour' : 'Create'}
               </Button>
-            </div>
+            )}
+          </Col>
+        </Row>
+      </Card>
+
+      {/* Tabs and Content */}
+      <Card 
+        style={{ 
+          borderRadius: '12px',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+          border: 'none'
+        }}
+      >
+        <Tabs 
+          activeKey={activeTab} 
+          onChange={setActiveTab}
+          style={{ fontFamily: "'Poppins', sans-serif" }}
+        >
+          <TabPane tab="States" key="states">
+            {viewMode === 'table' ? (
+              filteredData.length === 0 ? (
+                <Empty 
+                  description={
+                    <span style={{ color: '#999', fontFamily: "'Poppins', sans-serif" }}>
+                      {states.length === 0 ? 'No states found. Create your first state!' : 'No states match your filters.'}
+                    </span>
+                  }
+                  style={{ padding: '40px 0' }}
+                />
+              ) : (
+                <>
             <Table
-              columns={cityTourColumns}
-              dataSource={cityTours}
+              columns={stateColumns}
+                    dataSource={filteredData}
               rowKey="_id"
               loading={loading}
-              pagination={{ pageSize: 10 }}
-            />
+                    scroll={{ x: 1200 }}
+                    pagination={{
+                      current: tablePage,
+                      pageSize: tablePageSize,
+                      showSizeChanger: true,
+                      showQuickJumper: windowWidth > 768,
+                      onChange: (page, pageSize) => {
+                        setTablePage(page);
+                        setTablePageSize(pageSize);
+                      },
+                    }}
+                    style={{
+                      fontFamily: "'Poppins', sans-serif"
+                    }}
+                  />
+                  {filteredData.length > 0 && (
+                    <div style={{
+                      marginTop: '16px',
+                      textAlign: 'center',
+                      color: '#6c757d',
+                      fontSize: windowWidth <= 768 ? '13px' : '14px',
+                      fontFamily: "'Poppins', sans-serif"
+                    }}>
+                      {`${(tablePage - 1) * tablePageSize + 1}-${Math.min(tablePage * tablePageSize, filteredData.length)} of ${filteredData.length} states`}
+                    </div>
+                  )}
+                </>
+              )
+            ) : (
+              <>
+                <Row gutter={[windowWidth <= 768 ? 12 : 16, windowWidth <= 768 ? 12 : 16]}>
+                  {filteredData.length === 0 ? (
+                    <Col span={24}>
+                      <Empty 
+                        description={
+                          <span style={{ color: '#999', fontFamily: "'Poppins', sans-serif" }}>
+                            {states.length === 0 ? 'No states found. Create your first state!' : 'No states match your filters.'}
+                          </span>
+                        }
+                      />
+                    </Col>
+                  ) : (
+                    paginatedData.map((state) => (
+                    <Col xs={24} sm={12} lg={8} xl={6} key={state._id}>
+                      <Card
+                        hoverable
+                        style={{
+                          borderRadius: '12px',
+                          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                          border: 'none',
+                          overflow: 'hidden',
+                          height: '100%',
+                          transition: 'all 0.3s ease'
+                        }}
+                        cover={
+                          state.heroImage ? (
+                            <div 
+                              style={{ 
+                                height: '200px', 
+                                overflow: 'hidden', 
+                                position: 'relative',
+                                cursor: 'pointer'
+                              }}
+                              onMouseEnter={(e) => {
+                                const img = e.currentTarget.querySelector('img');
+                                if (img) img.style.transform = 'scale(1.1)';
+                              }}
+                              onMouseLeave={(e) => {
+                                const img = e.currentTarget.querySelector('img');
+                                if (img) img.style.transform = 'scale(1)';
+                              }}
+                            >
+                              <img
+                                alt={state.name}
+                                src={state.heroImage}
+                                style={{
+                                  width: '100%',
+                                  height: '100%',
+                                  objectFit: 'cover',
+                                  transition: 'transform 0.3s ease'
+                                }}
+                                onError={(e) => {
+                                  e.target.src = 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=400&h=200&fit=crop&q=80';
+                                }}
+                              />
+                              {state.featured && (
+                                <Badge.Ribbon text="Featured" color="#ff6b35" style={{ top: 16, fontSize: '12px', fontWeight: '600' }} />
+                              )}
+                              <Tag
+                                color={state.isActive ? 'success' : 'error'}
+                                style={{
+                                  position: 'absolute',
+                                  bottom: 12,
+                                  right: 12,
+                                  borderRadius: '6px',
+                                  fontWeight: '600',
+                                  fontSize: '11px',
+                                  padding: '4px 8px',
+                                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
+                                }}
+                              >
+                                {state.isActive ? 'Active' : 'Inactive'}
+                              </Tag>
+                            </div>
+                          ) : (
+                            <div style={{ 
+                              height: '200px', 
+                              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}>
+                              <Text style={{ color: 'white', fontSize: '48px', fontWeight: 'bold' }}>
+                                {state.name.charAt(0).toUpperCase()}
+                              </Text>
+                            </div>
+                          )
+                        }
+                        bodyStyle={{ padding: '16px' }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = 'translateY(-4px)';
+                          e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.15)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = 'translateY(0)';
+                          e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
+                        }}
+                        actions={[
+                          <Tooltip title="Edit State">
+                            <EditOutlined 
+                              key="edit" 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEdit(state);
+                              }}
+                              style={{ 
+                                fontSize: '18px', 
+                                color: '#1890ff',
+                                transition: 'all 0.2s ease'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.color = '#40a9ff';
+                                e.currentTarget.style.transform = 'scale(1.2)';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.color = '#1890ff';
+                                e.currentTarget.style.transform = 'scale(1)';
+                              }}
+                            />
+                          </Tooltip>,
+                          <Popconfirm
+                            title="Delete this state?"
+                            description="This action cannot be undone."
+                            onConfirm={(e) => {
+                              e?.stopPropagation();
+                              handleDelete(state._id, 'state');
+                            }}
+                            okText="Yes, Delete"
+                            cancelText="Cancel"
+                            okButtonProps={{ danger: true }}
+                            onCancel={(e) => e?.stopPropagation()}
+                          >
+                            <Tooltip title="Delete State">
+                              <DeleteOutlined 
+                                key="delete"
+                                onClick={(e) => e.stopPropagation()}
+                                style={{ 
+                                  fontSize: '18px', 
+                                  color: '#ff4d4f',
+                                  transition: 'all 0.2s ease'
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.color = '#ff7875';
+                                  e.currentTarget.style.transform = 'scale(1.2)';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.color = '#ff4d4f';
+                                  e.currentTarget.style.transform = 'scale(1)';
+                                }}
+                              />
+                            </Tooltip>
+                          </Popconfirm>
+                        ]}
+                      >
+                        <Title level={5} style={{ 
+                          marginBottom: '8px',
+                          fontSize: '16px',
+                          fontWeight: '600',
+                          color: '#2c3e50',
+                          fontFamily: "'Poppins', sans-serif"
+                        }}>
+                          {state.name}
+                        </Title>
+                        <Text type="secondary" style={{ fontSize: '13px', display: 'block', marginBottom: '4px' }}>
+                          Slug: {state.slug}
+                        </Text>
+                        {state.capital && (
+                          <Text type="secondary" style={{ fontSize: '13px', display: 'block' }}>
+                            Capital: {state.capital}
+                          </Text>
+                        )}
+                      </Card>
+                    </Col>
+                  ))
+                )}
+                </Row>
+                {filteredData.length > 0 && (
+                  <div style={{ 
+                    marginTop: '24px', 
+                    display: 'flex', 
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    padding: windowWidth <= 768 ? '16px 0' : '24px 0'
+                  }}>
+                    <Pagination
+                      current={gridPage}
+                      total={totalItems}
+                      pageSize={gridPageSize}
+                      onChange={(page, pageSize) => {
+                        setGridPage(page);
+                        setGridPageSize(pageSize);
+                      }}
+                      showSizeChanger
+                      showQuickJumper={windowWidth > 768}
+                      pageSizeOptions={['6', '12', '24', '48']}
+                      style={{
+                        fontFamily: "'Poppins', sans-serif"
+                      }}
+                    />
+                    <div style={{
+                      marginTop: '12px',
+                      textAlign: 'center',
+                      color: '#6c757d',
+                      fontSize: windowWidth <= 768 ? '13px' : '14px',
+                      fontFamily: "'Poppins', sans-serif"
+                    }}>
+                      {`${(gridPage - 1) * gridPageSize + 1}-${Math.min(gridPage * gridPageSize, totalItems)} of ${totalItems} states`}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </TabPane>
+          <TabPane tab="Cities" key="cities">
+            {viewMode === 'table' ? (
+              filteredData.length === 0 ? (
+                <Empty 
+                  description={
+                    <span style={{ color: '#999', fontFamily: "'Poppins', sans-serif" }}>
+                      {cities.length === 0 ? 'No cities found. Create your first city!' : 'No cities match your filters.'}
+                    </span>
+                  }
+                  style={{ padding: '40px 0' }}
+                />
+              ) : (
+                <>
+            <Table
+              columns={cityColumns}
+                    dataSource={filteredData}
+              rowKey="_id"
+              loading={loading}
+                    scroll={{ x: 1200 }}
+                    pagination={{
+                      current: tablePage,
+                      pageSize: tablePageSize,
+                      showSizeChanger: true,
+                      showQuickJumper: windowWidth > 768,
+                      onChange: (page, pageSize) => {
+                        setTablePage(page);
+                        setTablePageSize(pageSize);
+                      },
+                    }}
+                    style={{
+                      fontFamily: "'Poppins', sans-serif"
+                    }}
+                  />
+                  {filteredData.length > 0 && (
+                    <div style={{
+                      marginTop: '16px',
+                      textAlign: 'center',
+                      color: '#6c757d',
+                      fontSize: windowWidth <= 768 ? '13px' : '14px',
+                      fontFamily: "'Poppins', sans-serif"
+                    }}>
+                      {`${(tablePage - 1) * tablePageSize + 1}-${Math.min(tablePage * tablePageSize, filteredData.length)} of ${filteredData.length} cities`}
+                    </div>
+                  )}
+                </>
+              )
+            ) : (
+              <>
+                <Row gutter={[windowWidth <= 768 ? 12 : 16, windowWidth <= 768 ? 12 : 16]}>
+                  {filteredData.length === 0 ? (
+                    <Col span={24}>
+                      <Empty 
+                        description={
+                          <span style={{ color: '#999', fontFamily: "'Poppins', sans-serif" }}>
+                            {cities.length === 0 ? 'No cities found. Create your first city!' : 'No cities match your filters.'}
+                          </span>
+                        }
+                      />
+                    </Col>
+                  ) : (
+                    paginatedData.map((city) => (
+                    <Col xs={24} sm={12} lg={8} xl={6} key={city._id}>
+                      <Card
+                        hoverable
+                        style={{
+                          borderRadius: '12px',
+                          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                          border: 'none',
+                          overflow: 'hidden',
+                          height: '100%',
+                          transition: 'all 0.3s ease'
+                        }}
+                        cover={
+                          city.heroImage ? (
+                            <div 
+                              style={{ 
+                                height: '200px', 
+                                overflow: 'hidden', 
+                                position: 'relative',
+                                cursor: 'pointer'
+                              }}
+                              onMouseEnter={(e) => {
+                                const img = e.currentTarget.querySelector('img');
+                                if (img) img.style.transform = 'scale(1.1)';
+                              }}
+                              onMouseLeave={(e) => {
+                                const img = e.currentTarget.querySelector('img');
+                                if (img) img.style.transform = 'scale(1)';
+                              }}
+                            >
+                              <img
+                                alt={city.name}
+                                src={city.heroImage}
+                                style={{
+                                  width: '100%',
+                                  height: '100%',
+                                  objectFit: 'cover',
+                                  transition: 'transform 0.3s ease'
+                                }}
+                                onError={(e) => {
+                                  e.target.src = 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=400&h=200&fit=crop&q=80';
+                }}
+                              />
+                              {city.featured && (
+                                <Badge.Ribbon text="Featured" color="#ff6b35" style={{ top: 16, fontSize: '12px', fontWeight: '600' }} />
+                              )}
+                              <Tag
+                                color={city.isActive ? 'success' : 'error'}
+                                style={{
+                                  position: 'absolute',
+                                  bottom: 12,
+                                  right: 12,
+                                  borderRadius: '6px',
+                                  fontWeight: '600',
+                                  fontSize: '11px',
+                                  padding: '4px 8px',
+                                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
+                                }}
+                              >
+                                {city.isActive ? 'Active' : 'Inactive'}
+                              </Tag>
+            </div>
+                          ) : (
+                            <div style={{ 
+                              height: '200px', 
+                              background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}>
+                              <Text style={{ color: 'white', fontSize: '48px', fontWeight: 'bold' }}>
+                                {city.name.charAt(0).toUpperCase()}
+                              </Text>
+                            </div>
+                          )
+                        }
+                        bodyStyle={{ padding: '16px' }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = 'translateY(-4px)';
+                          e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.15)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = 'translateY(0)';
+                          e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
+                        }}
+                        actions={[
+                          <Tooltip title="Edit City">
+                            <EditOutlined 
+                              key="edit" 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEdit(city);
+                              }}
+                              style={{ 
+                                fontSize: '18px', 
+                                color: '#1890ff',
+                                transition: 'all 0.2s ease'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.color = '#40a9ff';
+                                e.currentTarget.style.transform = 'scale(1.2)';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.color = '#1890ff';
+                                e.currentTarget.style.transform = 'scale(1)';
+                              }}
+                            />
+                          </Tooltip>,
+                          <Popconfirm
+                            title="Delete this city?"
+                            description="This action cannot be undone."
+                            onConfirm={(e) => {
+                              e?.stopPropagation();
+                              handleDelete(city._id, 'city');
+                            }}
+                            okText="Yes, Delete"
+                            cancelText="Cancel"
+                            okButtonProps={{ danger: true }}
+                            onCancel={(e) => e?.stopPropagation()}
+                          >
+                            <Tooltip title="Delete City">
+                              <DeleteOutlined 
+                                key="delete"
+                                onClick={(e) => e.stopPropagation()}
+                                style={{ 
+                                  fontSize: '18px', 
+                                  color: '#ff4d4f',
+                                  transition: 'all 0.2s ease'
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.color = '#ff7875';
+                                  e.currentTarget.style.transform = 'scale(1.2)';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.color = '#ff4d4f';
+                                  e.currentTarget.style.transform = 'scale(1)';
+                                }}
+                              />
+                            </Tooltip>
+                          </Popconfirm>
+                        ]}
+                      >
+                        <Title level={5} style={{ 
+                          marginBottom: '8px',
+                          fontSize: '16px',
+                          fontWeight: '600',
+                          color: '#2c3e50',
+                          fontFamily: "'Poppins', sans-serif"
+                        }}>
+                          {city.name}
+                        </Title>
+                        <Text type="secondary" style={{ fontSize: '13px', display: 'block', marginBottom: '4px' }}>
+                          State: {city.state}
+                        </Text>
+                        <Text type="secondary" style={{ fontSize: '13px', display: 'block' }}>
+                          Slug: {city.slug}
+                        </Text>
+                      </Card>
+                    </Col>
+                  ))
+                )}
+                </Row>
+                {filteredData.length > 0 && (
+                  <div style={{ 
+                    marginTop: '24px', 
+                    display: 'flex', 
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    padding: windowWidth <= 768 ? '16px 0' : '24px 0'
+                  }}>
+                    <Pagination
+                      current={gridPage}
+                      total={totalItems}
+                      pageSize={gridPageSize}
+                      onChange={(page, pageSize) => {
+                        setGridPage(page);
+                        setGridPageSize(pageSize);
+                      }}
+                      showSizeChanger
+                      showQuickJumper={windowWidth > 768}
+                      pageSizeOptions={['6', '12', '24', '48']}
+                      style={{
+                        fontFamily: "'Poppins', sans-serif"
+                      }}
+                    />
+                    <div style={{
+                      marginTop: '12px',
+                      textAlign: 'center',
+                      color: '#6c757d',
+                      fontSize: windowWidth <= 768 ? '13px' : '14px',
+                      fontFamily: "'Poppins', sans-serif"
+                    }}>
+                      {`${(gridPage - 1) * gridPageSize + 1}-${Math.min(gridPage * gridPageSize, totalItems)} of ${totalItems} cities`}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </TabPane>
+          <TabPane tab="City Tours" key="city-tours">
+            {viewMode === 'table' ? (
+              filteredData.length === 0 ? (
+                <Empty 
+                  description={
+                    <span style={{ color: '#999', fontFamily: "'Poppins', sans-serif" }}>
+                      {cityTours.length === 0 ? 'No city tours found. Create your first city tour!' : 'No tours match your filters.'}
+                    </span>
+                  }
+                  style={{ padding: '40px 0' }}
+                />
+              ) : (
+                <>
+            <Table
+              columns={cityTourColumns}
+                    dataSource={filteredData}
+              rowKey="_id"
+              loading={loading}
+                    scroll={{ x: 1200 }}
+                    pagination={{
+                      current: tablePage,
+                      pageSize: tablePageSize,
+                      showSizeChanger: true,
+                      showQuickJumper: windowWidth > 768,
+                      onChange: (page, pageSize) => {
+                        setTablePage(page);
+                        setTablePageSize(pageSize);
+                      },
+                    }}
+                    style={{
+                      fontFamily: "'Poppins', sans-serif"
+                    }}
+                  />
+                  {filteredData.length > 0 && (
+                    <div style={{
+                      marginTop: '16px',
+                      textAlign: 'center',
+                      color: '#6c757d',
+                      fontSize: windowWidth <= 768 ? '13px' : '14px',
+                      fontFamily: "'Poppins', sans-serif"
+                    }}>
+                      {`${(tablePage - 1) * tablePageSize + 1}-${Math.min(tablePage * tablePageSize, filteredData.length)} of ${filteredData.length} tours`}
+                    </div>
+                  )}
+                </>
+              )
+            ) : (
+              <>
+                <Row gutter={[windowWidth <= 768 ? 12 : 16, windowWidth <= 768 ? 12 : 16]}>
+                  {filteredData.length === 0 ? (
+                    <Col span={24}>
+                      <Empty 
+                        description={
+                          <span style={{ color: '#999', fontFamily: "'Poppins', sans-serif" }}>
+                            {cityTours.length === 0 ? 'No city tours found. Create your first city tour!' : 'No tours match your filters.'}
+                          </span>
+                        }
+                      />
+                    </Col>
+                  ) : (
+                    paginatedData.map((tour) => (
+                    <Col xs={24} sm={12} lg={8} xl={6} key={tour._id}>
+                      <Card
+                        hoverable
+                        style={{
+                          borderRadius: '12px',
+                          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                          border: 'none',
+                          overflow: 'hidden',
+                          height: '100%',
+                          transition: 'all 0.3s ease'
+                        }}
+                        cover={
+                          <div 
+                            style={{ 
+                              height: '200px', 
+                              overflow: 'hidden', 
+                              position: 'relative',
+                              cursor: 'pointer'
+                            }}
+                            onMouseEnter={(e) => {
+                              const img = e.currentTarget.querySelector('img');
+                              if (img) img.style.transform = 'scale(1.1)';
+                            }}
+                            onMouseLeave={(e) => {
+                              const img = e.currentTarget.querySelector('img');
+                              if (img) img.style.transform = 'scale(1)';
+                            }}
+                          >
+                            <img
+                              alt={tour.title}
+                              src={tour.images?.[0] || 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=400&h=200&fit=crop&q=80'}
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                                transition: 'transform 0.3s ease'
+                              }}
+                              onError={(e) => {
+                                e.target.src = 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=400&h=200&fit=crop&q=80';
+                              }}
+                            />
+                            {tour.featured && (
+                              <Badge.Ribbon text="Featured" color="#ff6b35" style={{ top: 16, fontSize: '12px', fontWeight: '600' }} />
+                            )}
+                            <Tag
+                              color={tour.isActive ? 'success' : 'error'}
+                              style={{
+                                position: 'absolute',
+                                bottom: 12,
+                                right: 12,
+                                borderRadius: '6px',
+                                fontWeight: '600',
+                                fontSize: '11px',
+                                padding: '4px 8px',
+                                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
+                              }}
+                            >
+                              {tour.isActive ? 'Active' : 'Inactive'}
+                            </Tag>
+                          </div>
+                        }
+                        bodyStyle={{ padding: '16px' }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = 'translateY(-4px)';
+                          e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.15)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = 'translateY(0)';
+                          e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
+                        }}
+                        actions={[
+                          <Tooltip title="Edit Tour">
+                            <EditOutlined 
+                              key="edit" 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditTour(tour);
+                              }}
+                              style={{ 
+                                fontSize: '18px', 
+                                color: '#1890ff',
+                                transition: 'all 0.2s ease'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.color = '#40a9ff';
+                                e.currentTarget.style.transform = 'scale(1.2)';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.color = '#1890ff';
+                                e.currentTarget.style.transform = 'scale(1)';
+                              }}
+                            />
+                          </Tooltip>,
+                          <Popconfirm
+                            title="Delete this city tour?"
+                            description="This action cannot be undone."
+                            onConfirm={(e) => {
+                              e?.stopPropagation();
+                              handleDeleteTour(tour._id);
+                            }}
+                            okText="Yes, Delete"
+                            cancelText="Cancel"
+                            okButtonProps={{ danger: true }}
+                            onCancel={(e) => e?.stopPropagation()}
+                          >
+                            <Tooltip title="Delete Tour">
+                              <DeleteOutlined 
+                                key="delete"
+                                onClick={(e) => e.stopPropagation()}
+                                style={{ 
+                                  fontSize: '18px', 
+                                  color: '#ff4d4f',
+                                  transition: 'all 0.2s ease'
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.color = '#ff7875';
+                                  e.currentTarget.style.transform = 'scale(1.2)';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.color = '#ff4d4f';
+                                  e.currentTarget.style.transform = 'scale(1)';
+                                }}
+                              />
+                            </Tooltip>
+                          </Popconfirm>
+                        ]}
+                      >
+                        <Title level={5} style={{ 
+                          marginBottom: '8px',
+                          fontSize: '16px',
+                          fontWeight: '600',
+                          color: '#2c3e50',
+                          fontFamily: "'Poppins', sans-serif",
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          minHeight: '48px'
+                        }}>
+                          {tour.title}
+                        </Title>
+                        <Text type="secondary" style={{ fontSize: '13px', display: 'block', marginBottom: '4px' }}>
+                          {tour.city}, {tour.state}
+                        </Text>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
+                          <div>
+                            <Text strong style={{ fontSize: '18px', color: '#ff6b35' }}>
+                              ₹{tour.price?.adult?.toLocaleString() || '0'}
+                            </Text>
+                          </div>
+                          <Text type="secondary" style={{ fontSize: '13px' }}>
+                            {tour.duration?.days || 0}D / {tour.duration?.nights || 0}N
+                          </Text>
+                        </div>
+                      </Card>
+                    </Col>
+                  ))
+                )}
+                </Row>
+                {filteredData.length > 0 && (
+                  <div style={{ 
+                    marginTop: '24px', 
+                    display: 'flex', 
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    padding: windowWidth <= 768 ? '16px 0' : '24px 0'
+                  }}>
+                    <Pagination
+                      current={gridPage}
+                      total={totalItems}
+                      pageSize={gridPageSize}
+                      onChange={(page, pageSize) => {
+                        setGridPage(page);
+                        setGridPageSize(pageSize);
+                      }}
+                      showSizeChanger
+                      showQuickJumper={windowWidth > 768}
+                      pageSizeOptions={['6', '12', '24', '48']}
+                      style={{
+                        fontFamily: "'Poppins', sans-serif"
+                      }}
+                    />
+                    <div style={{
+                      marginTop: '12px',
+                      textAlign: 'center',
+                      color: '#6c757d',
+                      fontSize: windowWidth <= 768 ? '13px' : '14px',
+                      fontFamily: "'Poppins', sans-serif"
+                    }}>
+                      {`${(gridPage - 1) * gridPageSize + 1}-${Math.min(gridPage * gridPageSize, totalItems)} of ${totalItems} tours`}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
           </TabPane>
         </Tabs>
       </Card>
@@ -735,7 +1860,7 @@ const StateManagement = () => {
             <TextArea rows={6} placeholder="Full description" />
           </Form.Item>
 
-          <Divider orientation="left">📸 Images</Divider>
+          <Divider orientation="left">Images</Divider>
 
           <Form.Item
             name="heroImage"
@@ -767,7 +1892,7 @@ const StateManagement = () => {
 
           {activeTab === 'states' && (
             <>
-              <Divider orientation="left">📍 State Information</Divider>
+              <Divider orientation="left">State Information</Divider>
               <Row gutter={16}>
                 <Col span={8}>
                   <Form.Item name="capital" label="Capital">
@@ -790,7 +1915,7 @@ const StateManagement = () => {
 
           {activeTab === 'cities' && (
             <>
-              <Divider orientation="left">🏛️ Attractions</Divider>
+              <Divider orientation="left">Attractions</Divider>
               <Form.Item
                 name="attractions"
                 label="Popular Attractions"
@@ -830,7 +1955,7 @@ const StateManagement = () => {
                 </Col>
               </Row>
 
-          <Divider orientation="left">⚙️ Settings</Divider>
+          <Divider orientation="left">Settings</Divider>
 
           <Row gutter={16}>
             <Col span={12}>
@@ -845,7 +1970,7 @@ const StateManagement = () => {
             </Col>
           </Row>
 
-          <Divider orientation="left">🔍 SEO Settings</Divider>
+          <Divider orientation="left">SEO Settings</Divider>
 
           <Form.Item name="metaTitle" label="SEO Title">
             <Input placeholder="Meta title for search engines" />
@@ -888,7 +2013,7 @@ const StateManagement = () => {
           }}
         >
           <Tabs defaultActiveKey="1">
-            <TabPane tab="📝 Basic Info" key="1">
+            <TabPane tab="Basic Info" key="1">
               {/* City Selection */}
               <Row gutter={16}>
                 <Col span={12}>
@@ -1242,13 +2367,13 @@ const StateManagement = () => {
                 help="Select one or more trending categories to feature this tour"
               >
                 <Checkbox.Group style={{ width: '100%' }}>
-                  <Checkbox value="Culture & Heritage">🕌 Culture & Heritage</Checkbox>
-                  <Checkbox value="Nature & Adventure">🏔️ Nature & Adventure</Checkbox>
-                  <Checkbox value="Beaches & Islands">🏖️ Beaches & Islands</Checkbox>
-                  <Checkbox value="Wellness & Spirituality">🧘‍♀️ Wellness & Spirituality</Checkbox>
-                  <Checkbox value="Food & Festivals">🍛 Food & Festivals</Checkbox>
-                  <Checkbox value="Modern India">🏙️ Modern India</Checkbox>
-                  <Checkbox value="Special Journeys">🚗 Special Journeys</Checkbox>
+                  <Checkbox value="Culture & Heritage">Culture & Heritage</Checkbox>
+                  <Checkbox value="Nature & Adventure">Nature & Adventure</Checkbox>
+                  <Checkbox value="Beaches & Islands">Beaches & Islands</Checkbox>
+                  <Checkbox value="Wellness & Spirituality">Wellness & Spirituality</Checkbox>
+                  <Checkbox value="Food & Festivals">Food & Festivals</Checkbox>
+                  <Checkbox value="Modern India">Modern India</Checkbox>
+                  <Checkbox value="Special Journeys">Special Journeys</Checkbox>
                 </Checkbox.Group>
               </Form.Item>
 
@@ -1275,7 +2400,7 @@ const StateManagement = () => {
               </Space>
             </TabPane>
 
-            <TabPane tab="🖼️ Images" key="2">
+            <TabPane tab="Images" key="2">
               <div style={{ marginBottom: 16 }}>
                 <h4>Tour Images (URLs)</h4>
                 <p style={{ color: '#666', fontSize: '12px' }}>Add multiple image URLs. First image will be the cover image.</p>
@@ -1331,7 +2456,7 @@ const StateManagement = () => {
               )}
             </TabPane>
 
-            <TabPane tab="📅 Itinerary" key="3">
+            <TabPane tab="Itinerary" key="3">
               <div style={{ marginBottom: 16 }}>
                 <h4>Day-by-Day Itinerary</h4>
                 <p style={{ color: '#666', fontSize: '12px' }}>Add detailed daily activities, places to visit, food, accommodation, etc.</p>
@@ -1418,7 +2543,7 @@ const StateManagement = () => {
               </Button>
             </TabPane>
 
-            <TabPane tab="✨ Details" key="4">
+            <TabPane tab="Details" key="4">
               <Form.Item name="highlights" label="Tour Highlights (One per line)">
                 <TextArea
                   rows={4}

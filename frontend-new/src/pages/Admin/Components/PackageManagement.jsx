@@ -19,6 +19,14 @@ import {
   DatePicker,
   Row,
   Col,
+  Typography,
+  Statistic,
+  Empty,
+  Badge,
+  Tooltip,
+  Divider,
+  Image,
+  Pagination,
 } from 'antd';
 import dayjs from 'dayjs';
 import {
@@ -26,12 +34,19 @@ import {
   EditOutlined,
   DeleteOutlined,
   MinusCircleOutlined,
+  ReloadOutlined,
+  SearchOutlined,
+  AppstoreOutlined,
+  UnorderedListOutlined,
+  EyeOutlined,
+  FilterOutlined,
 } from '@ant-design/icons';
 import { tourService } from '../../../services';
 
 const { TextArea } = Input;
 const { Option } = Select;
 const { TabPane } = Tabs;
+const { Title, Text } = Typography;
 
 // Helper function to ensure date is a valid dayjs object
 const ensureDayjs = (val) => {
@@ -49,10 +64,42 @@ const PackageManagement = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingPackage, setEditingPackage] = useState(null);
   const [form] = Form.useForm();
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const [searchText, setSearchText] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [viewMode, setViewMode] = useState('table'); // 'table' or 'grid'
+  const [gridPage, setGridPage] = useState(1);
+  const [gridPageSize, setGridPageSize] = useState(window.innerWidth <= 768 ? 6 : 12);
+  const [tablePage, setTablePage] = useState(1);
+  const [tablePageSize, setTablePageSize] = useState(window.innerWidth <= 768 ? 5 : 10);
 
   // Dynamic states for images and itinerary
   const [imageUrls, setImageUrls] = useState(['']);
   const [itinerary, setItinerary] = useState([]);
+
+  // Handle window resize
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+      if (window.innerWidth <= 768) {
+        setViewMode('grid'); // Auto switch to grid on mobile
+        setGridPageSize(6); // 6 items per page on mobile
+        setTablePageSize(5); // 5 items per page on mobile for table
+      } else {
+        setGridPageSize(12); // 12 items per page on desktop
+        setTablePageSize(10); // 10 items per page on desktop for table
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setGridPage(1);
+    setTablePage(1);
+  }, [searchText, categoryFilter, statusFilter]);
 
   useEffect(() => {
     fetchPackages();
@@ -305,9 +352,48 @@ const PackageManagement = () => {
       study: 'purple',
       adventure: 'red',
       cultural: 'cyan',
-      package: 'magenta',
+      'city-tour': 'geekblue',
+      beach: 'cyan',
+      wildlife: 'volcano',
     };
     return colors[category] || 'default';
+  };
+
+  // Filter packages based on search and filters
+  const filteredPackages = packages.filter((pkg) => {
+    const matchesSearch = 
+      searchText === '' || 
+      pkg.title?.toLowerCase().includes(searchText.toLowerCase()) ||
+      pkg.destination?.toLowerCase().includes(searchText.toLowerCase());
+    
+    const matchesCategory = categoryFilter === 'all' || pkg.category === categoryFilter;
+    
+    const isAvailable = pkg.availability?.isAvailable !== false;
+    const matchesStatus = 
+      statusFilter === 'all' || 
+      (statusFilter === 'available' && isAvailable) ||
+      (statusFilter === 'unavailable' && !isAvailable);
+    
+    return matchesSearch && matchesCategory && matchesStatus;
+  });
+
+  // Calculate paginated data for grid view
+  const getPaginatedPackages = () => {
+    if (viewMode === 'table') return filteredPackages;
+    const startIndex = (gridPage - 1) * gridPageSize;
+    const endIndex = startIndex + gridPageSize;
+    return filteredPackages.slice(startIndex, endIndex);
+  };
+
+  const paginatedPackages = getPaginatedPackages();
+  const totalPackages = filteredPackages.length;
+
+  // Calculate statistics
+  const stats = {
+    total: packages.length,
+    available: packages.filter(p => p.availability?.isAvailable !== false).length,
+    featured: packages.filter(p => p.featured).length,
+    categories: [...new Set(packages.map(p => p.category))].length,
   };
 
   const columns = [
@@ -320,7 +406,16 @@ const PackageManagement = () => {
         <img
           src={images?.[0] || 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=80&h=80&fit=crop&q=80'}
           alt="Package"
-          style={{ width: 80, height: 60, objectFit: 'cover', borderRadius: 8 }}
+          style={{ 
+            width: 80, 
+            height: 60, 
+            objectFit: 'cover', 
+            borderRadius: 8,
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+          }}
+          onError={(e) => {
+            e.target.src = 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=80&h=80&fit=crop&q=80';
+          }}
         />
       ),
     },
@@ -329,19 +424,31 @@ const PackageManagement = () => {
       dataIndex: 'title',
       key: 'title',
       width: 250,
+      render: (text) => (
+        <Text strong style={{ fontFamily: "'Poppins', sans-serif" }}>
+          {text}
+        </Text>
+      ),
     },
     {
       title: 'Destination',
       dataIndex: 'destination',
       key: 'destination',
       width: 150,
+      render: (text) => (
+        <Text style={{ fontFamily: "'Poppins', sans-serif" }}>
+          {text}
+        </Text>
+      ),
     },
     {
       title: 'Duration',
       key: 'duration',
       width: 120,
       render: (_, record) => (
-        <span>{record.duration?.days || 0}D / {record.duration?.nights || 0}N</span>
+        <Tag style={{ borderRadius: '6px', fontFamily: "'Poppins', sans-serif" }}>
+          {record.duration?.days || 0}D / {record.duration?.nights || 0}N
+        </Tag>
       ),
     },
     {
@@ -349,7 +456,9 @@ const PackageManagement = () => {
       key: 'price',
       width: 120,
       render: (_, record) => (
-        <span>₹{record.price?.adult?.toLocaleString()}</span>
+        <Text strong style={{ color: '#ff6b35', fontSize: '15px', fontFamily: "'Poppins', sans-serif" }}>
+          ₹{record.price?.adult?.toLocaleString()}
+        </Text>
       ),
     },
     {
@@ -358,7 +467,7 @@ const PackageManagement = () => {
       key: 'category',
       width: 120,
       render: (category) => (
-        <Tag color={getCategoryColor(category)}>
+        <Tag color={getCategoryColor(category)} style={{ borderRadius: '6px', fontWeight: '500' }}>
           {category?.toUpperCase()}
         </Tag>
       ),
@@ -369,9 +478,11 @@ const PackageManagement = () => {
       key: 'featured',
       width: 100,
       render: (featured) => (
-        <Tag color={featured ? 'green' : 'default'}>
-          {featured ? 'Yes' : 'No'}
-        </Tag>
+        <Badge 
+          status={featured ? 'success' : 'default'} 
+          text={featured ? 'Featured' : 'Regular'}
+          style={{ fontFamily: "'Poppins', sans-serif" }}
+        />
       ),
     },
     {
@@ -382,7 +493,7 @@ const PackageManagement = () => {
       render: (availability) => {
         const isAvailable = availability?.isAvailable !== undefined ? availability.isAvailable : true;
         return (
-          <Tag color={isAvailable ? 'success' : 'error'}>
+          <Tag color={isAvailable ? 'success' : 'error'} style={{ borderRadius: '6px', fontWeight: '500' }}>
             {isAvailable ? 'Available' : 'Unavailable'}
           </Tag>
         );
@@ -395,22 +506,35 @@ const PackageManagement = () => {
       fixed: 'right',
       render: (_, record) => (
         <Space>
+          <Tooltip title="Edit Package">
           <Button
-            type="link"
+              type="primary"
             icon={<EditOutlined />}
             onClick={() => handleEdit(record)}
+              size="small"
+              style={{ borderRadius: '6px' }}
           >
             Edit
           </Button>
+          </Tooltip>
           <Popconfirm
-            title="Are you sure you want to delete this package?"
+            title="Delete this package?"
+            description="This action cannot be undone."
             onConfirm={() => handleDelete(record._id)}
-            okText="Yes"
-            cancelText="No"
+            okText="Yes, Delete"
+            cancelText="Cancel"
+            okButtonProps={{ danger: true }}
           >
-            <Button type="link" danger icon={<DeleteOutlined />}>
+            <Tooltip title="Delete Package">
+              <Button 
+                danger 
+                icon={<DeleteOutlined />}
+                size="small"
+                style={{ borderRadius: '6px' }}
+              >
               Delete
             </Button>
+            </Tooltip>
           </Popconfirm>
         </Space>
       ),
@@ -418,38 +542,503 @@ const PackageManagement = () => {
   ];
 
   return (
-    <div style={{ padding: '24px' }}>
-      <Card
-        title={
-          <span style={{ fontSize: '24px', fontWeight: 'bold' }}>
+    <div style={{ 
+      padding: windowWidth <= 768 ? '16px' : '24px',
+      fontFamily: "'Poppins', sans-serif",
+      background: '#f5f5f5',
+      minHeight: '100vh'
+    }}>
+      {/* Header Section */}
+      <div style={{
+        marginBottom: windowWidth <= 768 ? '20px' : '32px',
+        textAlign: 'center'
+      }}>
+        <Title level={1} style={{ 
+          fontSize: windowWidth <= 768 ? '1.8rem' : windowWidth <= 1024 ? '2.5rem' : '3rem', 
+          fontWeight: '800', 
+          color: '#FF6B35',
+          margin: '0 auto 16px auto',
+          fontFamily: "'Playfair Display', 'Georgia', serif",
+          lineHeight: '1.2',
+          letterSpacing: '-0.02em',
+          textShadow: '0 2px 4px rgba(255, 107, 53, 0.1)',
+          textAlign: 'center'
+        }}>
             Package Management
-          </span>
-        }
-        extra={
+        </Title>
+        
+        <p style={{
+          fontSize: windowWidth <= 768 ? '13px' : windowWidth <= 1024 ? '14px' : '16px',
+          color: '#6c757d',
+          margin: '0 auto',
+          fontFamily: "'Poppins', sans-serif",
+          lineHeight: '1.6',
+          maxWidth: '700px',
+          textAlign: 'center'
+        }}>
+          Manage and organize your tour packages
+        </p>
+      </div>
+
+      {/* Statistics Cards */}
+      <Row gutter={[windowWidth <= 768 ? 12 : 16, windowWidth <= 768 ? 12 : 16]} style={{ marginBottom: '24px' }}>
+        <Col xs={12} sm={12} lg={6}>
+          <Card style={{ 
+            borderRadius: '12px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+            border: 'none',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: 'white'
+          }}>
+            <Statistic
+              title={<span style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: windowWidth <= 768 ? '12px' : '14px' }}>Total Packages</span>}
+              value={stats.total}
+              valueStyle={{ color: 'white', fontSize: windowWidth <= 768 ? '24px' : '32px', fontWeight: '700' }}
+            />
+          </Card>
+        </Col>
+        <Col xs={12} sm={12} lg={6}>
+          <Card style={{ 
+            borderRadius: '12px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+            border: 'none',
+            background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+            color: 'white'
+          }}>
+            <Statistic
+              title={<span style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: windowWidth <= 768 ? '12px' : '14px' }}>Available</span>}
+              value={stats.available}
+              valueStyle={{ color: 'white', fontSize: windowWidth <= 768 ? '24px' : '32px', fontWeight: '700' }}
+            />
+          </Card>
+        </Col>
+        <Col xs={12} sm={12} lg={6}>
+          <Card style={{ 
+            borderRadius: '12px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+            border: 'none',
+            background: 'linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%)',
+            color: 'white'
+          }}>
+            <Statistic
+              title={<span style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: windowWidth <= 768 ? '12px' : '14px' }}>Featured</span>}
+              value={stats.featured}
+              valueStyle={{ color: 'white', fontSize: windowWidth <= 768 ? '24px' : '32px', fontWeight: '700' }}
+            />
+          </Card>
+        </Col>
+        <Col xs={12} sm={12} lg={6}>
+          <Card style={{ 
+            borderRadius: '12px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+            border: 'none',
+            background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+            color: 'white'
+          }}>
+            <Statistic
+              title={<span style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: windowWidth <= 768 ? '12px' : '14px' }}>Categories</span>}
+              value={stats.categories}
+              valueStyle={{ color: 'white', fontSize: windowWidth <= 768 ? '24px' : '32px', fontWeight: '700' }}
+            />
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Actions Bar */}
+      <Card 
+        style={{ 
+          marginBottom: '24px',
+          borderRadius: '12px',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+          border: 'none'
+        }}
+        bodyStyle={{ padding: windowWidth <= 768 ? '12px' : '20px' }}
+      >
+        <Row gutter={[16, 16]} align="middle">
+          <Col xs={24} sm={24} md={8}>
+            <Input
+              placeholder="Search packages..."
+              prefix={<SearchOutlined />}
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              size={windowWidth <= 768 ? 'middle' : 'large'}
+              allowClear
+              style={{ borderRadius: '8px' }}
+            />
+          </Col>
+          <Col xs={12} sm={8} md={4}>
+            <Select
+              placeholder="Category"
+              value={categoryFilter}
+              onChange={setCategoryFilter}
+              size={windowWidth <= 768 ? 'middle' : 'large'}
+              style={{ width: '100%', borderRadius: '8px' }}
+            >
+              <Option value="all">All Categories</Option>
+              <Option value="spiritual">Spiritual</Option>
+              <Option value="wellness">Wellness</Option>
+              <Option value="heritage">Heritage</Option>
+              <Option value="adventure">Adventure</Option>
+              <Option value="cultural">Cultural</Option>
+              <Option value="city-tour">City Tour</Option>
+              <Option value="beach">Beach</Option>
+              <Option value="wildlife">Wildlife</Option>
+            </Select>
+          </Col>
+          <Col xs={12} sm={8} md={4}>
+            <Select
+              placeholder="Status"
+              value={statusFilter}
+              onChange={setStatusFilter}
+              size={windowWidth <= 768 ? 'middle' : 'large'}
+              style={{ width: '100%', borderRadius: '8px' }}
+            >
+              <Option value="all">All Status</Option>
+              <Option value="available">Available</Option>
+              <Option value="unavailable">Unavailable</Option>
+            </Select>
+          </Col>
+          <Col xs={12} sm={8} md={4}>
+            <Space style={{ width: '100%', justifyContent: 'center' }}>
+              <Tooltip title="Table View">
+                <Button
+                  type={viewMode === 'table' ? 'primary' : 'default'}
+                  icon={<UnorderedListOutlined />}
+                  onClick={() => setViewMode('table')}
+                  size={windowWidth <= 768 ? 'middle' : 'large'}
+                  style={{ borderRadius: '8px', flex: 1 }}
+                >
+                  {windowWidth <= 768 && 'Table'}
+                </Button>
+              </Tooltip>
+              <Tooltip title="Grid View">
+                <Button
+                  type={viewMode === 'grid' ? 'primary' : 'default'}
+                  icon={<AppstoreOutlined />}
+                  onClick={() => setViewMode('grid')}
+                  size={windowWidth <= 768 ? 'middle' : 'large'}
+                  style={{ borderRadius: '8px', flex: 1 }}
+                >
+                  {windowWidth <= 768 && 'Grid'}
+                </Button>
+              </Tooltip>
+            </Space>
+          </Col>
+          <Col xs={12} sm={8} md={4}>
+            <Space 
+              style={{ 
+                width: '100%', 
+                justifyContent: 'center'
+              }}
+            >
+              <Button
+                icon={<ReloadOutlined />}
+                onClick={fetchPackages}
+                loading={loading}
+                size={windowWidth <= 768 ? 'middle' : 'large'}
+                style={{ borderRadius: '8px' }}
+              >
+                {windowWidth > 768 && 'Refresh'}
+              </Button>
           <Button
             type="primary"
             icon={<PlusOutlined />}
             onClick={handleAdd}
-            size="large"
-            style={{ backgroundColor: '#ff6b35', borderColor: '#ff6b35' }}
+                size={windowWidth <= 768 ? 'middle' : 'large'}
+                style={{ 
+                  backgroundColor: '#ff6b35', 
+                  borderColor: '#ff6b35',
+                  borderRadius: '8px',
+                  fontWeight: '600'
+                }}
           >
-            Add New Package
+                {windowWidth > 768 ? 'Add Package' : 'Add'}
           </Button>
-        }
+            </Space>
+          </Col>
+        </Row>
+      </Card>
+
+      {/* Content Area */}
+      {viewMode === 'table' ? (
+        <Card 
+          style={{ 
+            borderRadius: '12px',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+            border: 'none'
+          }}
       >
+          {filteredPackages.length === 0 ? (
+            <Empty 
+              description={
+                <span style={{ color: '#999', fontFamily: "'Poppins', sans-serif" }}>
+                  {packages.length === 0 ? 'No packages found. Create your first package!' : 'No packages match your filters.'}
+                </span>
+              }
+              style={{ padding: '40px 0' }}
+            />
+          ) : (
+            <>
         <Table
           columns={columns}
-          dataSource={packages}
+                dataSource={filteredPackages}
           rowKey="_id"
           loading={loading}
           scroll={{ x: 1200 }}
           pagination={{
-            pageSize: 10,
+                  current: tablePage,
+                  pageSize: tablePageSize,
             showSizeChanger: true,
-            showTotal: (total) => `Total ${total} packages`,
-          }}
-        />
+                  showQuickJumper: windowWidth > 768,
+                  onChange: (page, pageSize) => {
+                    setTablePage(page);
+                    setTablePageSize(pageSize);
+                  },
+                }}
+                rowClassName={(record, index) => 
+                  index % 2 === 0 ? 'table-row-light' : 'table-row-dark'
+                }
+                style={{
+                  fontFamily: "'Poppins', sans-serif"
+                }}
+              />
+              {filteredPackages.length > 0 && (
+                <div style={{
+                  marginTop: '16px',
+                  textAlign: 'center',
+                  color: '#6c757d',
+                  fontSize: windowWidth <= 768 ? '13px' : '14px',
+                  fontFamily: "'Poppins', sans-serif"
+                }}>
+                  {`${(tablePage - 1) * tablePageSize + 1}-${Math.min(tablePage * tablePageSize, filteredPackages.length)} of ${filteredPackages.length} packages`}
+                </div>
+              )}
+            </>
+          )}
       </Card>
+      ) : (
+        <>
+          <Row gutter={[windowWidth <= 768 ? 12 : 16, windowWidth <= 768 ? 12 : 16]}>
+            {filteredPackages.length === 0 ? (
+              <Col span={24}>
+                <Card style={{ borderRadius: '12px', textAlign: 'center' }}>
+                  <Empty 
+                    description={
+                      <span style={{ color: '#999', fontFamily: "'Poppins', sans-serif" }}>
+                        {packages.length === 0 ? 'No packages found. Create your first package!' : 'No packages match your filters.'}
+                      </span>
+                    }
+                  />
+                </Card>
+              </Col>
+            ) : (
+              paginatedPackages.map((pkg) => (
+              <Col xs={24} sm={12} lg={8} xl={6} key={pkg._id}>
+                <Card
+                  hoverable
+                  style={{
+                    borderRadius: '12px',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                    border: 'none',
+                    overflow: 'hidden',
+                    height: '100%',
+                    transition: 'all 0.3s ease',
+                    cursor: 'pointer'
+                  }}
+                  bodyStyle={{ padding: '16px' }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-4px)';
+                    e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.15)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
+                  }}
+                  cover={
+                    <div 
+                      style={{ 
+                        height: '200px', 
+                        overflow: 'hidden', 
+                        position: 'relative',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <img
+                        alt={pkg.title}
+                        src={pkg.images?.[0] || 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=400&h=200&fit=crop&q=80'}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          transition: 'transform 0.3s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = 'scale(1.1)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = 'scale(1)';
+                        }}
+                        onError={(e) => {
+                          e.target.src = 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=400&h=200&fit=crop&q=80';
+                        }}
+                      />
+                      {pkg.featured && (
+                        <Badge.Ribbon text="Featured" color="#ff6b35" style={{ top: 16, fontSize: '12px', fontWeight: '600' }}>
+                        </Badge.Ribbon>
+                      )}
+                      <Tag
+                        color={pkg.availability?.isAvailable !== false ? 'success' : 'error'}
+                        style={{
+                          position: 'absolute',
+                          bottom: 12,
+                          right: 12,
+                          borderRadius: '6px',
+                          fontWeight: '600',
+                          fontSize: '11px',
+                          padding: '4px 8px',
+                          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
+                        }}
+                      >
+                        {pkg.availability?.isAvailable !== false ? 'Available' : 'Unavailable'}
+                      </Tag>
+                    </div>
+                  }
+                  actions={[
+                    <Tooltip title="Edit Package">
+                      <EditOutlined 
+                        key="edit" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEdit(pkg);
+                        }}
+                        style={{ 
+                          fontSize: '18px', 
+                          color: '#1890ff',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.color = '#40a9ff';
+                          e.currentTarget.style.transform = 'scale(1.2)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.color = '#1890ff';
+                          e.currentTarget.style.transform = 'scale(1)';
+                        }}
+                      />
+                    </Tooltip>,
+                    <Popconfirm
+                      title="Delete this package?"
+                      description="This action cannot be undone."
+                      onConfirm={(e) => {
+                        e?.stopPropagation();
+                        handleDelete(pkg._id);
+                      }}
+                      okText="Yes, Delete"
+                      cancelText="Cancel"
+                      okButtonProps={{ danger: true }}
+                      onCancel={(e) => e?.stopPropagation()}
+                    >
+                      <Tooltip title="Delete Package">
+                        <DeleteOutlined 
+                          key="delete"
+                          onClick={(e) => e.stopPropagation()}
+                          style={{ 
+                            fontSize: '18px', 
+                            color: '#ff4d4f',
+                            transition: 'all 0.2s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.color = '#ff7875';
+                            e.currentTarget.style.transform = 'scale(1.2)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.color = '#ff4d4f';
+                            e.currentTarget.style.transform = 'scale(1)';
+                          }}
+                        />
+                      </Tooltip>
+                    </Popconfirm>
+                  ]}
+                >
+                  <div>
+                    <Title level={5} style={{ 
+                      marginBottom: '8px',
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      color: '#2c3e50',
+                      fontFamily: "'Poppins', sans-serif",
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      minHeight: '48px'
+                    }}>
+                      {pkg.title}
+                    </Title>
+                    <Text type="secondary" style={{ fontSize: '13px', display: 'block', marginBottom: '8px' }}>
+                      {pkg.destination}
+                    </Text>
+                    <div style={{ marginBottom: '8px' }}>
+                      <Tag color={getCategoryColor(pkg.category)} style={{ borderRadius: '6px', fontWeight: '500' }}>
+                        {pkg.category?.toUpperCase()}
+                      </Tag>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
+                      <div>
+                        <Text strong style={{ fontSize: '18px', color: '#ff6b35' }}>
+                          ₹{pkg.price?.adult?.toLocaleString()}
+                        </Text>
+                        <Text type="secondary" style={{ fontSize: '12px', display: 'block' }}>
+                          per adult
+                        </Text>
+                      </div>
+                      <Text type="secondary" style={{ fontSize: '13px' }}>
+                        {pkg.duration?.days || 0}D / {pkg.duration?.nights || 0}N
+                      </Text>
+                    </div>
+                  </div>
+                </Card>
+              </Col>
+              ))
+            )}
+          </Row>
+          {filteredPackages.length > 0 && (
+            <div style={{ 
+              marginTop: '24px', 
+              display: 'flex', 
+              flexDirection: 'column',
+              alignItems: 'center',
+              padding: windowWidth <= 768 ? '16px 0' : '24px 0'
+            }}>
+              <Pagination
+                current={gridPage}
+                total={totalPackages}
+                pageSize={gridPageSize}
+                onChange={(page, pageSize) => {
+                  setGridPage(page);
+                  setGridPageSize(pageSize);
+                }}
+                showSizeChanger
+                showQuickJumper={windowWidth > 768}
+                pageSizeOptions={['6', '12', '24', '48']}
+                style={{
+                  fontFamily: "'Poppins', sans-serif"
+                }}
+              />
+              <div style={{
+                marginTop: '12px',
+                textAlign: 'center',
+                color: '#6c757d',
+                fontSize: windowWidth <= 768 ? '13px' : '14px',
+                fontFamily: "'Poppins', sans-serif"
+              }}>
+                {`${(gridPage - 1) * gridPageSize + 1}-${Math.min(gridPage * gridPageSize, totalPackages)} of ${totalPackages} packages`}
+              </div>
+            </div>
+          )}
+        </>
+      )}
 
       <Modal
         title={editingPackage ? 'Edit Package' : 'Add New Package'}
@@ -476,7 +1065,7 @@ const PackageManagement = () => {
           }}
         >
           <Tabs defaultActiveKey="1">
-            <TabPane tab="📝 Basic Info" key="1">
+            <TabPane tab="Basic Info" key="1">
               <Form.Item
                 name="title"
                 label="Package Title"
@@ -760,13 +1349,13 @@ const PackageManagement = () => {
                 help="Select one or more trending categories to feature this package"
               >
                 <Checkbox.Group style={{ width: '100%' }}>
-                  <Checkbox value="Culture & Heritage">🕌 Culture & Heritage</Checkbox>
-                  <Checkbox value="Nature & Adventure">🏔️ Nature & Adventure</Checkbox>
-                  <Checkbox value="Beaches & Islands">🏖️ Beaches & Islands</Checkbox>
-                  <Checkbox value="Wellness & Spirituality">🧘‍♀️ Wellness & Spirituality</Checkbox>
-                  <Checkbox value="Food & Festivals">🍛 Food & Festivals</Checkbox>
-                  <Checkbox value="Modern India">🏙️ Modern India</Checkbox>
-                  <Checkbox value="Special Journeys">🚗 Special Journeys</Checkbox>
+                  <Checkbox value="Culture & Heritage">Culture & Heritage</Checkbox>
+                  <Checkbox value="Nature & Adventure">Nature & Adventure</Checkbox>
+                  <Checkbox value="Beaches & Islands">Beaches & Islands</Checkbox>
+                  <Checkbox value="Wellness & Spirituality">Wellness & Spirituality</Checkbox>
+                  <Checkbox value="Food & Festivals">Food & Festivals</Checkbox>
+                  <Checkbox value="Modern India">Modern India</Checkbox>
+                  <Checkbox value="Special Journeys">Special Journeys</Checkbox>
                 </Checkbox.Group>
               </Form.Item>
 
@@ -793,7 +1382,7 @@ const PackageManagement = () => {
               </Space>
             </TabPane>
 
-            <TabPane tab="🖼️ Images" key="2">
+            <TabPane tab="Images" key="2">
               <div style={{ marginBottom: 16 }}>
                 <h4>Package Images (URLs)</h4>
                 <p style={{ color: '#666', fontSize: '12px' }}>Add multiple image URLs. First image will be the cover image.</p>
@@ -842,7 +1431,7 @@ const PackageManagement = () => {
               )}
             </TabPane>
 
-            <TabPane tab="📅 Itinerary" key="3">
+            <TabPane tab="Itinerary" key="3">
               <div style={{ marginBottom: 16 }}>
                 <h4>Day-by-Day Itinerary</h4>
                 <p style={{ color: '#666', fontSize: '12px' }}>Add detailed daily activities for your tour package.</p>
@@ -929,7 +1518,7 @@ const PackageManagement = () => {
               </Button>
             </TabPane>
 
-            <TabPane tab="✨ Details" key="4">
+            <TabPane tab="Details" key="4">
               <Form.Item name="highlights" label="Package Highlights (One per line)">
                 <TextArea
                   rows={4}

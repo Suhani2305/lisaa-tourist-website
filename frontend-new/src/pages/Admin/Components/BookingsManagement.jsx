@@ -29,7 +29,8 @@ import {
   Descriptions,
   Avatar,
   Rate,
-  Empty
+  Empty,
+  Pagination
 } from 'antd';
 import {
   PlusOutlined,
@@ -59,7 +60,9 @@ import {
   HomeOutlined,
   StarOutlined,
   TeamOutlined,
-  GlobalOutlined
+  GlobalOutlined,
+  BookOutlined,
+  ReloadOutlined
 } from '@ant-design/icons';
 
 // Import Google Font (Poppins) - Same as landing page
@@ -79,9 +82,12 @@ const BookingsManagement = () => {
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [editingBooking, setEditingBooking] = useState(null);
   const [form] = Form.useForm();
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const [searchText, setSearchText] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterPayment, setFilterPayment] = useState('all');
+  const [gridPage, setGridPage] = useState(1);
+  const [gridPageSize, setGridPageSize] = useState(window.innerWidth <= 768 ? 6 : 12);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [modificationRequests, setModificationRequests] = useState([]);
   const [modificationLoading, setModificationLoading] = useState(false);
@@ -89,6 +95,25 @@ const BookingsManagement = () => {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [adminNotes, setAdminNotes] = useState('');
   const [processingRequest, setProcessingRequest] = useState(false);
+
+  // Handle window resize
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+      if (window.innerWidth <= 768) {
+        setGridPageSize(6); // 6 items per page on mobile
+      } else {
+        setGridPageSize(12); // 12 items per page on desktop
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setGridPage(1);
+  }, [searchText, filterStatus, filterPayment]);
 
   useEffect(() => {
     fetchBookings();
@@ -312,22 +337,75 @@ const BookingsManagement = () => {
 
   // Filter bookings based on search and filters
   const filteredBookings = bookings.filter(booking => {
-    const matchesSearch = booking.user.name.toLowerCase().includes(searchText.toLowerCase()) ||
-                         booking.tour.title.toLowerCase().includes(searchText.toLowerCase()) ||
-                         booking.bookingNumber.toLowerCase().includes(searchText.toLowerCase());
+    const matchesSearch = booking.user?.name?.toLowerCase().includes(searchText.toLowerCase()) ||
+                         booking.tour?.title?.toLowerCase().includes(searchText.toLowerCase()) ||
+                         booking.bookingNumber?.toLowerCase().includes(searchText.toLowerCase());
     const matchesStatus = filterStatus === 'all' || booking.status === filterStatus;
-    const matchesPayment = filterPayment === 'all' || booking.payment.status === filterPayment;
+    const matchesPayment = filterPayment === 'all' || booking.payment?.status === filterPayment;
     
     return matchesSearch && matchesStatus && matchesPayment;
   });
+
+  // Calculate paginated data for grid view
+  const getPaginatedBookings = () => {
+    const startIndex = (gridPage - 1) * gridPageSize;
+    const endIndex = startIndex + gridPageSize;
+    return filteredBookings.slice(startIndex, endIndex);
+  };
+
+  const paginatedBookings = getPaginatedBookings();
+  const totalBookingsCount = filteredBookings.length;
+
+  // Export bookings to CSV
+  const handleExport = () => {
+    try {
+      // Create CSV headers
+      const headers = ['Booking Number', 'Customer Name', 'Customer Email', 'Tour Title', 'Destination', 'Travel Dates', 'Travelers', 'Amount', 'Payment Status', 'Booking Status'];
+      
+      // Create CSV rows
+      const rows = filteredBookings.map(booking => [
+        booking.bookingNumber || 'N/A',
+        booking.user?.name || 'N/A',
+        booking.user?.email || 'N/A',
+        booking.tour?.title || 'N/A',
+        booking.tour?.destination || 'N/A',
+        `${booking.travelDates?.startDate || 'N/A'} - ${booking.travelDates?.endDate || 'N/A'}`,
+        booking.travelers?.length || 0,
+        booking.pricing?.finalAmount || 0,
+        booking.payment?.status || 'N/A',
+        booking.status || 'N/A'
+      ]);
+      
+      // Combine headers and rows
+      const csvContent = [headers, ...rows]
+        .map(row => row.map(cell => `"${cell}"`).join(','))
+        .join('\n');
+      
+      // Create blob and download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `bookings_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      message.success('Bookings exported successfully!');
+    } catch (error) {
+      console.error('Export error:', error);
+      message.error('Failed to export bookings');
+    }
+  };
 
   // Calculate statistics
   const totalBookings = bookings.length;
   const confirmedBookings = bookings.filter(b => b.status === 'confirmed').length;
   const pendingBookings = bookings.filter(b => b.status === 'pending').length;
   const totalRevenue = bookings
-    .filter(b => b.payment.status === 'paid')
-    .reduce((sum, b) => sum + b.pricing.finalAmount, 0);
+    .filter(b => b.payment?.status === 'paid')
+    .reduce((sum, b) => sum + (b.pricing?.finalAmount || 0), 0);
 
   const columns = [
     {
@@ -556,124 +634,136 @@ const BookingsManagement = () => {
   ];
 
   return (
-    <div style={{ fontFamily: "'Poppins', sans-serif" }}>
-      {/* Header */}
+    <div style={{ 
+      padding: windowWidth <= 768 ? '16px' : '24px',
+      fontFamily: "'Poppins', sans-serif",
+      background: '#f5f5f5',
+      minHeight: '100vh'
+    }}>
+      {/* Header Section */}
       <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '24px',
-        padding: '20px 24px',
-        background: 'white',
-        borderRadius: '20px',
-        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
-        border: '1px solid rgba(255, 107, 53, 0.1)'
+        marginBottom: windowWidth <= 768 ? '20px' : '32px',
+        textAlign: 'center'
       }}>
-        <div>
-          <Title level={3} style={{ margin: '0 0 8px 0', color: '#2c3e50', fontFamily: "'Poppins', sans-serif" }}>
-            📅 Bookings Management
-          </Title>
-          <Text style={{ fontSize: '14px', color: '#6c757d', fontFamily: "'Poppins', sans-serif" }}>
-            Manage all customer bookings, payments, and travel arrangements
-          </Text>
-        </div>
-        
-        <Space>
-          <Button
-            icon={<ImportOutlined />}
-            style={{
-              borderRadius: '12px',
-              fontFamily: "'Poppins', sans-serif",
-              fontWeight: '600'
-            }}
-          >
-            Import
-          </Button>
-          <Button
-            icon={<ExportOutlined />}
-            style={{
-              borderRadius: '12px',
-              fontFamily: "'Poppins', sans-serif",
-              fontWeight: '600'
-            }}
-          >
-            Export
-          </Button>
-          <Button
-            icon={<DownloadOutlined />}
-            style={{
-              borderRadius: '12px',
-              fontFamily: "'Poppins', sans-serif",
-              fontWeight: '600'
-            }}
-          >
-            Reports
-          </Button>
-        </Space>
+        <Title level={1} style={{ 
+          fontSize: windowWidth <= 768 ? '1.8rem' : windowWidth <= 1024 ? '2.5rem' : '3rem', 
+          fontWeight: '800', 
+          color: '#FF6B35',
+          margin: '0 auto 16px auto',
+          fontFamily: "'Playfair Display', 'Georgia', serif",
+          lineHeight: '1.2',
+          letterSpacing: '-0.02em',
+          textAlign: 'center'
+        }}>
+          Bookings Management
+        </Title>
+        <p style={{ 
+          fontSize: windowWidth <= 768 ? '13px' : '16px',
+          color: '#6c757d',
+          margin: '0 auto',
+          fontFamily: "'Poppins', sans-serif",
+          textAlign: 'center',
+          maxWidth: '600px'
+        }}>
+          Manage all customer bookings, payments, and travel arrangements
+        </p>
       </div>
 
       {/* Statistics Cards */}
-      <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
-        <Col xs={24} sm={12} md={6}>
-          <Card style={{ borderRadius: '16px', textAlign: 'center' }}>
+      <Row gutter={[windowWidth <= 768 ? 12 : 16, windowWidth <= 768 ? 12 : 16]} style={{ marginBottom: '24px' }}>
+        <Col xs={12} sm={12} lg={6}>
+          <Card style={{ 
+            borderRadius: '12px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+            border: 'none',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: 'white'
+          }}>
             <Statistic
-              title="Total Bookings"
+              title={<span style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: windowWidth <= 768 ? '12px' : '14px' }}>Total Bookings</span>}
               value={totalBookings}
-              prefix={<CalendarOutlined style={{ color: '#ff6b35' }} />}
-              valueStyle={{ color: '#ff6b35', fontFamily: "'Poppins', sans-serif" }}
+              valueStyle={{ color: 'white', fontSize: windowWidth <= 768 ? '24px' : '32px', fontWeight: '700' }}
             />
           </Card>
         </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card style={{ borderRadius: '16px', textAlign: 'center' }}>
+        <Col xs={12} sm={12} lg={6}>
+          <Card style={{ 
+            borderRadius: '12px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+            border: 'none',
+            background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+            color: 'white'
+          }}>
             <Statistic
-              title="Confirmed"
+              title={<span style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: windowWidth <= 768 ? '12px' : '14px' }}>Confirmed</span>}
               value={confirmedBookings}
-              prefix={<CheckOutlined style={{ color: '#52c41a' }} />}
-              valueStyle={{ color: '#52c41a', fontFamily: "'Poppins', sans-serif" }}
+              valueStyle={{ color: 'white', fontSize: windowWidth <= 768 ? '24px' : '32px', fontWeight: '700' }}
             />
           </Card>
         </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card style={{ borderRadius: '16px', textAlign: 'center' }}>
+        <Col xs={12} sm={12} lg={6}>
+          <Card style={{ 
+            borderRadius: '12px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+            border: 'none',
+            background: 'linear-gradient(135deg, #faad14 0%, #ffc53d 100%)',
+            color: 'white'
+          }}>
             <Statistic
-              title="Pending"
+              title={<span style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: windowWidth <= 768 ? '12px' : '14px' }}>Pending</span>}
               value={pendingBookings}
-              prefix={<ClockCircleOutlined style={{ color: '#faad14' }} />}
-              valueStyle={{ color: '#faad14', fontFamily: "'Poppins', sans-serif" }}
+              valueStyle={{ color: 'white', fontSize: windowWidth <= 768 ? '24px' : '32px', fontWeight: '700' }}
             />
           </Card>
         </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card style={{ borderRadius: '16px', textAlign: 'center' }}>
+        <Col xs={12} sm={12} lg={6}>
+          <Card style={{ 
+            borderRadius: '12px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+            border: 'none',
+            background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+            color: 'white'
+          }}>
             <Statistic
-              title="Total Revenue"
+              title={<span style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: windowWidth <= 768 ? '12px' : '14px' }}>Total Revenue</span>}
               value={totalRevenue}
               prefix="₹"
-              valueStyle={{ color: '#1890ff', fontFamily: "'Poppins', sans-serif" }}
+              valueStyle={{ color: 'white', fontSize: windowWidth <= 768 ? '20px' : '28px', fontWeight: '700' }}
               formatter={(value) => value.toLocaleString()}
             />
           </Card>
         </Col>
       </Row>
 
-      {/* Filters */}
-      <Card style={{ marginBottom: '24px', borderRadius: '16px' }}>
-        <Row gutter={[16, 16]} align="middle">
-          <Col xs={24} sm={8} md={6}>
+      {/* Actions Bar */}
+      <Card 
+        style={{ 
+          marginBottom: '24px',
+          borderRadius: '12px',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+          border: 'none'
+        }}
+        bodyStyle={{ padding: windowWidth <= 768 ? '12px' : '20px' }}
+      >
+        <Row gutter={[12, 12]} align="middle">
+          {/* Row 1: Search and Status Filter (mobile) / All filters (desktop) */}
+          <Col xs={16} sm={24} md={8}>
             <Input
               placeholder="Search bookings..."
-              prefix={<SearchOutlined style={{ color: '#ff6b35' }} />}
+              prefix={<SearchOutlined />}
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
+              size={windowWidth <= 768 ? 'middle' : 'large'}
+              allowClear
               style={{ borderRadius: '8px' }}
             />
           </Col>
-          <Col xs={12} sm={8} md={4}>
+          <Col xs={8} sm={24} md={4}>
             <Select
               placeholder="Status"
               value={filterStatus}
               onChange={setFilterStatus}
+              size={windowWidth <= 768 ? 'middle' : 'large'}
               style={{ width: '100%', borderRadius: '8px' }}
             >
               <Option value="all">All Status</Option>
@@ -683,11 +773,14 @@ const BookingsManagement = () => {
               <Option value="completed">Completed</Option>
             </Select>
           </Col>
-          <Col xs={12} sm={8} md={4}>
+          
+          {/* Row 2: Payment, Refresh, Export (mobile) / Continue in same row (desktop) */}
+          <Col xs={12} sm={24} md={4}>
             <Select
               placeholder="Payment"
               value={filterPayment}
               onChange={setFilterPayment}
+              size={windowWidth <= 768 ? 'middle' : 'large'}
               style={{ width: '100%', borderRadius: '8px' }}
             >
               <Option value="all">All Payments</Option>
@@ -697,27 +790,41 @@ const BookingsManagement = () => {
               <Option value="refunded">Refunded</Option>
             </Select>
           </Col>
-          <Col xs={24} sm={24} md={10}>
-            <Space>
+          <Col xs={6} sm={12} md={4}>
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={() => {
+                fetchBookings();
+                fetchModificationRequests();
+              }}
+              loading={loading}
+              size={windowWidth <= 768 ? 'middle' : 'large'}
+              style={{ borderRadius: '8px', width: '100%' }}
+            >
+              {windowWidth > 768 && 'Refresh'}
+            </Button>
+          </Col>
+          <Col xs={6} sm={12} md={4}>
+            <Tooltip title="Export Bookings to CSV">
               <Button
-                icon={<FilterOutlined />}
-                style={{
-                  borderRadius: '8px',
-                  fontFamily: "'Poppins', sans-serif"
-                }}
+                icon={<ExportOutlined />}
+                onClick={handleExport}
+                size={windowWidth <= 768 ? 'middle' : 'large'}
+                style={{ borderRadius: '8px', width: '100%' }}
               >
-                More Filters
+                {windowWidth > 768 && 'Export'}
               </Button>
-              <Text type="secondary" style={{ fontFamily: "'Poppins', sans-serif" }}>
-                Showing {filteredBookings.length} of {bookings.length} bookings
-              </Text>
-            </Space>
+            </Tooltip>
           </Col>
         </Row>
       </Card>
 
       {/* Tabs for Bookings and Modification Requests */}
-      <Card style={{ borderRadius: '16px' }}>
+      <Card style={{ 
+        borderRadius: '12px',
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+        border: 'none'
+      }}>
         <Tabs
           defaultActiveKey="bookings"
           items={[
@@ -732,21 +839,242 @@ const BookingsManagement = () => {
                 </span>
               ),
               children: (
-                <Table
-                  columns={columns}
-                  dataSource={filteredBookings}
-                  rowKey="id"
-                  loading={loading}
-                  pagination={{
-                    total: filteredBookings.length,
-                    pageSize: 10,
-                    showSizeChanger: true,
-                    showQuickJumper: true,
-                    showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} bookings`,
-                  }}
-                  scroll={{ x: 1200 }}
-                />
-              )
+                <>
+                  <Row gutter={[windowWidth <= 768 ? 12 : 16, windowWidth <= 768 ? 12 : 16]}>
+                    {filteredBookings.length === 0 ? (
+                      <Col span={24}>
+                        <Empty 
+                          description={
+                            <span style={{ color: '#999', fontFamily: "'Poppins', sans-serif" }}>
+                              {bookings.length === 0 ? 'No bookings found.' : 'No bookings match your filters.'}
+                            </span>
+                          }
+                        />
+                      </Col>
+                    ) : (
+                      paginatedBookings.map((booking) => (
+                          <Col xs={24} sm={12} lg={8} xl={6} key={booking.id}>
+                            <Card
+                              hoverable
+                              style={{
+                                borderRadius: '12px',
+                                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                                border: 'none',
+                                overflow: 'hidden',
+                                height: '100%',
+                                transition: 'all 0.3s ease'
+                              }}
+                              cover={
+                                booking.tour?.image ? (
+                                  <div 
+                                    style={{ 
+                                      height: '200px', 
+                                      overflow: 'hidden', 
+                                      position: 'relative',
+                                      cursor: 'pointer'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      const img = e.currentTarget.querySelector('img');
+                                      if (img) img.style.transform = 'scale(1.1)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      const img = e.currentTarget.querySelector('img');
+                                      if (img) img.style.transform = 'scale(1)';
+                                    }}
+                                  >
+                                    <Image
+                                      alt={booking.tour?.title || 'Tour'}
+                                      src={booking.tour.image}
+                                      style={{
+                                        width: '100%',
+                                        height: '100%',
+                                        objectFit: 'cover',
+                                        transition: 'transform 0.3s ease'
+                                      }}
+                                      preview={false}
+                                    />
+                                    <Tag
+                                      color={getStatusColor(booking.status)}
+                                      style={{
+                                        position: 'absolute',
+                                        top: 12,
+                                        right: 12,
+                                        borderRadius: '6px',
+                                        fontWeight: '600',
+                                        fontSize: '11px',
+                                        padding: '4px 8px',
+                                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
+                                        textTransform: 'capitalize'
+                                      }}
+                                    >
+                                      {booking.status}
+                                    </Tag>
+                                  </div>
+                                ) : (
+                                  <div style={{ 
+                                    height: '200px', 
+                                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                  }}>
+                                    <Text style={{ color: 'white', fontSize: '48px', fontWeight: 'bold' }}>
+                                      {booking.bookingNumber?.charAt(0)?.toUpperCase() || 'B'}
+                                    </Text>
+                                  </div>
+                                )
+                              }
+                              bodyStyle={{ padding: '16px' }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = 'translateY(-4px)';
+                                e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.15)';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
+                              }}
+                              actions={[
+                                <Tooltip title="View Details">
+                                  <EyeOutlined 
+                                    key="view" 
+                                    onClick={() => handleViewDetails(booking)}
+                                    style={{ 
+                                      fontSize: '18px', 
+                                      color: '#1890ff',
+                                      transition: 'all 0.2s ease'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.color = '#40a9ff';
+                                      e.currentTarget.style.transform = 'scale(1.2)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.color = '#1890ff';
+                                      e.currentTarget.style.transform = 'scale(1)';
+                                    }}
+                                  />
+                                </Tooltip>,
+                                <Tooltip title="Edit Booking">
+                                  <EditOutlined 
+                                    key="edit" 
+                                    onClick={() => handleEditBooking(booking)}
+                                    style={{ 
+                                      fontSize: '18px', 
+                                      color: '#ff6b35',
+                                      transition: 'all 0.2s ease'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.color = '#ff8c5a';
+                                      e.currentTarget.style.transform = 'scale(1.2)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.color = '#ff6b35';
+                                      e.currentTarget.style.transform = 'scale(1)';
+                                    }}
+                                  />
+                                </Tooltip>,
+                                <Popconfirm
+                                  title="Delete this booking?"
+                                  description="This action cannot be undone."
+                                  onConfirm={() => handleDeleteBooking(booking.id)}
+                                  okText="Yes"
+                                  cancelText="No"
+                                  okButtonProps={{ danger: true }}
+                                >
+                                  <Tooltip title="Delete Booking">
+                                    <DeleteOutlined 
+                                      key="delete"
+                                      style={{ 
+                                        fontSize: '18px', 
+                                        color: '#ff4d4f',
+                                        transition: 'all 0.2s ease'
+                                      }}
+                                      onMouseEnter={(e) => {
+                                        e.currentTarget.style.color = '#ff7875';
+                                        e.currentTarget.style.transform = 'scale(1.2)';
+                                      }}
+                                      onMouseLeave={(e) => {
+                                        e.currentTarget.style.color = '#ff4d4f';
+                                        e.currentTarget.style.transform = 'scale(1)';
+                                      }}
+                                    />
+                                  </Tooltip>
+                                </Popconfirm>
+                              ]}
+                            >
+                              <Title level={5} style={{ 
+                                marginBottom: '8px',
+                                fontSize: '16px',
+                                fontWeight: '600',
+                                color: '#2c3e50',
+                                fontFamily: "'Poppins', sans-serif"
+                              }}>
+                                {booking.bookingNumber}
+                              </Title>
+                              <Text type="secondary" style={{ fontSize: '13px', display: 'block', marginBottom: '8px' }}>
+                                {booking.tour?.title || 'N/A'}
+                              </Text>
+                              <div style={{ marginBottom: '8px' }}>
+                                <Avatar 
+                                  src={booking.user?.avatar} 
+                                  icon={<UserOutlined />}
+                                  size="small"
+                                  style={{ marginRight: '8px' }}
+                                />
+                                <Text style={{ fontSize: '13px' }}>
+                                  {booking.user?.name || 'N/A'}
+                                </Text>
+                              </div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
+                                <div>
+                                  <Text strong style={{ fontSize: '18px', color: '#52c41a' }}>
+                                    ₹{booking.pricing?.finalAmount?.toLocaleString() || '0'}
+                                  </Text>
+                                </div>
+                                <Tag color={getPaymentStatusColor(booking.payment?.status)} style={{ textTransform: 'capitalize' }}>
+                                  {booking.payment?.status || 'N/A'}
+                                </Tag>
+                              </div>
+                            </Card>
+                          </Col>
+                        ))
+                      )}
+                    </Row>
+                    {filteredBookings.length > 0 && (
+                      <div style={{ 
+                        marginTop: '24px', 
+                        display: 'flex', 
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        padding: windowWidth <= 768 ? '16px 0' : '24px 0'
+                      }}>
+                        <Pagination
+                          current={gridPage}
+                          total={totalBookingsCount}
+                          pageSize={gridPageSize}
+                          onChange={(page, pageSize) => {
+                            setGridPage(page);
+                            setGridPageSize(pageSize);
+                          }}
+                          showSizeChanger
+                          showQuickJumper={windowWidth > 768}
+                          pageSizeOptions={['6', '12', '24', '48']}
+                          style={{
+                            fontFamily: "'Poppins', sans-serif"
+                          }}
+                        />
+                        <div style={{
+                          marginTop: '12px',
+                          textAlign: 'center',
+                          color: '#6c757d',
+                          fontSize: windowWidth <= 768 ? '13px' : '14px',
+                          fontFamily: "'Poppins', sans-serif"
+                        }}>
+                          {`${(gridPage - 1) * gridPageSize + 1}-${Math.min(gridPage * gridPageSize, totalBookingsCount)} of ${totalBookingsCount} bookings`}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )
             },
             {
               key: 'modifications',

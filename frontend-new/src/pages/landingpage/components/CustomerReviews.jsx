@@ -97,7 +97,7 @@ const CustomerReviews = () => {
           {/* Left Section */}
           <div style={{ 
             flex: 1, 
-            color: 'white',
+            color: 'white', 
             width: window.innerWidth <= 768 ? '100%' : 'auto'
           }}>
             <h2
@@ -126,47 +126,47 @@ const CustomerReviews = () => {
                 {/* Rating Section */}
                 <div style={{ flex: window.innerWidth <= 768 ? '1' : 'none' }}>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '8px' }}>
-                    <h3 style={{ 
+              <h3 style={{ 
                       fontSize: window.innerWidth <= 480 ? '2rem' : window.innerWidth <= 768 ? '2.5rem' : '3rem', 
-                      fontWeight: '800', 
+                fontWeight: '800', 
                       margin: 0,
                       color: '#ff6b35'
-                    }}>4.8</h3>
+              }}>4.8</h3>
                     <span style={{ fontSize: window.innerWidth <= 768 ? '1rem' : '1.2rem', opacity: 0.9 }}>⭐</span>
                   </div>
-                  <p
-                    style={{
+              <p
+                style={{
                       fontSize: window.innerWidth <= 480 ? '0.75rem' : window.innerWidth <= 768 ? '0.85rem' : '0.95rem',
                       opacity: 0.9,
-                      margin: 0,
+                  margin: 0,
                       lineHeight: '1.5',
                       fontFamily: 'Poppins, sans-serif'
-                    }}
-                  >
+                }}
+              >
                     1000+ reviews on TripAdvisor
-                    <br />
+                <br />
                     <span style={{ color: '#ff6b35', fontWeight: '600' }}>Certificate of Excellence</span>
-                  </p>
-                </div>
+              </p>
+            </div>
 
                 {/* Happy Customers Section */}
                 <div style={{ flex: window.innerWidth <= 768 ? '1' : 'none' }}>
-                  <h3 style={{ 
+              <h3 style={{ 
                     fontSize: window.innerWidth <= 480 ? '2rem' : window.innerWidth <= 768 ? '2.5rem' : '3.5rem', 
-                    fontWeight: '800', 
+                fontWeight: '800', 
                     margin: '0 0 8px',
                     color: '#ff6b35'
-                  }}>16M</h3>
-                  <p
-                    style={{
+              }}>16M</h3>
+              <p
+                style={{
                       fontSize: window.innerWidth <= 480 ? '0.75rem' : window.innerWidth <= 768 ? '0.85rem' : '0.95rem',
                       opacity: 0.9,
-                      margin: 0,
+                  margin: 0,
                       fontFamily: 'Poppins, sans-serif'
-                    }}
-                  >
-                    Happy customers
-                  </p>
+                }}
+              >
+                Happy customers
+              </p>
                 </div>
               </div>
             </div>

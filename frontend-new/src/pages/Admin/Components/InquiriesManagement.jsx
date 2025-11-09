@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import dayjs from 'dayjs';
-import { inquiryService } from '../../../services';
+import { inquiryService, tourService } from '../../../services';
 import {
   Card,
   Table,
@@ -31,7 +31,8 @@ import {
   Avatar,
   Rate,
   List,
-  Drawer
+  Drawer,
+  Pagination
 } from 'antd';
 import {
   PlusOutlined,
@@ -73,7 +74,8 @@ import {
   ExclamationCircleOutlined,
   InfoCircleOutlined,
   CheckCircleOutlined,
-  CloseCircleOutlined
+  CloseCircleOutlined,
+  ReloadOutlined
 } from '@ant-design/icons';
 
 // Import Google Font (Poppins) - Same as landing page
@@ -93,12 +95,16 @@ const InquiriesManagement = () => {
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [editingInquiry, setEditingInquiry] = useState(null);
   const [form] = Form.useForm();
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const [searchText, setSearchText] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterPriority, setFilterPriority] = useState('all');
   const [selectedInquiry, setSelectedInquiry] = useState(null);
   const [replyModalVisible, setReplyModalVisible] = useState(false);
   const [replyForm] = Form.useForm();
+  const [tablePage, setTablePage] = useState(1);
+  const [tablePageSize, setTablePageSize] = useState(window.innerWidth <= 768 ? 5 : 10);
+  const [availableTours, setAvailableTours] = useState([]);
 
   // Reply templates generator function
   const getReplyTemplates = () => {
@@ -231,9 +237,38 @@ Lisaa Tours & Travels Team`
     ];
   };
 
+  // Handle window resize
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+      if (window.innerWidth <= 768) {
+        setTablePageSize(5);
+      } else {
+        setTablePageSize(10);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setTablePage(1);
+  }, [searchText, filterStatus, filterPriority]);
+
   useEffect(() => {
     fetchInquiries();
+    fetchTours();
   }, [filterStatus, filterPriority, searchText]);
+
+  const fetchTours = async () => {
+    try {
+      const tours = await tourService.getAllTours({ all: 'true', limit: 1000 });
+      setAvailableTours(Array.isArray(tours) ? tours : (tours?.data || tours?.tours || []));
+    } catch (error) {
+      console.error('Failed to fetch tours:', error);
+    }
+  };
 
   const fetchInquiries = async () => {
     setLoading(true);
@@ -363,10 +398,41 @@ Lisaa Tours & Travels Team`
           message.error(error.message || 'Failed to update inquiry');
         }
       } else {
-        // Adding new inquiry should go through contact form, but keeping for admin use
-        message.info('New inquiries should be created through the Contact Form');
-        setModalVisible(false);
-        form.resetFields();
+        // Create new inquiry
+        try {
+          const inquiryData = {
+            name: values.name,
+            email: values.email,
+            phone: values.phone,
+            subject: values.subject,
+            message: values.message,
+            source: values.source || 'website',
+            status: values.status || 'new',
+            priority: values.priority || 'medium',
+            assignedTo: values.assignedTo || null,
+            notes: values.notes || '',
+            interestedTour: values.interestedTour || null,
+            budget: values.budget || '',
+            travelDate: values.travelDate ? values.travelDate.toISOString() : null,
+            followUpDate: values.followUpDate ? values.followUpDate.toISOString() : null,
+            tags: values.tags || []
+          };
+          
+          const response = await inquiryService.createInquiry(inquiryData);
+          
+          if (response.success) {
+            message.success('Inquiry created successfully');
+            setModalVisible(false);
+            form.resetFields();
+            setEditingInquiry(null);
+            await fetchInquiries(); // Refresh inquiries list
+          } else {
+            message.error('Failed to create inquiry');
+          }
+        } catch (error) {
+          console.error('Create inquiry error:', error);
+          message.error(error.message || 'Failed to create inquiry');
+        }
       }
     } catch (error) {
       console.error('Validation failed:', error);
@@ -409,6 +475,50 @@ Lisaa Tours & Travels Team`
     setModalVisible(false);
     setDetailModalVisible(false);
     form.resetFields();
+  };
+
+  const handleExport = () => {
+    try {
+      // Create CSV headers
+      const headers = ['Name', 'Email', 'Phone', 'Subject', 'Status', 'Priority', 'Source', 'Tour Interest', 'Budget', 'Travel Date', 'Assigned To', 'Created Date'];
+      
+      // Create CSV rows
+      const rows = filteredInquiries.map(inquiry => [
+        inquiry.name || 'N/A',
+        inquiry.email || 'N/A',
+        inquiry.phone || 'N/A',
+        inquiry.subject || 'N/A',
+        inquiry.status || 'N/A',
+        inquiry.priority || 'N/A',
+        inquiry.source || 'N/A',
+        inquiry.interestedTour?.title || inquiry.interestedTour || 'N/A',
+        inquiry.budget ? `₹${inquiry.budget}` : 'N/A',
+        inquiry.travelDate || 'N/A',
+        inquiry.assignedTo || 'N/A',
+        inquiry.createdAt || 'N/A'
+      ]);
+      
+      // Combine headers and rows
+      const csvContent = [headers, ...rows]
+        .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+        .join('\n');
+      
+      // Create blob and download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `inquiries_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      message.success('Inquiries exported successfully!');
+    } catch (error) {
+      console.error('Export error:', error);
+      message.error('Failed to export inquiries');
+    }
   };
 
   const getStatusColor = (status) => {
@@ -643,194 +753,357 @@ Lisaa Tours & Travels Team`
     },
   ];
 
+  // Get paginated inquiries
+  const getPaginatedInquiries = () => {
+    const start = (tablePage - 1) * tablePageSize;
+    const end = start + tablePageSize;
+    return filteredInquiries.slice(start, end);
+  };
+
+  const paginatedInquiries = getPaginatedInquiries();
+  const totalInquiriesCount = filteredInquiries.length;
+
   return (
-    <div style={{ fontFamily: "'Poppins', sans-serif" }}>
-      {/* Header */}
+    <div style={{ 
+      fontFamily: "'Poppins', sans-serif",
+      padding: windowWidth <= 768 ? '16px' : '24px',
+      background: '#f5f5f5',
+      minHeight: '100vh'
+    }}>
+      {/* Header Section */}
       <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '24px',
-        padding: '20px 24px',
-        background: 'white',
-        borderRadius: '20px',
-        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
-        border: '1px solid rgba(255, 107, 53, 0.1)'
+        marginBottom: windowWidth <= 768 ? '20px' : '32px',
+        textAlign: 'center'
       }}>
-        <div>
-          <Title level={3} style={{ margin: '0 0 8px 0', color: '#2c3e50', fontFamily: "'Poppins', sans-serif" }}>
-            💬 Inquiries & Leads Management
-          </Title>
-          <Text style={{ fontSize: '14px', color: '#6c757d', fontFamily: "'Poppins', sans-serif" }}>
-            Manage customer inquiries, leads, and follow-up activities
-          </Text>
-        </div>
-        
-        <Space>
-          <Button
-            icon={<ImportOutlined />}
-            style={{
-              borderRadius: '12px',
-              fontFamily: "'Poppins', sans-serif",
-              fontWeight: '600'
-            }}
-          >
-            Import
-          </Button>
-          <Button
-            icon={<ExportOutlined />}
-            style={{
-              borderRadius: '12px',
-              fontFamily: "'Poppins', sans-serif",
-              fontWeight: '600'
-            }}
-          >
-            Export
-          </Button>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => setModalVisible(true)}
-            style={{
-              borderRadius: '12px',
-              background: '#ff6b35',
-              border: 'none',
-              fontFamily: "'Poppins', sans-serif",
-              fontWeight: '600'
-            }}
-          >
-            Add Inquiry
-          </Button>
-        </Space>
+        <Title level={1} style={{ 
+          fontSize: windowWidth <= 768 ? '1.8rem' : windowWidth <= 1024 ? '2.5rem' : '3rem', 
+          fontWeight: '800', 
+          color: '#FF6B35',
+          margin: '0 auto 16px auto',
+          fontFamily: "'Playfair Display', 'Georgia', serif",
+          lineHeight: '1.2',
+          letterSpacing: '-0.02em',
+          textAlign: 'center'
+        }}>
+          Inquiries Management
+        </Title>
+        <p style={{ 
+          fontSize: windowWidth <= 768 ? '13px' : '16px',
+          color: '#6c757d',
+          margin: '0 auto',
+          fontFamily: "'Poppins', sans-serif",
+          textAlign: 'center',
+          maxWidth: '600px'
+        }}>
+          Manage customer inquiries, leads, and follow-up activities
+        </p>
       </div>
 
       {/* Statistics Cards */}
-      <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
-        <Col xs={24} sm={12} md={6}>
-          <Card style={{ borderRadius: '16px', textAlign: 'center' }}>
+      <Row gutter={[windowWidth <= 768 ? 12 : 16, windowWidth <= 768 ? 12 : 16]} style={{ marginBottom: '24px' }}>
+        <Col xs={12} sm={12} lg={6}>
+          <Card style={{ 
+            borderRadius: '12px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+            border: 'none',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: 'white'
+          }}>
             <Statistic
-              title="Total Inquiries"
+              title={<span style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: windowWidth <= 768 ? '12px' : '14px' }}>Total Inquiries</span>}
               value={totalInquiries}
-              prefix={<MessageOutlined style={{ color: '#ff6b35' }} />}
-              valueStyle={{ color: '#ff6b35', fontFamily: "'Poppins', sans-serif" }}
+              valueStyle={{ color: 'white', fontSize: windowWidth <= 768 ? '24px' : '32px', fontWeight: '700' }}
             />
           </Card>
         </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card style={{ borderRadius: '16px', textAlign: 'center' }}>
+        <Col xs={12} sm={12} lg={6}>
+          <Card style={{ 
+            borderRadius: '12px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+            border: 'none',
+            background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+            color: 'white'
+          }}>
             <Statistic
-              title="New Inquiries"
+              title={<span style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: windowWidth <= 768 ? '12px' : '14px' }}>New Inquiries</span>}
               value={newInquiries}
-              prefix={<ExclamationCircleOutlined style={{ color: '#1890ff' }} />}
-              valueStyle={{ color: '#1890ff', fontFamily: "'Poppins', sans-serif" }}
+              valueStyle={{ color: 'white', fontSize: windowWidth <= 768 ? '24px' : '32px', fontWeight: '700' }}
             />
           </Card>
         </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card style={{ borderRadius: '16px', textAlign: 'center' }}>
+        <Col xs={12} sm={12} lg={6}>
+          <Card style={{ 
+            borderRadius: '12px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+            border: 'none',
+            background: 'linear-gradient(135deg, #faad14 0%, #ffc53d 100%)',
+            color: 'white'
+          }}>
             <Statistic
-              title="Converted"
+              title={<span style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: windowWidth <= 768 ? '12px' : '14px' }}>Converted</span>}
               value={convertedInquiries}
-              prefix={<CheckCircleOutlined style={{ color: '#52c41a' }} />}
-              valueStyle={{ color: '#52c41a', fontFamily: "'Poppins', sans-serif" }}
+              valueStyle={{ color: 'white', fontSize: windowWidth <= 768 ? '24px' : '32px', fontWeight: '700' }}
             />
           </Card>
         </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card style={{ borderRadius: '16px', textAlign: 'center' }}>
+        <Col xs={12} sm={12} lg={6}>
+          <Card style={{ 
+            borderRadius: '12px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+            border: 'none',
+            background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+            color: 'white'
+          }}>
             <Statistic
-              title="Conversion Rate"
+              title={<span style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: windowWidth <= 768 ? '12px' : '14px' }}>Conversion Rate</span>}
               value={conversionRate}
               suffix="%"
-              prefix={<TrophyOutlined style={{ color: '#faad14' }} />}
-              valueStyle={{ color: '#faad14', fontFamily: "'Poppins', sans-serif" }}
+              valueStyle={{ color: 'white', fontSize: windowWidth <= 768 ? '24px' : '32px', fontWeight: '700' }}
             />
           </Card>
         </Col>
       </Row>
 
-      {/* Filters */}
-      <Card style={{ marginBottom: '24px', borderRadius: '16px' }}>
-        <Row gutter={[16, 16]} align="middle">
-          <Col xs={24} sm={8} md={6}>
-            <Input
-              placeholder="Search inquiries..."
-              prefix={<SearchOutlined style={{ color: '#ff6b35' }} />}
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              style={{ borderRadius: '8px' }}
-            />
-          </Col>
-          <Col xs={12} sm={8} md={4}>
-            <Select
-              placeholder="Status"
-              value={filterStatus}
-              onChange={setFilterStatus}
-              style={{ width: '100%', borderRadius: '8px' }}
-            >
-              <Option value="all">All Status</Option>
-              <Option value="new">New</Option>
-              <Option value="contacted">Contacted</Option>
-              <Option value="qualified">Qualified</Option>
-              <Option value="converted">Converted</Option>
-              <Option value="closed">Closed</Option>
-            </Select>
-          </Col>
-          <Col xs={12} sm={8} md={4}>
-            <Select
-              placeholder="Priority"
-              value={filterPriority}
-              onChange={setFilterPriority}
-              style={{ width: '100%', borderRadius: '8px' }}
-            >
-              <Option value="all">All Priority</Option>
-              <Option value="high">High</Option>
-              <Option value="medium">Medium</Option>
-              <Option value="low">Low</Option>
-            </Select>
-          </Col>
-          <Col xs={24} sm={24} md={10}>
-            <Space>
-              <Button
-                icon={<FilterOutlined />}
-                style={{
-                  borderRadius: '8px',
-                  fontFamily: "'Poppins', sans-serif"
-                }}
-              >
-                More Filters
-              </Button>
-              <Text type="secondary" style={{ fontFamily: "'Poppins', sans-serif" }}>
-                Showing {filteredInquiries.length} of {inquiries.length} inquiries
-              </Text>
-            </Space>
-          </Col>
+      {/* Actions Bar */}
+      <Card style={{ 
+        marginBottom: '24px',
+        borderRadius: '12px',
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+        border: 'none',
+        padding: windowWidth <= 768 ? '16px' : '20px'
+      }}>
+        <Row gutter={[12, 12]}>
+          {windowWidth <= 768 ? (
+            <>
+              <Col xs={16}>
+                <Input
+                  placeholder="Search inquiries..."
+                  prefix={<SearchOutlined />}
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  style={{ borderRadius: '8px' }}
+                />
+              </Col>
+              <Col xs={8}>
+                <Select
+                  placeholder="Status"
+                  value={filterStatus}
+                  onChange={setFilterStatus}
+                  style={{ width: '100%', borderRadius: '8px' }}
+                >
+                  <Option value="all">All Status</Option>
+                  <Option value="new">New</Option>
+                  <Option value="contacted">Contacted</Option>
+                  <Option value="qualified">Qualified</Option>
+                  <Option value="converted">Converted</Option>
+                  <Option value="closed">Closed</Option>
+                </Select>
+              </Col>
+              <Col xs={12}>
+                <Select
+                  placeholder="Priority"
+                  value={filterPriority}
+                  onChange={setFilterPriority}
+                  style={{ width: '100%', borderRadius: '8px' }}
+                >
+                  <Option value="all">All Priority</Option>
+                  <Option value="high">High</Option>
+                  <Option value="medium">Medium</Option>
+                  <Option value="low">Low</Option>
+                </Select>
+              </Col>
+              <Col xs={6}>
+                <Tooltip title="Refresh">
+                  <Button
+                    icon={<ReloadOutlined />}
+                    onClick={fetchInquiries}
+                    loading={loading}
+                    size="middle"
+                    style={{ borderRadius: '8px', width: '100%' }}
+                  />
+                </Tooltip>
+              </Col>
+              <Col xs={6}>
+                <Tooltip title="Export">
+                  <Button
+                    icon={<ExportOutlined />}
+                    onClick={handleExport}
+                    size="middle"
+                    style={{ borderRadius: '8px', width: '100%' }}
+                  />
+                </Tooltip>
+              </Col>
+              <Col xs={24}>
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={() => {
+                    setEditingInquiry(null);
+                    form.resetFields();
+                    setModalVisible(true);
+                  }}
+                  size="middle"
+                  style={{ 
+                    borderRadius: '8px', 
+                    width: '100%',
+                    background: '#ff6b35',
+                    border: 'none',
+                    fontFamily: "'Poppins', sans-serif",
+                    fontWeight: '600'
+                  }}
+                >
+                  Add Inquiry
+                </Button>
+              </Col>
+            </>
+          ) : (
+            <>
+              <Col xs={24} sm={12} md={8} lg={6}>
+                <Input
+                  placeholder="Search inquiries..."
+                  prefix={<SearchOutlined />}
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  style={{ borderRadius: '8px' }}
+                />
+              </Col>
+              <Col xs={12} sm={6} md={4} lg={3}>
+                <Select
+                  placeholder="Status"
+                  value={filterStatus}
+                  onChange={setFilterStatus}
+                  style={{ width: '100%', borderRadius: '8px' }}
+                >
+                  <Option value="all">All Status</Option>
+                  <Option value="new">New</Option>
+                  <Option value="contacted">Contacted</Option>
+                  <Option value="qualified">Qualified</Option>
+                  <Option value="converted">Converted</Option>
+                  <Option value="closed">Closed</Option>
+                </Select>
+              </Col>
+              <Col xs={12} sm={6} md={4} lg={3}>
+                <Select
+                  placeholder="Priority"
+                  value={filterPriority}
+                  onChange={setFilterPriority}
+                  style={{ width: '100%', borderRadius: '8px' }}
+                >
+                  <Option value="all">All Priority</Option>
+                  <Option value="high">High</Option>
+                  <Option value="medium">Medium</Option>
+                  <Option value="low">Low</Option>
+                </Select>
+              </Col>
+              <Col xs={12} sm={6} md={4} lg={3}>
+                <Tooltip title="Refresh">
+                  <Button
+                    icon={<ReloadOutlined />}
+                    onClick={fetchInquiries}
+                    loading={loading}
+                    size={windowWidth <= 768 ? 'middle' : 'large'}
+                    style={{ borderRadius: '8px', width: '100%' }}
+                  >
+                    {windowWidth > 768 && 'Refresh'}
+                  </Button>
+                </Tooltip>
+              </Col>
+              <Col xs={12} sm={6} md={4} lg={3}>
+                <Tooltip title="Export to CSV">
+                  <Button
+                    icon={<ExportOutlined />}
+                    onClick={handleExport}
+                    size={windowWidth <= 768 ? 'middle' : 'large'}
+                    style={{ borderRadius: '8px', width: '100%' }}
+                  >
+                    {windowWidth > 768 && 'Export'}
+                  </Button>
+                </Tooltip>
+              </Col>
+              <Col xs={24} sm={12} md={8} lg={6}>
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={() => {
+                    setEditingInquiry(null);
+                    form.resetFields();
+                    setModalVisible(true);
+                  }}
+                  size={windowWidth <= 768 ? 'middle' : 'large'}
+                  style={{ 
+                    borderRadius: '8px', 
+                    width: '100%',
+                    background: '#ff6b35',
+                    border: 'none',
+                    fontFamily: "'Poppins', sans-serif",
+                    fontWeight: '600'
+                  }}
+                >
+                  {windowWidth > 768 ? 'Add Inquiry' : 'Add'}
+                </Button>
+              </Col>
+            </>
+          )}
         </Row>
       </Card>
 
       {/* Inquiries Table */}
-      <Card style={{ borderRadius: '16px' }}>
+      <Card style={{ 
+        borderRadius: '12px',
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+        border: 'none'
+      }}>
         <Table
           columns={columns}
-          dataSource={filteredInquiries}
+          dataSource={paginatedInquiries}
           rowKey="id"
           loading={loading}
-          pagination={{
-            total: filteredInquiries.length,
-            pageSize: 10,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} inquiries`,
-          }}
-          scroll={{ x: 1000 }}
+          pagination={false}
+          scroll={{ x: 1200 }}
+          rowClassName={(record, index) => index % 2 === 0 ? 'table-row-light' : 'table-row-dark'}
         />
+        
+        {/* Custom Pagination */}
+        <div style={{ 
+          marginTop: '24px', 
+          display: 'flex', 
+          justifyContent: 'center',
+          alignItems: 'center',
+          flexDirection: 'column',
+          gap: '12px'
+        }}>
+          <Pagination
+            current={tablePage}
+            total={totalInquiriesCount}
+            pageSize={tablePageSize}
+            onChange={(page, size) => {
+              setTablePage(page);
+              setTablePageSize(size);
+            }}
+            showSizeChanger
+            showQuickJumper
+            pageSizeOptions={['5', '10', '20', '50']}
+            style={{ textAlign: 'center' }}
+          />
+          <div style={{ 
+            textAlign: 'center',
+            color: '#6c757d',
+            fontSize: '14px',
+            fontFamily: "'Poppins', sans-serif"
+          }}>
+            {totalInquiriesCount > 0 
+              ? `${(tablePage - 1) * tablePageSize + 1}-${Math.min(tablePage * tablePageSize, totalInquiriesCount)} of ${totalInquiriesCount} inquiries`
+              : 'No inquiries found'
+            }
+          </div>
+        </div>
       </Card>
 
       {/* Inquiry Details Modal */}
       <Modal
         title={
           <div style={{ fontFamily: "'Poppins', sans-serif" }}>
-            💬 Inquiry Details - {selectedInquiry?.name}
+            Inquiry Details - {selectedInquiry?.name}
           </div>
         }
         open={detailModalVisible}
@@ -1013,18 +1286,19 @@ Lisaa Tours & Travels Team`
           layout="vertical"
           style={{ fontFamily: "'Poppins', sans-serif" }}
         >
-          {/* Customer Information - Read Only */}
+          {/* Customer Information - Editable when adding new, read-only when editing */}
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item
                 name="name"
                 label="Customer Name"
+                rules={!editingInquiry ? [{ required: true, message: 'Please enter customer name' }] : []}
               >
                 <Input 
                   placeholder="Customer name" 
                   style={{ borderRadius: '8px' }}
-                  readOnly
-                  disabled
+                  readOnly={!!editingInquiry}
+                  disabled={!!editingInquiry}
                 />
               </Form.Item>
             </Col>
@@ -1032,12 +1306,16 @@ Lisaa Tours & Travels Team`
               <Form.Item
                 name="email"
                 label="Email"
+                rules={!editingInquiry ? [
+                  { required: true, message: 'Please enter email' },
+                  { type: 'email', message: 'Please enter a valid email' }
+                ] : []}
               >
                 <Input 
                   placeholder="Customer email" 
                   style={{ borderRadius: '8px' }}
-                  readOnly
-                  disabled
+                  readOnly={!!editingInquiry}
+                  disabled={!!editingInquiry}
                 />
               </Form.Item>
             </Col>
@@ -1048,12 +1326,13 @@ Lisaa Tours & Travels Team`
               <Form.Item
                 name="phone"
                 label="Phone"
+                rules={!editingInquiry ? [{ required: true, message: 'Please enter phone number' }] : []}
               >
                 <Input 
                   placeholder="Customer phone" 
                   style={{ borderRadius: '8px' }}
-                  readOnly
-                  disabled
+                  readOnly={!!editingInquiry}
+                  disabled={!!editingInquiry}
                 />
               </Form.Item>
             </Col>
@@ -1061,11 +1340,12 @@ Lisaa Tours & Travels Team`
               <Form.Item
                 name="source"
                 label="Source"
+                rules={!editingInquiry ? [{ required: true, message: 'Please select source' }] : []}
               >
                 <Select 
                   placeholder="Select source" 
                   style={{ borderRadius: '8px' }}
-                  disabled
+                  disabled={!!editingInquiry}
                 >
                   <Option value="website">Website</Option>
                   <Option value="phone">Phone</Option>
@@ -1080,25 +1360,27 @@ Lisaa Tours & Travels Team`
           <Form.Item
             name="subject"
             label="Subject"
+            rules={!editingInquiry ? [{ required: true, message: 'Please enter subject' }] : []}
           >
             <Input 
               placeholder="Inquiry subject" 
               style={{ borderRadius: '8px' }}
-              readOnly
-              disabled
+              readOnly={!!editingInquiry}
+              disabled={!!editingInquiry}
             />
           </Form.Item>
 
           <Form.Item
             name="message"
             label="Customer Message"
+            rules={!editingInquiry ? [{ required: true, message: 'Please enter message' }] : []}
           >
             <TextArea
               rows={4}
               placeholder="Customer message"
               style={{ borderRadius: '8px' }}
-              readOnly
-              disabled
+              readOnly={!!editingInquiry}
+              disabled={!!editingInquiry}
             />
           </Form.Item>
 
@@ -1145,20 +1427,73 @@ Lisaa Tours & Travels Team`
             name="interestedTour"
             label="Interested Package"
           >
-            <Text 
-              style={{ 
-                padding: '8px 12px', 
-                background: '#f5f5f5', 
-                borderRadius: '8px',
-                display: 'block',
-                minHeight: '32px'
-              }}
-            >
-              {editingInquiry?.interestedTour?.title 
-                ? `${editingInquiry.interestedTour.title} - ${editingInquiry.interestedTour.destination}`
-                : editingInquiry?.interestedTour || 'No package selected'
-              }
-            </Text>
+            {editingInquiry ? (
+              <Text 
+                style={{ 
+                  padding: '8px 12px', 
+                  background: '#f5f5f5', 
+                  borderRadius: '8px',
+                  display: 'block',
+                  minHeight: '32px'
+                }}
+              >
+                {editingInquiry.interestedTour?.title 
+                  ? `${editingInquiry.interestedTour.title} - ${editingInquiry.interestedTour.destination}`
+                  : editingInquiry.interestedTour || 'No package selected'
+                }
+              </Text>
+            ) : (
+              <Select
+                placeholder="Select package (optional)"
+                style={{ borderRadius: '8px' }}
+                showSearch
+                allowClear
+                filterOption={(input, option) =>
+                  (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                }
+                options={availableTours.map(tour => ({
+                  label: `${tour.title} - ${tour.destination || 'N/A'}`,
+                  value: tour._id || tour.id
+                }))}
+              />
+            )}
+          </Form.Item>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="budget"
+                label="Budget"
+              >
+                <Input 
+                  placeholder="Enter budget (e.g., ₹50000)" 
+                  style={{ borderRadius: '8px' }}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="travelDate"
+                label="Travel Date"
+              >
+                <DatePicker
+                  style={{ width: '100%', borderRadius: '8px' }}
+                  placeholder="Select travel date"
+                  format="YYYY-MM-DD"
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Form.Item
+            name="followUpDate"
+            label="Follow-up Date"
+          >
+            <DatePicker
+              style={{ width: '100%', borderRadius: '8px' }}
+              placeholder="Select follow-up date"
+              format="YYYY-MM-DD"
+            />
           </Form.Item>
 
           <Form.Item
@@ -1178,7 +1513,7 @@ Lisaa Tours & Travels Team`
       <Modal
         title={
           <div style={{ fontFamily: "'Poppins', sans-serif" }}>
-            📧 Send Reply to Customer - {editingInquiry?.name}
+            Send Reply to Customer - {editingInquiry?.name}
           </div>
         }
         open={replyModalVisible}

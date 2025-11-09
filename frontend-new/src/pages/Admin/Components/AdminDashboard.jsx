@@ -79,10 +79,20 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(new Date());
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   
   // Get admin info from localStorage
   const adminEmail = localStorage.getItem('adminEmail') || 'admin@touristwebsite.com';
   const adminRole = localStorage.getItem('adminRole') || 'Super Admin';
+  
+  // Handle window resize
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Real-time state management
   const [dashboardData, setDashboardData] = useState({
@@ -292,24 +302,36 @@ const AdminDashboard = () => {
       }}>
       {/* Dashboard Header */}
       <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '24px',
-        padding: '20px 24px',
-        background: 'white',
-        borderRadius: '20px',
-        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
-        border: '1px solid rgba(255, 107, 53, 0.1)'
+        position: 'relative',
+        marginBottom: windowWidth <= 768 ? '24px' : '32px',
+        paddingBottom: windowWidth <= 768 ? '20px' : '20px',
+        textAlign: 'center'
       }}>
-        <div>
-          <Title level={3} style={{ margin: '0 0 8px 0', color: '#2c3e50', fontFamily: "'Poppins', sans-serif" }}>
-            📊 Dashboard Overview
+        <Title level={1} style={{ 
+          fontSize: windowWidth <= 768 ? '1.8rem' : windowWidth <= 1024 ? '2.5rem' : '3rem', 
+          fontWeight: '800', 
+          color: '#FF6B35',
+          margin: '0 auto 16px auto',
+          fontFamily: "'Playfair Display', 'Georgia', serif",
+          lineHeight: '1.2',
+          letterSpacing: '-0.02em',
+          textShadow: '0 2px 4px rgba(255, 107, 53, 0.1)',
+          textAlign: 'center'
+        }}>
+          Admin Dashboard
           </Title>
-          <Text style={{ fontSize: '14px', color: '#6c757d', fontFamily: "'Poppins', sans-serif" }}>
-            Welcome back, {adminRole} • Last updated: {lastUpdated.toLocaleTimeString()}
-          </Text>
-        </div>
+        
+        <p style={{
+          fontSize: windowWidth <= 768 ? '13px' : windowWidth <= 1024 ? '14px' : '16px',
+          color: '#6c757d',
+          margin: '0 auto',
+          fontFamily: "'Poppins', sans-serif",
+          lineHeight: '1.6',
+          maxWidth: '700px',
+          textAlign: 'center'
+        }}>
+          Real-time business insights and management tools
+        </p>
         
         <Button 
           type="primary"
@@ -317,195 +339,265 @@ const AdminDashboard = () => {
           loading={loading}
           onClick={handleRefresh}
           style={{
+            position: 'absolute',
+            top: '0',
+            right: '0',
             borderRadius: '12px',
             background: '#ff6b35',
             border: 'none',
             fontFamily: "'Poppins', sans-serif",
-            fontWeight: '600'
+            fontWeight: '600',
+            boxShadow: '0 4px 12px rgba(255, 107, 53, 0.3)',
+            height: windowWidth <= 768 ? '36px' : '42px',
+            padding: windowWidth <= 768 ? '0 14px' : '0 20px',
+            fontSize: windowWidth <= 768 ? '12px' : '14px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px'
           }}
         >
-          Refresh Data
+          {windowWidth > 768 && 'Refresh Data'}
         </Button>
       </div>
 
-      {/* Header Section - Landing Page Style */}
-      <div style={{ 
-        textAlign: 'center', 
-        marginBottom: '48px',
-        padding: '40px 0',
-        background: 'linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%)',
-        borderRadius: '20px',
-        color: 'white',
-        boxShadow: '0 15px 35px rgba(255, 107, 53, 0.3)',
-        border: '1px solid rgba(255, 255, 255, 0.1)'
-      }}>
-        <Title level={1} style={{ 
-          color: 'white', 
-          marginBottom: '16px',
-          fontSize: '42px',
-          fontWeight: '700',
-          fontFamily: "'Poppins', sans-serif"
-        }}>
-          🎯 Admin Dashboard
-        </Title>
-        <Paragraph style={{ 
-          color: 'rgba(255, 255, 255, 0.9)', 
-          fontSize: '18px',
-          marginBottom: '0',
-          fontFamily: "'Poppins', sans-serif"
-        }}>
-          Real-time business insights and management tools
-        </Paragraph>
-        <div style={{ 
-          marginTop: '16px',
-          display: 'flex',
-          justifyContent: 'center',
-          gap: '16px',
-          flexWrap: 'wrap'
-        }}>
-          <Tag color="rgba(255, 255, 255, 0.2)" style={{ 
-            color: 'white', 
-            border: '1px solid rgba(255, 255, 255, 0.3)',
-            fontFamily: "'Poppins', sans-serif"
-          }}>
-            🔄 Auto-refresh every 30s
-          </Tag>
-          <Tag color="rgba(255, 255, 255, 0.2)" style={{ 
-            color: 'white', 
-            border: '1px solid rgba(255, 255, 255, 0.3)',
-            fontFamily: "'Poppins', sans-serif"
-          }}>
-            📊 Live Analytics
-          </Tag>
-        </div>
-      </div>
 
       {/* Statistics Cards - Landing Page Style */}
-      <Row gutter={[24, 24]} style={{ marginBottom: '48px' }}>
-        <Col xs={24} sm={12} lg={6}>
+      <Row gutter={[windowWidth <= 768 ? 12 : 24, windowWidth <= 768 ? 12 : 24]} style={{ marginBottom: windowWidth <= 768 ? '24px' : '48px' }}>
+        <Col xs={12} sm={12} lg={6}>
           <Card 
             style={{ 
-              borderRadius: '20px',
+              borderRadius: windowWidth <= 768 ? '12px' : '20px',
               boxShadow: '0 15px 35px rgba(0, 0, 0, 0.1)',
               border: 'none',
               background: 'linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%)',
               color: 'white',
-              height: '200px',
-              transition: 'all 0.3s ease'
+              height: windowWidth <= 768 ? '150px' : '220px',
+              transition: 'all 0.3s ease',
+              overflow: 'hidden'
+            }}
+            bodyStyle={{ 
+              padding: '0',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
             }}
             hoverable
           >
-            <div style={{ textAlign: 'center', padding: '24px 0' }}>
-              <ShoppingCartOutlined style={{ fontSize: '36px', marginBottom: '16px', color: 'white' }} />
-              <Title level={2} style={{ color: 'white', margin: '0 0 8px 0', fontSize: '40px', fontFamily: "'Poppins', sans-serif" }}>
+            <div style={{ textAlign: 'center', padding: windowWidth <= 768 ? '12px 8px' : '20px 16px', width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ flex: '0 0 auto' }}>
+                <ShoppingCartOutlined style={{ fontSize: windowWidth <= 768 ? '22px' : '36px', color: 'white', display: 'block' }} />
+              </div>
+              <div style={{ flex: '1 1 auto', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: 0 }}>
+                <Title level={2} style={{ color: 'white', margin: '0 0 6px 0', fontSize: windowWidth <= 768 ? '20px' : '40px', fontFamily: "'Poppins', sans-serif", lineHeight: '1.2' }}>
                 {dashboardData.stats.totalBookings.toLocaleString()}
               </Title>
-              <Text style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: '16px', fontFamily: "'Poppins', sans-serif" }}>
+                <Text style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: windowWidth <= 768 ? '10px' : '16px', fontFamily: "'Poppins', sans-serif", display: 'block' }}>
                 Total Bookings
               </Text>
-              <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                <ArrowUpOutlined style={{ color: '#52c41a', fontSize: '16px' }} />
-                <Text style={{ color: '#52c41a', fontSize: '14px', marginLeft: '4px', fontFamily: "'Poppins', sans-serif", fontWeight: '600' }}>
-                  +{dashboardData.stats.monthlyGrowth}% this month
+              </div>
+              <div style={{ flex: '0 0 auto', marginTop: windowWidth <= 768 ? '4px' : '8px' }}>
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'center', 
+                  alignItems: 'center', 
+                  flexWrap: 'wrap',
+                  gap: '4px'
+                }}>
+                  {dashboardData.stats.monthlyGrowth >= 0 ? (
+                    <>
+                      <ArrowUpOutlined style={{ color: '#52c41a', fontSize: windowWidth <= 768 ? '10px' : '16px' }} />
+                      <Text style={{ color: '#52c41a', fontSize: windowWidth <= 768 ? '9px' : '14px', fontFamily: "'Poppins', sans-serif", fontWeight: '600' }}>
+                        +{dashboardData.stats.monthlyGrowth}% {windowWidth > 768 && 'this month'}
                 </Text>
+                    </>
+                  ) : (
+                    <>
+                      <ArrowDownOutlined style={{ color: '#ff4d4f', fontSize: windowWidth <= 768 ? '10px' : '16px' }} />
+                      <Text style={{ color: '#ff4d4f', fontSize: windowWidth <= 768 ? '9px' : '14px', fontFamily: "'Poppins', sans-serif", fontWeight: '600' }}>
+                        {dashboardData.stats.monthlyGrowth}% {windowWidth > 768 && 'this month'}
+                      </Text>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           </Card>
         </Col>
         
-        <Col xs={24} sm={12} lg={6}>
+        <Col xs={12} sm={12} lg={6}>
           <Card 
             style={{ 
-              borderRadius: '20px',
+              borderRadius: windowWidth <= 768 ? '12px' : '20px',
               boxShadow: '0 15px 35px rgba(0, 0, 0, 0.1)',
               border: 'none',
               background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
               color: 'white',
-              height: '200px',
-              transition: 'all 0.3s ease'
+              height: windowWidth <= 768 ? '150px' : '220px',
+              transition: 'all 0.3s ease',
+              overflow: 'hidden'
+            }}
+            bodyStyle={{ 
+              padding: '0',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
             }}
             hoverable
           >
-            <div style={{ textAlign: 'center', padding: '24px 0' }}>
-              <DollarOutlined style={{ fontSize: '36px', marginBottom: '16px', color: 'white' }} />
-              <Title level={2} style={{ color: 'white', margin: '0 0 8px 0', fontSize: '40px', fontFamily: "'Poppins', sans-serif" }}>
+            <div style={{ textAlign: 'center', padding: windowWidth <= 768 ? '12px 8px' : '20px 16px', width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ flex: '0 0 auto' }}>
+                <DollarOutlined style={{ fontSize: windowWidth <= 768 ? '22px' : '36px', color: 'white', display: 'block' }} />
+              </div>
+              <div style={{ flex: '1 1 auto', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: 0 }}>
+                <Title level={2} style={{ color: 'white', margin: '0 0 6px 0', fontSize: windowWidth <= 768 ? '18px' : '40px', fontFamily: "'Poppins', sans-serif", lineHeight: '1.2' }}>
                 ₹{(dashboardData.stats.totalRevenue / 100000).toFixed(1)}L
               </Title>
-              <Text style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: '16px', fontFamily: "'Poppins', sans-serif" }}>
+                <Text style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: windowWidth <= 768 ? '10px' : '16px', fontFamily: "'Poppins', sans-serif", display: 'block' }}>
                 Total Revenue
               </Text>
-              <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                <ArrowUpOutlined style={{ color: '#52c41a', fontSize: '16px' }} />
-                <Text style={{ color: '#52c41a', fontSize: '14px', marginLeft: '4px', fontFamily: "'Poppins', sans-serif", fontWeight: '600' }}>
-                  +{dashboardData.stats.revenueGrowth}% growth
+              </div>
+              <div style={{ flex: '0 0 auto', marginTop: windowWidth <= 768 ? '4px' : '8px' }}>
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'center', 
+                  alignItems: 'center', 
+                  flexWrap: 'wrap',
+                  gap: '4px'
+                }}>
+                  {dashboardData.stats.revenueGrowth >= 0 ? (
+                    <>
+                      <ArrowUpOutlined style={{ color: '#52c41a', fontSize: windowWidth <= 768 ? '10px' : '16px' }} />
+                      <Text style={{ color: '#52c41a', fontSize: windowWidth <= 768 ? '9px' : '14px', fontFamily: "'Poppins', sans-serif", fontWeight: '600' }}>
+                        +{dashboardData.stats.revenueGrowth}% {windowWidth > 768 && 'growth'}
                 </Text>
+                    </>
+                  ) : (
+                    <>
+                      <ArrowDownOutlined style={{ color: '#ff4d4f', fontSize: windowWidth <= 768 ? '10px' : '16px' }} />
+                      <Text style={{ color: '#ff4d4f', fontSize: windowWidth <= 768 ? '9px' : '14px', fontFamily: "'Poppins', sans-serif", fontWeight: '600' }}>
+                        {dashboardData.stats.revenueGrowth}% {windowWidth > 768 && 'growth'}
+                      </Text>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           </Card>
         </Col>
         
-        <Col xs={24} sm={12} lg={6}>
+        <Col xs={12} sm={12} lg={6}>
           <Card 
             style={{ 
-              borderRadius: '20px',
+              borderRadius: windowWidth <= 768 ? '12px' : '20px',
               boxShadow: '0 15px 35px rgba(0, 0, 0, 0.1)',
               border: 'none',
               background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
               color: 'white',
-              height: '200px',
-              transition: 'all 0.3s ease'
+              height: windowWidth <= 768 ? '150px' : '220px',
+              transition: 'all 0.3s ease',
+              overflow: 'hidden'
+            }}
+            bodyStyle={{ 
+              padding: '0',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
             }}
             hoverable
           >
-            <div style={{ textAlign: 'center', padding: '24px 0' }}>
-              <TeamOutlined style={{ fontSize: '36px', marginBottom: '16px', color: 'white' }} />
-              <Title level={2} style={{ color: 'white', margin: '0 0 8px 0', fontSize: '40px', fontFamily: "'Poppins', sans-serif" }}>
+            <div style={{ textAlign: 'center', padding: windowWidth <= 768 ? '12px 8px' : '20px 16px', width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ flex: '0 0 auto' }}>
+                <TeamOutlined style={{ fontSize: windowWidth <= 768 ? '22px' : '36px', color: 'white', display: 'block' }} />
+              </div>
+              <div style={{ flex: '1 1 auto', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: 0 }}>
+                <Title level={2} style={{ color: 'white', margin: '0 0 6px 0', fontSize: windowWidth <= 768 ? '20px' : '40px', fontFamily: "'Poppins', sans-serif", lineHeight: '1.2' }}>
                 {dashboardData.stats.totalCustomers.toLocaleString()}
               </Title>
-              <Text style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: '16px', fontFamily: "'Poppins', sans-serif" }}>
+                <Text style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: windowWidth <= 768 ? '10px' : '16px', fontFamily: "'Poppins', sans-serif", display: 'block' }}>
                 Total Customers
               </Text>
-              <div style={{ marginTop: '12px' }}>
+              </div>
+              <div style={{ flex: '0 0 auto', marginTop: windowWidth <= 768 ? '4px' : '8px' }}>
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'center', 
+                  alignItems: 'center', 
+                  flexWrap: 'wrap',
+                  gap: windowWidth <= 768 ? '4px' : '8px'
+                }}>
+                  {windowWidth <= 768 ? (
+                    <Text style={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: '9px', fontFamily: "'Poppins', sans-serif", fontWeight: '500' }}>
+                      {dashboardData.stats.conversionRate}% active
+                    </Text>
+                  ) : (
+                    <>
                 <Progress 
                   percent={dashboardData.stats.conversionRate} 
                   size="small" 
                   strokeColor="#52c41a"
                   style={{ width: '80px' }}
                 />
-                <Text style={{ color: '#52c41a', fontSize: '12px', marginLeft: '8px', fontFamily: "'Poppins', sans-serif" }}>
+                      <Text style={{ color: '#52c41a', fontSize: '12px', fontFamily: "'Poppins', sans-serif" }}>
                   {dashboardData.stats.conversionRate}% active
                 </Text>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           </Card>
         </Col>
         
-        <Col xs={24} sm={12} lg={6}>
+        <Col xs={12} sm={12} lg={6}>
           <Card 
             style={{ 
-              borderRadius: '20px',
+              borderRadius: windowWidth <= 768 ? '12px' : '20px',
               boxShadow: '0 15px 35px rgba(0, 0, 0, 0.1)',
               border: 'none',
               background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
               color: 'white',
-              height: '200px',
-              transition: 'all 0.3s ease'
+              height: windowWidth <= 768 ? '150px' : '220px',
+              transition: 'all 0.3s ease',
+              overflow: 'hidden'
+            }}
+            bodyStyle={{ 
+              padding: '0',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
             }}
             hoverable
           >
-            <div style={{ textAlign: 'center', padding: '24px 0' }}>
-              <TrophyOutlined style={{ fontSize: '36px', marginBottom: '16px', color: 'white' }} />
-              <Title level={2} style={{ color: 'white', margin: '0 0 8px 0', fontSize: '40px', fontFamily: "'Poppins', sans-serif" }}>
+            <div style={{ textAlign: 'center', padding: windowWidth <= 768 ? '12px 8px' : '20px 16px', width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ flex: '0 0 auto' }}>
+                <TrophyOutlined style={{ fontSize: windowWidth <= 768 ? '22px' : '36px', color: 'white', display: 'block' }} />
+              </div>
+              <div style={{ flex: '1 1 auto', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: 0 }}>
+                <Title level={2} style={{ color: 'white', margin: '0 0 6px 0', fontSize: windowWidth <= 768 ? '20px' : '40px', fontFamily: "'Poppins', sans-serif", lineHeight: '1.2' }}>
                 {dashboardData.stats.conversionRate}%
               </Title>
-              <Text style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: '16px', fontFamily: "'Poppins', sans-serif" }}>
+                <Text style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: windowWidth <= 768 ? '10px' : '16px', fontFamily: "'Poppins', sans-serif", display: 'block' }}>
                 Conversion Rate
               </Text>
-              <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                <StarOutlined style={{ color: '#ffd700', fontSize: '16px' }} />
-                <Text style={{ color: '#ffd700', fontSize: '14px', marginLeft: '4px', fontFamily: "'Poppins', sans-serif", fontWeight: '600' }}>
-                  Excellent Performance
+              </div>
+              <div style={{ flex: '0 0 auto', marginTop: windowWidth <= 768 ? '4px' : '8px' }}>
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'center', 
+                  alignItems: 'center', 
+                  flexWrap: 'wrap',
+                  gap: '4px'
+                }}>
+                  <StarOutlined style={{ color: '#ffd700', fontSize: windowWidth <= 768 ? '10px' : '16px' }} />
+                  <Text style={{ color: '#ffd700', fontSize: windowWidth <= 768 ? '9px' : '14px', fontFamily: "'Poppins', sans-serif", fontWeight: '600' }}>
+                    {windowWidth <= 768 ? 'Excellent' : 'Excellent Performance'}
                 </Text>
+                </div>
               </div>
             </div>
           </Card>
@@ -513,40 +605,44 @@ const AdminDashboard = () => {
       </Row>
 
       {/* Content Sections */}
-      <Row gutter={[24, 24]}>
+      <Row gutter={[windowWidth <= 768 ? 12 : 24, windowWidth <= 768 ? 12 : 24]}>
         {/* Recent Bookings */}
         <Col xs={24} lg={14}>
           <Card 
             title={
               <div style={{ 
-                fontSize: '20px', 
+                fontSize: windowWidth <= 768 ? '16px' : '20px', 
                 fontWeight: '600', 
                 color: '#2c3e50',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
-                fontFamily: "'Poppins', sans-serif"
+                fontFamily: "'Poppins', sans-serif",
+                flexWrap: 'wrap'
               }}>
-                🛒 Recent Bookings
-                <Tag color="#ff6b35" style={{ marginLeft: '8px' }}>
+                Recent Bookings
+                <Tag color="#ff6b35" style={{ marginLeft: '8px', fontSize: windowWidth <= 768 ? '11px' : '12px' }}>
                   {dashboardData.recentBookings.length} Active
                 </Tag>
               </div>
             }
             extra={
+              windowWidth > 768 && (
               <Button 
                 type="text" 
                 icon={<EyeOutlined />}
+                  onClick={() => navigate('/admin/bookings')}
                 style={{ color: '#ff6b35' }}
               >
                 View All
               </Button>
+              )
             }
             style={{ 
-              borderRadius: '20px',
+              borderRadius: windowWidth <= 768 ? '12px' : '20px',
               boxShadow: '0 15px 35px rgba(0, 0, 0, 0.1)',
               border: 'none',
-              minHeight: '400px'
+              minHeight: windowWidth <= 768 ? '300px' : '400px'
             }}
           >
             {dashboardData.recentBookings.length === 0 ? (
@@ -583,7 +679,7 @@ const AdminDashboard = () => {
                 renderItem={(item) => (
                 <List.Item
                   style={{ 
-                    padding: '20px 0',
+                    padding: windowWidth <= 768 ? '12px 0' : '20px 0',
                     borderBottom: '1px solid #f0f0f0',
                     borderRadius: '12px',
                     marginBottom: '8px',
@@ -595,18 +691,27 @@ const AdminDashboard = () => {
                     avatar={
                       <Avatar 
                         src={item.avatar}
-                        size={60}
+                        size={windowWidth <= 768 ? 48 : 60}
                         style={{ borderRadius: '50%', border: '3px solid #ff6b35' }}
                       />
                     }
                     title={
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Text strong style={{ fontSize: '16px', fontFamily: "'Poppins', sans-serif" }}>
+                      <div style={{ 
+                        display: 'flex', 
+                        flexDirection: windowWidth <= 768 ? 'column' : 'row',
+                        justifyContent: 'space-between', 
+                        alignItems: windowWidth <= 768 ? 'flex-start' : 'center',
+                        gap: windowWidth <= 768 ? '8px' : '0'
+                      }}>
+                        <Text strong style={{ 
+                          fontSize: windowWidth <= 768 ? '14px' : '16px', 
+                          fontFamily: "'Poppins', sans-serif" 
+                        }}>
                           {item.customer}
                         </Text>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                           {getStatusTag(item.status)}
-                          <Text type="secondary" style={{ fontSize: '12px' }}>
+                          <Text type="secondary" style={{ fontSize: windowWidth <= 768 ? '11px' : '12px' }}>
                             {item.time}
                           </Text>
                         </div>
@@ -614,30 +719,49 @@ const AdminDashboard = () => {
                     }
                     description={
                       <div style={{ marginTop: '8px' }}>
-                        <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center' }}>
-                          <EnvironmentOutlined style={{ marginRight: '8px', color: '#ff6b35', fontSize: '16px' }} />
-                          <Text style={{ fontSize: '14px', fontFamily: "'Poppins', sans-serif" }}>
+                        <div style={{ marginBottom: windowWidth <= 768 ? '8px' : '12px', display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
+                          <EnvironmentOutlined style={{ marginRight: '8px', color: '#ff6b35', fontSize: windowWidth <= 768 ? '14px' : '16px' }} />
+                          <Text style={{ 
+                            fontSize: windowWidth <= 768 ? '13px' : '14px', 
+                            fontFamily: "'Poppins', sans-serif" 
+                          }}>
                             {item.package}
                           </Text>
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ 
+                          display: 'flex', 
+                          flexDirection: windowWidth <= 768 ? 'column' : 'row',
+                          justifyContent: 'space-between', 
+                          alignItems: windowWidth <= 768 ? 'flex-start' : 'center',
+                          gap: windowWidth <= 768 ? '12px' : '0'
+                        }}>
                           <div style={{ display: 'flex', alignItems: 'center' }}>
-                            <CalendarOutlined style={{ marginRight: '8px', color: '#ff6b35', fontSize: '14px' }} />
-                            <Text type="secondary" style={{ fontFamily: "'Poppins', sans-serif" }}>
+                            <CalendarOutlined style={{ marginRight: '8px', color: '#ff6b35', fontSize: windowWidth <= 768 ? '12px' : '14px' }} />
+                            <Text type="secondary" style={{ 
+                              fontFamily: "'Poppins', sans-serif",
+                              fontSize: windowWidth <= 768 ? '12px' : '14px'
+                            }}>
                               {item.date}
                             </Text>
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <Text strong style={{ color: '#52c41a', fontSize: '18px', fontFamily: "'Poppins', sans-serif" }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                            <Text strong style={{ 
+                              color: '#52c41a', 
+                              fontSize: windowWidth <= 768 ? '16px' : '18px', 
+                              fontFamily: "'Poppins', sans-serif" 
+                            }}>
                               ₹{item.amount.toLocaleString()}
                             </Text>
                             <Button 
                               size="small" 
                               type="primary" 
+                              onClick={() => navigate(`/admin/bookings`)}
                               style={{ 
                                 background: '#ff6b35', 
                                 border: 'none',
-                                borderRadius: '8px'
+                                borderRadius: '8px',
+                                fontSize: windowWidth <= 768 ? '12px' : '14px',
+                                height: windowWidth <= 768 ? '28px' : '32px'
                               }}
                             >
                               View Details
@@ -661,25 +785,26 @@ const AdminDashboard = () => {
             <Card 
               title={
                 <div style={{ 
-                  fontSize: '20px', 
+                    fontSize: windowWidth <= 768 ? '16px' : '20px', 
                   fontWeight: '600', 
                   color: '#2c3e50',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px',
-                  fontFamily: "'Poppins', sans-serif"
+                    fontFamily: "'Poppins', sans-serif",
+                    flexWrap: 'wrap'
                 }}>
-                  🏆 Top Packages
-                  <Tag color="#ff6b35" style={{ marginLeft: '8px' }}>
+                    Top Packages
+                    <Tag color="#ff6b35" style={{ marginLeft: '8px', fontSize: windowWidth <= 768 ? '11px' : '12px' }}>
                     Trending
                   </Tag>
                 </div>
               }
               style={{ 
-                borderRadius: '20px',
+              borderRadius: windowWidth <= 768 ? '12px' : '20px',
                 boxShadow: '0 15px 35px rgba(0, 0, 0, 0.1)',
                 border: 'none',
-                minHeight: '250px'
+              minHeight: windowWidth <= 768 ? '200px' : '250px'
               }}
             >
               {dashboardData.topPackages.length === 0 ? (
@@ -750,53 +875,56 @@ const AdminDashboard = () => {
             <Card 
               title={
                 <div style={{ 
-                  fontSize: '20px', 
+                    fontSize: windowWidth <= 768 ? '16px' : '20px', 
                   fontWeight: '600', 
                   color: '#2c3e50',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px',
-                  fontFamily: "'Poppins', sans-serif"
+                    fontFamily: "'Poppins', sans-serif",
+                    flexWrap: 'wrap'
                 }}>
-                  ⚡ Quick Actions
-                  <Tag color="blue" style={{ marginLeft: '8px' }}>
+                    Quick Actions
+                    <Tag color="blue" style={{ marginLeft: '8px', fontSize: windowWidth <= 768 ? '11px' : '12px' }}>
                     Fast Access
                   </Tag>
                 </div>
               }
               style={{ 
-                borderRadius: '20px',
+                borderRadius: windowWidth <= 768 ? '12px' : '20px',
                 boxShadow: '0 15px 35px rgba(0, 0, 0, 0.1)',
                 border: 'none'
               }}
             >
-              <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+              <Space direction="vertical" size={windowWidth <= 768 ? "small" : "middle"} style={{ width: '100%' }}>
                 <Button 
                   type="primary" 
                   block 
                   size="large"
                   icon={<PlusOutlined />}
+                  onClick={() => navigate('/admin/packages')}
                   style={{
-                    height: '55px',
-                    borderRadius: '15px',
+                    height: windowWidth <= 768 ? '48px' : '55px',
+                    borderRadius: windowWidth <= 768 ? '12px' : '15px',
                     background: 'linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%)',
                     border: 'none',
-                    fontSize: '16px',
+                    fontSize: windowWidth <= 768 ? '14px' : '16px',
                     fontWeight: '600',
                     fontFamily: "'Poppins', sans-serif",
                     boxShadow: '0 8px 20px rgba(255, 107, 53, 0.3)'
                   }}
                 >
-                  📦 Add New Package
+                  Add New Package
                 </Button>
                 <Button 
                   block 
                   size="large"
                   icon={<ShoppingCartOutlined />}
+                  onClick={() => navigate('/admin/bookings')}
                   style={{
-                    height: '55px',
-                    borderRadius: '15px',
-                    fontSize: '16px',
+                    height: windowWidth <= 768 ? '48px' : '55px',
+                    borderRadius: windowWidth <= 768 ? '12px' : '15px',
+                    fontSize: windowWidth <= 768 ? '14px' : '16px',
                     fontWeight: '600',
                     fontFamily: "'Poppins', sans-serif",
                     border: '2px solid #667eea',
@@ -813,16 +941,17 @@ const AdminDashboard = () => {
                     e.target.style.color = '#667eea';
                   }}
                 >
-                  🛒 View All Bookings
+                  View All Bookings
                 </Button>
                 <Button 
                   block 
                   size="large"
                   icon={<DownloadOutlined />}
+                  onClick={() => navigate('/admin/reports')}
                   style={{
-                    height: '55px',
-                    borderRadius: '15px',
-                    fontSize: '16px',
+                    height: windowWidth <= 768 ? '48px' : '55px',
+                    borderRadius: windowWidth <= 768 ? '12px' : '15px',
+                    fontSize: windowWidth <= 768 ? '14px' : '16px',
                     fontWeight: '600',
                     fontFamily: "'Poppins', sans-serif",
                     border: '2px solid #43e97b',
@@ -839,7 +968,7 @@ const AdminDashboard = () => {
                     e.target.style.color = '#43e97b';
                   }}
                 >
-                  📊 Generate Report
+                  Generate Report
                 </Button>
               </Space>
             </Card>
@@ -848,30 +977,31 @@ const AdminDashboard = () => {
       </Row>
 
       {/* Recent Activities & Notifications */}
-      <Row gutter={[24, 24]} style={{ marginTop: '24px' }}>
+      <Row gutter={[windowWidth <= 768 ? 12 : 24, windowWidth <= 768 ? 12 : 24]} style={{ marginTop: windowWidth <= 768 ? '16px' : '24px' }}>
         <Col xs={24} lg={16}>
           <Card 
             title={
               <div style={{ 
-                fontSize: '20px', 
+                fontSize: windowWidth <= 768 ? '16px' : '20px', 
                 fontWeight: '600', 
                 color: '#2c3e50',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
-                fontFamily: "'Poppins', sans-serif"
+                fontFamily: "'Poppins', sans-serif",
+                flexWrap: 'wrap'
               }}>
-                📈 Recent Activities
-                <Tag color="green" style={{ marginLeft: '8px' }}>
+                Recent Activities
+                <Tag color="green" style={{ marginLeft: '8px', fontSize: windowWidth <= 768 ? '11px' : '12px' }}>
                   Live Updates
                 </Tag>
               </div>
             }
             style={{ 
-              borderRadius: '20px',
+              borderRadius: windowWidth <= 768 ? '12px' : '20px',
               boxShadow: '0 15px 35px rgba(0, 0, 0, 0.1)',
               border: 'none',
-              minHeight: '300px'
+              minHeight: windowWidth <= 768 ? '250px' : '300px'
             }}
           >
             {dashboardData.recentActivities.length === 0 ? (
@@ -925,15 +1055,16 @@ const AdminDashboard = () => {
           <Card 
             title={
               <div style={{ 
-                fontSize: '20px', 
+                fontSize: windowWidth <= 768 ? '16px' : '20px', 
                 fontWeight: '600', 
                 color: '#2c3e50',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
-                fontFamily: "'Poppins', sans-serif"
+                fontFamily: "'Poppins', sans-serif",
+                flexWrap: 'wrap'
               }}>
-                🔔 Notifications
+                Notifications
                 <Badge 
                   count={
                     dashboardData.notifications.filter(n => n.message !== 'No pending notifications').length
@@ -943,10 +1074,10 @@ const AdminDashboard = () => {
               </div>
             }
             style={{ 
-              borderRadius: '20px',
+              borderRadius: windowWidth <= 768 ? '12px' : '20px',
               boxShadow: '0 15px 35px rgba(0, 0, 0, 0.1)',
               border: 'none',
-              minHeight: '300px'
+              minHeight: windowWidth <= 768 ? '250px' : '300px'
             }}
           >
             {dashboardData.notifications.length === 0 || 

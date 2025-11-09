@@ -94,6 +94,8 @@ const AdminLogin = () => {
         localStorage.setItem("adminToken", "admin-logged-in");
         localStorage.setItem("adminEmail", values.email);
         localStorage.setItem("adminRole", data.admin.role);
+        // Set flag to show greeting on dashboard
+        sessionStorage.setItem("adminJustLoggedIn", "true");
 
         console.log(`✅ Admin logged in: ${values.email}`);
         navigate("/admin/dashboard");

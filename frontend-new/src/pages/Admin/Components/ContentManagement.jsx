@@ -49,8 +49,6 @@ import {
   EnvironmentOutlined,
   SearchOutlined,
   FilterOutlined,
-  ExportOutlined,
-  ImportOutlined,
   DownloadOutlined,
   PrinterOutlined,
   SendOutlined,
@@ -113,6 +111,16 @@ const ContentManagement = () => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterType, setFilterType] = useState('all');
   const [selectedContent, setSelectedContent] = useState(null);
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+
+  // Handle window resize
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Mock data - In real app, this would come from API
   const mockContents = [
@@ -606,120 +614,128 @@ const ContentManagement = () => {
   ];
 
   return (
-    <div style={{ fontFamily: "'Poppins', sans-serif" }}>
-      {/* Header */}
+    <div style={{ 
+      padding: windowWidth <= 768 ? '16px' : '24px',
+      fontFamily: "'Poppins', sans-serif",
+      background: '#f5f5f5',
+      minHeight: '100vh'
+    }}>
+      {/* Header Section */}
       <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '24px',
-        padding: '20px 24px',
-        background: 'white',
-        borderRadius: '20px',
-        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
-        border: '1px solid rgba(255, 107, 53, 0.1)'
+        marginBottom: windowWidth <= 768 ? '20px' : '32px',
+        textAlign: 'center'
       }}>
-        <div>
-          <Title level={3} style={{ margin: '0 0 8px 0', color: '#2c3e50', fontFamily: "'Poppins', sans-serif" }}>
-            📰 Content Management
-          </Title>
-          <Text style={{ fontSize: '14px', color: '#6c757d', fontFamily: "'Poppins', sans-serif" }}>
-            Manage blog posts, tour descriptions, and website content
-          </Text>
-        </div>
+        <Title level={1} style={{ 
+          fontSize: windowWidth <= 768 ? '1.8rem' : windowWidth <= 1024 ? '2.5rem' : '3rem', 
+          fontWeight: '800', 
+          color: '#FF6B35',
+          margin: '0 auto 16px auto',
+          fontFamily: "'Playfair Display', 'Georgia', serif",
+          lineHeight: '1.2',
+          letterSpacing: '-0.02em',
+          textShadow: '0 2px 4px rgba(255, 107, 53, 0.1)',
+          textAlign: 'center'
+        }}>
+          Content Management
+        </Title>
         
-        <Space>
-          <Button
-            icon={<ImportOutlined />}
-            style={{
-              borderRadius: '12px',
-              fontFamily: "'Poppins', sans-serif",
-              fontWeight: '600'
-            }}
-          >
-            Import
-          </Button>
-          <Button
-            icon={<ExportOutlined />}
-            style={{
-              borderRadius: '12px',
-              fontFamily: "'Poppins', sans-serif",
-              fontWeight: '600'
-            }}
-          >
-            Export
-          </Button>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => setModalVisible(true)}
-            style={{
-              borderRadius: '12px',
-              background: '#ff6b35',
-              border: 'none',
-              fontFamily: "'Poppins', sans-serif",
-              fontWeight: '600'
-            }}
-          >
-            Create Content
-          </Button>
-        </Space>
+        <p style={{
+          fontSize: windowWidth <= 768 ? '13px' : windowWidth <= 1024 ? '14px' : '16px',
+          color: '#6c757d',
+          margin: '0 auto',
+          fontFamily: "'Poppins', sans-serif",
+          lineHeight: '1.6',
+          maxWidth: '700px',
+          textAlign: 'center'
+        }}>
+          Manage blog posts, tour descriptions, and website content
+        </p>
       </div>
 
       {/* Statistics Cards */}
-      <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
-        <Col xs={24} sm={12} md={6}>
-          <Card style={{ borderRadius: '16px', textAlign: 'center' }}>
+      <Row gutter={[windowWidth <= 768 ? 12 : 16, windowWidth <= 768 ? 12 : 16]} style={{ marginBottom: '24px' }}>
+        <Col xs={12} sm={12} lg={6}>
+          <Card style={{ 
+            borderRadius: '12px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+            border: 'none',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: 'white'
+          }}>
             <Statistic
-              title="Total Content"
+              title={<span style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: windowWidth <= 768 ? '12px' : '14px' }}>Total Content</span>}
               value={totalContents}
-              prefix={<FileTextOutlined style={{ color: '#ff6b35' }} />}
-              valueStyle={{ color: '#ff6b35', fontFamily: "'Poppins', sans-serif" }}
+              valueStyle={{ color: 'white', fontSize: windowWidth <= 768 ? '24px' : '32px', fontWeight: '700' }}
             />
           </Card>
         </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card style={{ borderRadius: '16px', textAlign: 'center' }}>
+        <Col xs={12} sm={12} lg={6}>
+          <Card style={{ 
+            borderRadius: '12px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+            border: 'none',
+            background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+            color: 'white'
+          }}>
             <Statistic
-              title="Published"
+              title={<span style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: windowWidth <= 768 ? '12px' : '14px' }}>Published</span>}
               value={publishedContents}
-              prefix={<CheckCircleOutlined style={{ color: '#52c41a' }} />}
-              valueStyle={{ color: '#52c41a', fontFamily: "'Poppins', sans-serif" }}
+              valueStyle={{ color: 'white', fontSize: windowWidth <= 768 ? '24px' : '32px', fontWeight: '700' }}
             />
           </Card>
         </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card style={{ borderRadius: '16px', textAlign: 'center' }}>
+        <Col xs={12} sm={12} lg={6}>
+          <Card style={{ 
+            borderRadius: '12px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+            border: 'none',
+            background: 'linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%)',
+            color: 'white'
+          }}>
             <Statistic
-              title="Drafts"
+              title={<span style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: windowWidth <= 768 ? '12px' : '14px' }}>Drafts</span>}
               value={draftContents}
-              prefix={<EditOutlined style={{ color: '#faad14' }} />}
-              valueStyle={{ color: '#faad14', fontFamily: "'Poppins', sans-serif" }}
+              valueStyle={{ color: 'white', fontSize: windowWidth <= 768 ? '24px' : '32px', fontWeight: '700' }}
             />
           </Card>
         </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card style={{ borderRadius: '16px', textAlign: 'center' }}>
+        <Col xs={12} sm={12} lg={6}>
+          <Card style={{ 
+            borderRadius: '12px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+            border: 'none',
+            background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+            color: 'white'
+          }}>
             <Statistic
-              title="Total Views"
+              title={<span style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: windowWidth <= 768 ? '12px' : '14px' }}>Total Views</span>}
               value={totalViews}
-              prefix={<EyeOutlined style={{ color: '#1890ff' }} />}
-              valueStyle={{ color: '#1890ff', fontFamily: "'Poppins', sans-serif" }}
+              valueStyle={{ color: 'white', fontSize: windowWidth <= 768 ? '24px' : '32px', fontWeight: '700' }}
               formatter={(value) => value.toLocaleString()}
             />
           </Card>
         </Col>
       </Row>
 
-      {/* Filters */}
-      <Card style={{ marginBottom: '24px', borderRadius: '16px' }}>
+      {/* Actions Bar */}
+      <Card 
+        style={{ 
+          marginBottom: '24px',
+          borderRadius: '12px',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+          border: 'none'
+        }}
+        bodyStyle={{ padding: windowWidth <= 768 ? '12px' : '20px' }}
+      >
         <Row gutter={[16, 16]} align="middle">
-          <Col xs={24} sm={8} md={6}>
+          <Col xs={24} sm={24} md={8}>
             <Input
               placeholder="Search content..."
-              prefix={<SearchOutlined style={{ color: '#ff6b35' }} />}
+              prefix={<SearchOutlined />}
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
+              size={windowWidth <= 768 ? 'middle' : 'large'}
+              allowClear
               style={{ borderRadius: '8px' }}
             />
           </Col>
@@ -728,6 +744,7 @@ const ContentManagement = () => {
               placeholder="Status"
               value={filterStatus}
               onChange={setFilterStatus}
+              size={windowWidth <= 768 ? 'middle' : 'large'}
               style={{ width: '100%', borderRadius: '8px' }}
             >
               <Option value="all">All Status</Option>
@@ -742,6 +759,7 @@ const ContentManagement = () => {
               placeholder="Type"
               value={filterType}
               onChange={setFilterType}
+              size={windowWidth <= 768 ? 'middle' : 'large'}
               style={{ width: '100%', borderRadius: '8px' }}
             >
               <Option value="all">All Types</Option>
@@ -752,27 +770,38 @@ const ContentManagement = () => {
               <Option value="news_article">News Article</Option>
             </Select>
           </Col>
-          <Col xs={24} sm={24} md={10}>
-            <Space>
-              <Button
-                icon={<FilterOutlined />}
-                style={{
-                  borderRadius: '8px',
-                  fontFamily: "'Poppins', sans-serif"
-                }}
-              >
-                More Filters
-              </Button>
-              <Text type="secondary" style={{ fontFamily: "'Poppins', sans-serif" }}>
-                Showing {filteredContents.length} of {contents.length} contents
-              </Text>
-            </Space>
+          <Col xs={24} sm={24} md={8}>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => setModalVisible(true)}
+              size={windowWidth <= 768 ? 'middle' : 'large'}
+              block
+              style={{
+                borderRadius: '8px',
+                background: '#ff6b35',
+                border: 'none',
+                fontFamily: "'Poppins', sans-serif",
+                fontWeight: '600',
+                boxShadow: '0 4px 12px rgba(255, 107, 53, 0.3)',
+                height: windowWidth <= 768 ? '32px' : '40px'
+              }}
+            >
+              Add Content
+            </Button>
           </Col>
         </Row>
       </Card>
 
       {/* Contents Table */}
-      <Card style={{ borderRadius: '16px' }}>
+      <Card 
+        style={{ 
+          borderRadius: '12px',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+          border: 'none'
+        }}
+        bodyStyle={{ padding: windowWidth <= 768 ? '12px' : '20px' }}
+      >
         <Table
           columns={columns}
           dataSource={filteredContents}
@@ -780,10 +809,11 @@ const ContentManagement = () => {
           loading={loading}
           pagination={{
             total: filteredContents.length,
-            pageSize: 10,
+            pageSize: windowWidth <= 768 ? 5 : 10,
             showSizeChanger: true,
             showQuickJumper: true,
             showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} contents`,
+            style: { fontFamily: "'Poppins', sans-serif" }
           }}
           scroll={{ x: 1200 }}
         />

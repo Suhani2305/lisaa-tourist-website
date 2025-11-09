@@ -137,31 +137,31 @@ const AppDownload = () => {
 
           {/* Right Side - Image (Hidden on Mobile) */}
           {window.innerWidth > 768 && (
-            <div
+          <div
+            style={{
+              flex: 0.6, // 👈 60% width
+              minWidth: '250px',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'flex-end', // 👈 stick to bottom
+              margin: '0 auto',
+              paddingBottom: 0,
+            }}
+          >
+            <img
+              src="https://viatour-nextjs.vercel.app/img/cta/1/1.png"
+              alt="App Preview"
               style={{
-                flex: 0.6, // 👈 60% width
-                minWidth: '250px',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'flex-end', // 👈 stick to bottom
-                margin: '0 auto',
+                width: '100%',
+                maxWidth: '500px',
+                height: 'auto',
+                objectFit: 'contain',
+                display: 'block',
+                marginBottom: 0,
                 paddingBottom: 0,
               }}
-            >
-              <img
-                src="https://viatour-nextjs.vercel.app/img/cta/1/1.png"
-                alt="App Preview"
-                style={{
-                  width: '100%',
-                  maxWidth: '500px',
-                  height: 'auto',
-                  objectFit: 'contain',
-                  display: 'block',
-                  marginBottom: 0,
-                  paddingBottom: 0,
-                }}
-              />
-            </div>
+            />
+          </div>
           )}
         </div>
       </div>

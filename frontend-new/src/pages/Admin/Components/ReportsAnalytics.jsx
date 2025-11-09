@@ -296,6 +296,7 @@ const ReportsAnalytics = () => {
       const [popularDestinations, setPopularDestinations] = useState([]);
   const [customerDemographics, setCustomerDemographics] = useState(null);
   const [topPackages, setTopPackages] = useState([]);
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   
   // Filter states
   const [selectedMonths, setSelectedMonths] = useState([]);
@@ -305,6 +306,15 @@ const ReportsAnalytics = () => {
     months: [],
     years: []
   });
+
+  // Handle window resize
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     fetchAnalytics();
@@ -1439,82 +1449,87 @@ const ReportsAnalytics = () => {
   );
 
   return (
-    <div style={{ fontFamily: "'Poppins', sans-serif" }}>
-      {/* Header */}
+    <div style={{ 
+      padding: windowWidth <= 768 ? '16px' : '24px',
+      fontFamily: "'Poppins', sans-serif",
+      background: '#f5f5f5',
+      minHeight: '100vh'
+    }}>
+      {/* Header Section */}
       <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '24px',
-        padding: '20px 24px',
-        background: 'white',
-        borderRadius: '20px',
-        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
-        border: '1px solid rgba(255, 107, 53, 0.1)'
+        marginBottom: windowWidth <= 768 ? '20px' : '32px',
+        textAlign: 'center'
       }}>
-        <div>
-          <Title level={3} style={{ margin: '0 0 8px 0', color: '#2c3e50', fontFamily: "'Poppins', sans-serif" }}>
-            📊 Reports & Analytics
-          </Title>
-          <TypographyText style={{ fontSize: '14px', color: '#6c757d', fontFamily: "'Poppins', sans-serif" }}>
-            Comprehensive analytics and reporting dashboard
-          </TypographyText>
-        </div>
+        <Title level={1} style={{ 
+          fontSize: windowWidth <= 768 ? '1.8rem' : windowWidth <= 1024 ? '2.5rem' : '3rem', 
+          fontWeight: '800', 
+          color: '#FF6B35',
+          margin: '0 auto 16px auto',
+          fontFamily: "'Playfair Display', 'Georgia', serif",
+          lineHeight: '1.2',
+          letterSpacing: '-0.02em',
+          textShadow: '0 2px 4px rgba(255, 107, 53, 0.1)',
+          textAlign: 'center'
+        }}>
+          Reports & Analytics
+        </Title>
         
-        <Space>
-          <Select
-            value={exportFormat}
-            onChange={setExportFormat}
-            style={{ width: '120px', borderRadius: '8px' }}
-          >
-            <Option value="pdf">PDF</Option>
-            <Option value="excel">Excel</Option>
-            <Option value="csv">CSV</Option>
-          </Select>
-          <Button
-            icon={<ExportOutlined />}
-            onClick={() => handleExport(exportFormat)}
-            style={{
-              borderRadius: '12px',
-              fontFamily: "'Poppins', sans-serif",
-              fontWeight: '600'
-            }}
-          >
-            Export Report
-          </Button>
-          <Button
-            icon={<PrinterIcon />}
-            onClick={handlePrint}
-            style={{
-              borderRadius: '12px',
-              fontFamily: "'Poppins', sans-serif",
-              fontWeight: '600'
-            }}
-          >
-            Print
-          </Button>
-        </Space>
+        <p style={{
+          fontSize: windowWidth <= 768 ? '13px' : windowWidth <= 1024 ? '14px' : '16px',
+          color: '#6c757d',
+          margin: '0 auto',
+          fontFamily: "'Poppins', sans-serif",
+          lineHeight: '1.6',
+          maxWidth: '700px',
+          textAlign: 'center'
+        }}>
+          Comprehensive analytics and reporting dashboard
+        </p>
       </div>
 
       {/* Filters */}
-      <Card style={{ marginBottom: '24px', borderRadius: '16px' }}>
+      <Card 
+        style={{ 
+          marginBottom: '24px', 
+          borderRadius: '12px',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+          border: 'none'
+        }}
+        bodyStyle={{ padding: windowWidth <= 768 ? '12px' : '20px' }}
+      >
         <Row gutter={[16, 16]} align="middle">
-          <Col xs={24} sm={12} md={6}>
-            <TypographyText strong style={{ display: 'block', marginBottom: '8px' }}>Date Range:</TypographyText>
+          <Col xs={24} sm={24} md={8}>
+            <TypographyText strong style={{ 
+              display: 'block', 
+              marginBottom: '8px',
+              fontFamily: "'Poppins', sans-serif",
+              fontSize: windowWidth <= 768 ? '13px' : '14px'
+            }}>
+              Date Range:
+            </TypographyText>
             <DatePicker.RangePicker
               style={{ width: '100%', borderRadius: '8px' }}
               value={dateRange}
               onChange={setDateRange}
               format="DD/MM/YYYY"
+              size={windowWidth <= 768 ? 'middle' : 'large'}
             />
           </Col>
-          <Col xs={24} sm={12} md={6}>
-            <TypographyText strong style={{ display: 'block', marginBottom: '8px' }}>Select Months:</TypographyText>
+          <Col xs={24} sm={24} md={8}>
+            <TypographyText strong style={{ 
+              display: 'block', 
+              marginBottom: '8px',
+              fontFamily: "'Poppins', sans-serif",
+              fontSize: windowWidth <= 768 ? '13px' : '14px'
+            }}>
+              Select Months:
+            </TypographyText>
             <Select
               mode="multiple"
               placeholder="Select months"
               value={selectedMonths}
               onChange={setSelectedMonths}
+              size={windowWidth <= 768 ? 'middle' : 'large'}
               style={{ width: '100%', borderRadius: '8px' }}
               allowClear
             >
@@ -1536,13 +1551,21 @@ const ReportsAnalytics = () => {
               ))}
             </Select>
           </Col>
-          <Col xs={24} sm={12} md={6}>
-            <TypographyText strong style={{ display: 'block', marginBottom: '8px' }}>Select Years:</TypographyText>
+          <Col xs={24} sm={24} md={8}>
+            <TypographyText strong style={{ 
+              display: 'block', 
+              marginBottom: '8px',
+              fontFamily: "'Poppins', sans-serif",
+              fontSize: windowWidth <= 768 ? '13px' : '14px'
+            }}>
+              Select Years:
+            </TypographyText>
             <Select
               mode="multiple"
               placeholder="Select years"
               value={selectedYears}
               onChange={setSelectedYears}
+              size={windowWidth <= 768 ? 'middle' : 'large'}
               style={{ width: '100%', borderRadius: '8px' }}
               allowClear
             >
@@ -1554,59 +1577,142 @@ const ReportsAnalytics = () => {
               })}
             </Select>
           </Col>
-          <Col xs={24} sm={12} md={6}>
-            <TypographyText strong style={{ display: 'block', marginBottom: '8px' }}>Metric:</TypographyText>
-            <Select
-              value={selectedMetric}
-              onChange={setSelectedMetric}
-              style={{ width: '100%', borderRadius: '8px' }}
-            >
-              <Option value="overview">Overview</Option>
-              <Option value="bookings">Bookings</Option>
-              <Option value="revenue">Revenue</Option>
-              <Option value="customers">Customers</Option>
-            </Select>
-          </Col>
           <Col xs={24}>
-            <Space>
-              <Button
-                type="primary"
-                icon={<FilterOutlined />}
-                onClick={handleApplyFilters}
-                style={{
-                  borderRadius: '8px',
-                  fontFamily: "'Poppins', sans-serif",
-                  background: '#ff6b35',
-                  border: 'none'
-                }}
-              >
-                Apply Filters
-              </Button>
-              <Button
-                icon={<ReloadIcon />}
-                onClick={handleRefreshData}
-                style={{
-                  borderRadius: '8px',
-                  fontFamily: "'Poppins', sans-serif"
-                }}
-              >
-                Refresh Data
-              </Button>
+            <div style={{ 
+              display: 'flex', 
+              flexDirection: 'column',
+              gap: '12px',
+              width: '100%'
+            }}>
+              <div style={{ 
+                display: 'flex', 
+                width: '100%', 
+                gap: '8px',
+                flexWrap: windowWidth <= 768 ? 'wrap' : 'nowrap',
+                alignItems: 'center'
+              }}>
+                <Button
+                  type="primary"
+                  icon={<FilterOutlined />}
+                  onClick={handleApplyFilters}
+                  size={windowWidth <= 768 ? 'middle' : 'large'}
+                  style={{
+                    borderRadius: '8px',
+                    fontFamily: "'Poppins', sans-serif",
+                    background: '#ff6b35',
+                    border: 'none',
+                    fontWeight: '600',
+                    boxShadow: '0 4px 12px rgba(255, 107, 53, 0.3)',
+                    height: windowWidth <= 768 ? '32px' : '40px',
+                    padding: windowWidth <= 768 ? '0 20px' : '0 16px',
+                    flex: windowWidth <= 768 ? '1 1 auto' : '1'
+                  }}
+                >
+                  Apply Filters
+                </Button>
+                <Button
+                  icon={<ReloadIcon />}
+                  onClick={handleRefreshData}
+                  size={windowWidth <= 768 ? 'middle' : 'large'}
+                  style={{
+                    borderRadius: '8px',
+                    fontFamily: "'Poppins', sans-serif",
+                    fontWeight: '600',
+                    height: windowWidth <= 768 ? '32px' : '40px',
+                    padding: windowWidth <= 768 ? '0 20px' : '0 16px',
+                    flex: windowWidth <= 768 ? '1 1 auto' : '1'
+                  }}
+                >
+                  Refresh Data
+                </Button>
+                <Select
+                  value={exportFormat}
+                  onChange={setExportFormat}
+                  size={windowWidth <= 768 ? 'middle' : 'large'}
+                  style={{ 
+                    width: windowWidth <= 768 ? '100px' : 'auto', 
+                    borderRadius: '8px',
+                    fontFamily: "'Poppins', sans-serif",
+                    flex: windowWidth <= 768 ? '1 1 auto' : '1',
+                    minWidth: windowWidth <= 768 ? 'auto' : '100px'
+                  }}
+                >
+                  <Option value="pdf">PDF</Option>
+                  <Option value="excel">Excel</Option>
+                  <Option value="csv">CSV</Option>
+                </Select>
+                <Button
+                  type="primary"
+                  icon={<ExportOutlined />}
+                  onClick={() => handleExport(exportFormat)}
+                  size={windowWidth <= 768 ? 'middle' : 'large'}
+                  style={{
+                    borderRadius: '8px',
+                    background: '#1890ff',
+                    border: 'none',
+                    fontFamily: "'Poppins', sans-serif",
+                    fontWeight: '600',
+                    boxShadow: '0 4px 12px rgba(24, 144, 255, 0.3)',
+                    height: windowWidth <= 768 ? '32px' : '40px',
+                    padding: windowWidth <= 768 ? '0 20px' : '0 16px',
+                    flex: windowWidth <= 768 ? '1 1 auto' : '1'
+                  }}
+                >
+                  Export
+                </Button>
+                <Button
+                  type="primary"
+                  icon={<PrinterIcon />}
+                  onClick={handlePrint}
+                  size={windowWidth <= 768 ? 'middle' : 'large'}
+                  style={{
+                    borderRadius: '8px',
+                    background: '#52c41a',
+                    border: 'none',
+                    fontFamily: "'Poppins', sans-serif",
+                    fontWeight: '600',
+                    boxShadow: '0 4px 12px rgba(82, 196, 26, 0.3)',
+                    height: windowWidth <= 768 ? '32px' : '40px',
+                    padding: windowWidth <= 768 ? '0 20px' : '0 16px',
+                    flex: windowWidth <= 768 ? '1 1 auto' : '1'
+                  }}
+                >
+                  Print
+                </Button>
+              </div>
               {(appliedFilters.months.length > 0 || appliedFilters.years.length > 0 || appliedFilters.dateRange) && (
-                <TypographyText type="secondary" style={{ fontFamily: "'Poppins', sans-serif" }}>
-                  Filters Active: 
-                  {appliedFilters.months.length > 0 && ` ${appliedFilters.months.length} month(s)`}
-                  {appliedFilters.years.length > 0 && ` ${appliedFilters.years.length} year(s)`}
-                  {appliedFilters.dateRange && ' Date Range'}
-                </TypographyText>
+                <div style={{ 
+                  width: '100%', 
+                  textAlign: 'center',
+                  marginTop: '4px'
+                }}>
+                  <TypographyText style={{ 
+                    fontFamily: "'Poppins', sans-serif",
+                    fontSize: windowWidth <= 768 ? '12px' : '14px',
+                    color: '#FF6B35',
+                    fontWeight: '600'
+                  }}>
+                    Filters Active: 
+                    {appliedFilters.months.length > 0 && ` ${appliedFilters.months.length} month(s)`}
+                    {appliedFilters.years.length > 0 && ` ${appliedFilters.years.length} year(s)`}
+                    {appliedFilters.dateRange && ' Date Range'}
+                  </TypographyText>
+                </div>
               )}
-            </Space>
+            </div>
           </Col>
         </Row>
       </Card>
 
       {/* Analytics Content */}
-      <Card style={{ borderRadius: '16px' }}>
+      <Card 
+        style={{ 
+          borderRadius: '12px',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+          border: 'none'
+        }}
+        bodyStyle={{ padding: windowWidth <= 768 ? '12px' : '20px' }}
+      >
         <Tabs
           defaultActiveKey="overview"
           items={[

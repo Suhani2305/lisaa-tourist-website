@@ -154,7 +154,7 @@ const PopularTours = () => {
           gap: '12px'
         }}>
           <div style={{ flex: '1', minWidth: '200px' }}>
-            <h2 style={{
+          <h2 style={{
               fontSize: window.innerWidth <= 480 ? "1.8rem" : window.innerWidth <= 768 ? "2.2rem" : "3rem",
               fontWeight: "800",
               color: "#212529",
@@ -162,16 +162,16 @@ const PopularTours = () => {
               fontFamily: "'Playfair Display', 'Georgia', serif",
               letterSpacing: "-0.02em",
               textShadow: "0 2px 4px rgba(0, 0, 0, 0.1)"
-            }}>
-              Popular Indian Tours
-            </h2>
-            <p style={{
+          }}>
+            Popular Indian Tours
+          </h2>
+          <p style={{
               margin: 0,
               color: "#6c757d",
               fontSize: window.innerWidth <= 768 ? "14px" : "16px"
-            }}>
-              Explore the rich cultural heritage and spiritual destinations of India
-            </p>
+          }}>
+            Explore the rich cultural heritage and spiritual destinations of India
+          </p>
           </div>
           <button
             onClick={() => navigate('/package')}

@@ -9,6 +9,7 @@ import {
   Typography,
   Drawer,
   message,
+  Modal,
 } from "antd";
 import {
   DashboardOutlined,
@@ -32,6 +33,7 @@ import {
   ExclamationCircleOutlined,
   InfoCircleOutlined,
   ClockCircleOutlined,
+  SmileOutlined,
 } from "@ant-design/icons";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
 import { bookingService, inquiryService } from "../../../services";
@@ -54,6 +56,8 @@ const AdminLayout = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationDrawerVisible, setNotificationDrawerVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [greetingModalVisible, setGreetingModalVisible] = useState(false);
+  const [greetingMessage, setGreetingMessage] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -67,6 +71,42 @@ const AdminLayout = () => {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  // Time-based greeting modal when admin enters dashboard
+  useEffect(() => {
+    if (location.pathname === '/admin/dashboard') {
+      const justLoggedIn = sessionStorage.getItem('adminJustLoggedIn');
+      
+      // Show greeting if admin just logged in
+      if (justLoggedIn === 'true') {
+        const hour = new Date().getHours();
+        let greeting = '';
+        
+        if (hour >= 5 && hour < 12) {
+          greeting = 'Good Morning';
+        } else if (hour >= 12 && hour < 17) {
+          greeting = 'Good Afternoon';
+        } else if (hour >= 17 && hour < 21) {
+          greeting = 'Good Evening';
+        } else {
+          greeting = 'Good Night';
+        }
+        
+        const adminRole = localStorage.getItem('adminRole') || 'Super Admin';
+        setGreetingMessage(`${greeting}, ${adminRole}!`);
+        setGreetingModalVisible(true);
+        
+        // Clear the flag so it doesn't show again until next login
+        sessionStorage.removeItem('adminJustLoggedIn');
+        sessionStorage.setItem('lastAdminGreetingTime', Date.now().toString());
+        
+        // Auto close modal after 4 seconds
+        setTimeout(() => {
+          setGreetingModalVisible(false);
+        }, 4000);
+      }
+    }
+  }, [location.pathname]);
 
   // Real-time notification system with real data
   useEffect(() => {
@@ -207,6 +247,9 @@ const AdminLayout = () => {
     localStorage.removeItem("adminToken");
     localStorage.removeItem("adminEmail");
     localStorage.removeItem("adminRole");
+    // Clear greeting-related sessionStorage
+    sessionStorage.removeItem("adminJustLoggedIn");
+    sessionStorage.removeItem("lastAdminGreetingTime");
     message.success("Logged out successfully!");
     navigate("/admin/login");
   };
@@ -319,7 +362,7 @@ const AdminLayout = () => {
           >
             <HomeOutlined style={{ color: "white", fontSize: "20px" }} />
           </div>
-          <Title level={4} style={{ margin: 0, color: "#ff6b35" }}>
+          <Title level={4} style={{ margin: 0, color: "#ff6b35", fontSize: "18px" }}>
             Admin Panel
           </Title>
         </div>
@@ -327,19 +370,47 @@ const AdminLayout = () => {
       placement="left"
       onClose={() => setMobileDrawerVisible(false)}
       open={mobileDrawerVisible}
-      width={280}
+      width={Math.min(280, window.innerWidth * 0.85)}
       styles={{ body: { padding: 0 } }}
     >
       <Menu
         mode="inline"
         selectedKeys={[getSelectedKey()]}
-        items={menuItems}
+        items={menuItems.map(item => ({
+          ...item,
+          onClick: () => {
+            item.onClick();
+            setMobileDrawerVisible(false);
+          }
+        }))}
         style={{
           border: "none",
           fontFamily: "'Poppins', sans-serif",
           padding: "16px 0",
+          fontSize: "15px"
         }}
       />
+      <div style={{ 
+        padding: "16px", 
+        borderTop: "1px solid #f0f0f0",
+        marginTop: "auto"
+      }}>
+        <Button
+          type="primary"
+          danger
+          icon={<LogoutOutlined />}
+          onClick={handleLogout}
+          block
+          style={{
+            height: "42px",
+            borderRadius: "8px",
+            fontFamily: "'Poppins', sans-serif",
+            fontWeight: "600"
+          }}
+        >
+          Logout
+        </Button>
+      </div>
     </Drawer>
   );
 
@@ -447,7 +518,7 @@ const AdminLayout = () => {
         <Header
           style={{
             background: "white",
-            padding: "0 24px",
+            padding: windowWidth <= 768 ? "0 12px" : "0 24px",
             boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
             borderBottom: "1px solid #f0f0f0",
             position: "sticky",
@@ -456,25 +527,68 @@ const AdminLayout = () => {
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            height: "64px",
-            minHeight: "64px",
-            maxHeight: "64px",
+            height: windowWidth <= 768 ? "56px" : "64px",
+            minHeight: windowWidth <= 768 ? "56px" : "64px",
+            maxHeight: windowWidth <= 768 ? "56px" : "64px",
             overflow: "hidden",
             width: "100%"
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: windowWidth <= 768 ? "8px" : "16px", flex: 1 }}>
             {windowWidth <= 768 && (
               <Button
                 type="text"
                 icon={<MenuOutlined />}
                 onClick={() => setMobileDrawerVisible(true)}
-                style={{ fontSize: "18px" }}
+                style={{ 
+                  fontSize: "20px",
+                  width: "40px",
+                  height: "40px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center"
+                }}
               />
             )}
+            {windowWidth <= 768 ? (
             <div
               style={{
-                display: windowWidth <= 768 ? "none" : "flex",
+                  display: "flex",
+                  alignItems: "center",
+                  background: "#f8f9fa",
+                  borderRadius: "12px",
+                  padding: "6px 10px",
+                  flex: 1,
+                  maxWidth: "calc(100vw - 180px)",
+                  border: "1px solid #e9ecef",
+                  height: "36px"
+                }}
+              >
+                <SearchOutlined style={{ color: "#6c757d", marginRight: "6px", fontSize: "14px" }} />
+                <input
+                  type="text"
+                  placeholder="Search..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && searchQuery.trim()) {
+                      message.info(`Searching for: ${searchQuery}`);
+                    }
+                  }}
+                  style={{
+                    border: "none",
+                    outline: "none",
+                    background: "transparent",
+                    width: "100%",
+                    fontSize: "13px",
+                    fontFamily: "'Poppins', sans-serif",
+                  }}
+                />
+              </div>
+            ) : (
+              <div
+                style={{
+                  display: "flex",
                 alignItems: "center",
                 background: "#f8f9fa",
                 borderRadius: "20px",
@@ -493,9 +607,7 @@ const AdminLayout = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyPress={(e) => {
                   if (e.key === 'Enter' && searchQuery.trim()) {
-                    // Navigate to search results or filter
                     message.info(`Searching for: ${searchQuery}`);
-                    // You can add actual search functionality here
                   }
                 }}
                 style={{
@@ -508,9 +620,11 @@ const AdminLayout = () => {
                 }}
               />
             </div>
+            )}
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: windowWidth <= 768 ? "8px" : "16px" }}>
+            {windowWidth > 768 && (
             <Dropdown
               menu={{
                 items: [
@@ -546,25 +660,26 @@ const AdminLayout = () => {
                   borderRadius: "20px",
                   fontFamily: "'Poppins', sans-serif",
                   fontWeight: "600",
-                  display: windowWidth <= 768 ? "none" : "flex",
                 }}
               >
                 Quick Add
               </Button>
             </Dropdown>
+            )}
 
-            <Badge count={unreadCount} size="small">
+            <Badge count={unreadCount} size="small" offset={[-5, 5]}>
               <Button
                 type="text"
                 icon={<BellOutlined />}
                 onClick={() => setNotificationDrawerVisible(true)}
                 style={{
-                  width: "40px",
-                  height: "40px",
+                  width: windowWidth <= 768 ? "36px" : "40px",
+                  height: windowWidth <= 768 ? "36px" : "40px",
                   borderRadius: "50%",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
+                  fontSize: windowWidth <= 768 ? "16px" : "18px"
                 }}
               />
             </Badge>
@@ -574,20 +689,19 @@ const AdminLayout = () => {
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: "8px",
+                  gap: windowWidth <= 768 ? "4px" : "8px",
                   cursor: "pointer",
-                  padding: "6px 12px",
+                  padding: windowWidth <= 768 ? "4px 8px" : "6px 12px",
                   borderRadius: "20px",
-                  background:
-                    "linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%)",
+                  background: "linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%)",
                   color: "white",
                   transition: "all 0.3s ease",
-                  height: "36px",
-                  maxHeight: "36px"
+                  height: windowWidth <= 768 ? "36px" : "36px",
+                  maxHeight: windowWidth <= 768 ? "36px" : "36px"
                 }}
               >
                 <Avatar
-                  size={28}
+                  size={windowWidth <= 768 ? 24 : 28}
                   src="https://api.dicebear.com/7.x/avataaars/svg?seed=admin&backgroundColor=ff6b35&textColor=ffffff"
                   icon={<UserOutlined />}
                   style={{
@@ -597,7 +711,8 @@ const AdminLayout = () => {
                     color: "white"
                   }}
                 />
-                <div style={{ display: windowWidth <= 768 ? "none" : "block" }}>
+                {windowWidth > 768 && (
+                  <div>
                   <Text
                     style={{
                       color: "white",
@@ -617,6 +732,7 @@ const AdminLayout = () => {
                     {adminEmail}
                   </Text>
                 </div>
+                )}
               </div>
             </Dropdown>
           </div>
@@ -625,8 +741,8 @@ const AdminLayout = () => {
         <Content
           style={{
             background: "linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)",
-            padding: "24px",
-            minHeight: "calc(100vh - 64px)",
+            padding: windowWidth <= 768 ? "12px" : "24px",
+            minHeight: `calc(100vh - ${windowWidth <= 768 ? '56px' : '64px'})`,
             overflow: "visible",
             position: "relative",
             zIndex: 1,
@@ -642,14 +758,19 @@ const AdminLayout = () => {
       <Drawer
         title={
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontFamily: "'Poppins', sans-serif", fontWeight: '600' }}>
+            <span style={{ fontFamily: "'Poppins', sans-serif", fontWeight: '600', fontSize: windowWidth <= 768 ? '16px' : '18px' }}>
               Notifications
             </span>
             {unreadCount > 0 && (
               <Button 
                 type="link" 
                 onClick={markAllAsRead}
-                style={{ color: '#ff6b35', fontFamily: "'Poppins', sans-serif" }}
+                style={{ 
+                  color: '#ff6b35', 
+                  fontFamily: "'Poppins', sans-serif",
+                  fontSize: windowWidth <= 768 ? '13px' : '14px',
+                  padding: windowWidth <= 768 ? '4px 8px' : '4px 12px'
+                }}
               >
                 Mark all as read
               </Button>
@@ -659,7 +780,7 @@ const AdminLayout = () => {
         placement="right"
         onClose={() => setNotificationDrawerVisible(false)}
         open={notificationDrawerVisible}
-        width={400}
+        width={windowWidth <= 768 ? window.innerWidth * 0.85 : 400}
         style={{ fontFamily: "'Poppins', sans-serif" }}
       >
         <div style={{ maxHeight: 'calc(100vh - 120px)', overflowY: 'auto' }}>
@@ -768,6 +889,88 @@ const AdminLayout = () => {
           )}
         </div>
       </Drawer>
+
+      {/* Greeting Modal */}
+      <Modal
+        open={greetingModalVisible}
+        onCancel={() => setGreetingModalVisible(false)}
+        footer={null}
+        closable={true}
+        maskClosable={true}
+        centered
+        width={windowWidth <= 768 ? 350 : 450}
+        style={{
+          fontFamily: "'Poppins', sans-serif"
+        }}
+        styles={{
+          body: {
+            padding: windowWidth <= 768 ? '32px 24px' : '40px 32px',
+            textAlign: 'center'
+          }
+        }}
+      >
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '20px'
+        }}>
+          <div style={{
+            width: windowWidth <= 768 ? '80px' : '100px',
+            height: windowWidth <= 768 ? '80px' : '100px',
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, #ff6b35 0%, #ff8c5a 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 8px 24px rgba(255, 107, 53, 0.3)',
+            animation: 'pulse 2s ease-in-out infinite'
+          }}>
+            <SmileOutlined style={{
+              fontSize: windowWidth <= 768 ? '40px' : '50px',
+              color: '#fff'
+            }} />
+          </div>
+          
+          <Title level={2} style={{
+            margin: 0,
+            fontSize: windowWidth <= 768 ? '24px' : '32px',
+            color: '#ff6b35',
+            fontFamily: "'Playfair Display', 'Georgia', serif",
+            fontWeight: '700'
+          }}>
+            {greetingMessage}
+          </Title>
+          
+          <Text style={{
+            fontSize: windowWidth <= 768 ? '14px' : '16px',
+            color: '#6c757d',
+            fontFamily: "'Poppins', sans-serif",
+            lineHeight: '1.6'
+          }}>
+            Welcome to Admin Dashboard
+          </Text>
+          
+          <div style={{
+            width: '60px',
+            height: '4px',
+            background: 'linear-gradient(90deg, #ff6b35 0%, #ff8c5a 100%)',
+            borderRadius: '2px',
+            marginTop: '8px'
+          }} />
+        </div>
+        
+        <style>{`
+          @keyframes pulse {
+            0%, 100% {
+              transform: scale(1);
+            }
+            50% {
+              transform: scale(1.05);
+            }
+          }
+        `}</style>
+      </Modal>
     </Layout>
   );
 };

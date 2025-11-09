@@ -16,20 +16,20 @@ const FeaturedTrips = () => {
     try {
       setLoading(true);
       const data = await tourService.getAllTours({ featured: true });
-      
+
       // Helper function to calculate discounted price
       const calculateDiscountedPrice = (tour) => {
         const originalPrice = tour.price?.adult || 0;
         const discount = tour.discount;
-        
+
         if (!discount || !discount.isActive) {
           return { originalPrice, finalPrice: originalPrice, hasDiscount: false };
         }
-        
+
         // Check if discount is within date range
         const now = new Date();
         now.setHours(0, 0, 0, 0); // Reset time to start of day for comparison
-        
+
         if (discount.startDate) {
           const startDate = new Date(discount.startDate);
           startDate.setHours(0, 0, 0, 0);
@@ -37,7 +37,7 @@ const FeaturedTrips = () => {
             return { originalPrice, finalPrice: originalPrice, hasDiscount: false };
           }
         }
-        
+
         if (discount.endDate) {
           const endDate = new Date(discount.endDate);
           endDate.setHours(23, 59, 59, 999); // Set to end of day
@@ -45,23 +45,23 @@ const FeaturedTrips = () => {
             return { originalPrice, finalPrice: originalPrice, hasDiscount: false };
           }
         }
-        
+
         let finalPrice = originalPrice;
         if (discount.type === 'percentage') {
           finalPrice = originalPrice * (1 - (discount.value / 100));
         } else if (discount.type === 'fixed') {
           finalPrice = Math.max(0, originalPrice - discount.value);
         }
-        
-        return { 
-          originalPrice, 
-          finalPrice: Math.round(finalPrice), 
+
+        return {
+          originalPrice,
+          finalPrice: Math.round(finalPrice),
           hasDiscount: true,
           discountValue: discount.value,
           discountType: discount.type
         };
       };
-      
+
       // Transform backend data to component format
       const formattedTrips = data.map(tour => {
         const priceInfo = calculateDiscountedPrice(tour);
@@ -73,8 +73,8 @@ const FeaturedTrips = () => {
           description: tour.description ? tour.description.substring(0, 100) + '...' : '',
           rating: tour.rating?.average ? `${tour.rating.average} (${tour.rating.count})` : "4.5 (0)",
           duration: `${tour.duration?.days || 0} days`,
-          price: priceInfo.hasDiscount 
-            ? `From ₹${priceInfo.finalPrice.toLocaleString()}` 
+          price: priceInfo.hasDiscount
+            ? `From ₹${priceInfo.finalPrice.toLocaleString()}`
             : `From ₹${priceInfo.originalPrice.toLocaleString()}`,
           originalPrice: priceInfo.originalPrice,
           hasDiscount: priceInfo.hasDiscount,
@@ -82,7 +82,7 @@ const FeaturedTrips = () => {
           discountType: priceInfo.discountType,
         };
       });
-      
+
       setTrips(formattedTrips);
     } catch (error) {
       console.error("Failed to fetch featured trips:", error);
@@ -95,14 +95,16 @@ const FeaturedTrips = () => {
   const handleScroll = (direction) => {
     const container = document.getElementById('trips-scroll-container');
     if (!container) return;
-    const delta = Math.max(container.clientWidth * 0.8, 300);
+    
+    // Scroll amount is 80% of container width for a smooth, partial scroll
+    const delta = Math.max(container.clientWidth * 0.8, 300); 
     container.scrollBy({ left: direction === 'right' ? delta : -delta, behavior: 'smooth' });
   };
 
   if (loading) {
     return (
-      <div style={{ 
-        backgroundColor: "#fdf7f4", 
+      <div style={{
+        backgroundColor: "#fdf7f4",
         padding: "80px 20px",
         textAlign: "center",
         minHeight: "400px",
@@ -118,15 +120,26 @@ const FeaturedTrips = () => {
     );
   }
 
+  // --- Dynamic Card Width Calculation ---
+  // Mobile: 75% for the current card, 5% gap, 20% for the next card preview (Total 100%)
+  const isMobile = window.innerWidth <= 768;
+  const cardWidthMobile = "75%"; 
+  const cardGapMobile = "5%";
+  
+  // Desktop/Laptop: Calculate width for 3 cards + 2 gaps (Total 100%)
+  // Gap is 20px (from your style), which is about 1.5% of max-width 1250px. Let's use 1.5% for two gaps.
+  // Card Width = (100% - (2 * 1.5%)) / 3 = 97% / 3 ≈ 32.33%
+  const cardWidthDesktop = "calc(33.33% - 13.33px)"; // (100% / 3) - (20px * 2 / 3) to account for 20px gap
+
   return (
-    <div style={{ 
-      backgroundColor: "#fdf7f4", 
-      padding: window.innerWidth <= 768 ? "80px 16px 10px 16px" : window.innerWidth <= 1024 ? "80px 32px 10px 32px" : "120px 2px 10px 250px" 
+    <div style={{
+      backgroundColor: "#fdf7f4",
+      padding: window.innerWidth <= 768 ? "80px 16px 10px 16px" : window.innerWidth <= 1024 ? "80px 32px 10px 32px" : "120px 2px 10px 250px"
     }}>
-      <div style={{ 
-        maxWidth: "1250px", 
-        margin: "0 auto", 
-        borderRadius: "20px" 
+      <div style={{
+        maxWidth: "1250px",
+        margin: "0 auto",
+        borderRadius: "20px"
       }}>
         {/* Header Section */}
         <div style={{
@@ -164,7 +177,8 @@ const FeaturedTrips = () => {
           id="trips-scroll-container"
           style={{
             display: "flex",
-            gap: window.innerWidth <= 768 ? "12px" : "20px",
+            // Use dynamic gap based on screen size for better control
+            gap: isMobile ? cardGapMobile : "20px", 
             overflowX: "auto",
             scrollBehavior: "smooth",
             paddingBottom: "20px",
@@ -174,22 +188,17 @@ const FeaturedTrips = () => {
           }}
         >
           {trips.map((trip) => {
-            // Calculate card width for mobile to show one full card
-            const screenWidth = window.innerWidth;
-            const isMobile = screenWidth <= 768;
-            const containerPadding = isMobile ? 32 : 0; // 16px left + 16px right
-            const gap = isMobile ? 12 : 20;
-            const cardWidth = isMobile 
-              ? Math.floor(screenWidth - containerPadding - gap) 
-              : screenWidth <= 1440 ? 240 : 280;
-            
+            // New dynamic width logic using percentage for better responsiveness
+            const calculatedWidth = isMobile ? cardWidthMobile : cardWidthDesktop;
+
             return (
             <div
               key={trip.id}
               onClick={() => navigate(`/package/${trip.id}`)}
               style={{
-                minWidth: isMobile ? `${cardWidth}px` : window.innerWidth <= 1440 ? "240px" : "280px",
-                width: isMobile ? `${cardWidth}px` : "auto",
+                // Min width and width set to the calculated percentage
+                minWidth: calculatedWidth, 
+                width: calculatedWidth,
                 backgroundColor: "white",
                 borderRadius: "16px",
                 overflow: "hidden",
@@ -345,19 +354,20 @@ const FeaturedTrips = () => {
           })}
         </div>
 
-        {/* Navigation Arrows - Bottom Left */}
-        <div style={{ 
-          display: "flex", 
-          gap: "22px", 
+        {/* Navigation Arrows - Centered */}
+        <div style={{
+          display: "flex",
+          gap: "22px",
           marginTop: window.innerWidth <= 768 ? "15px" : "20px",
           marginBottom: window.innerWidth <= 768 ? "15px" : "20px",
-          justifyContent: "flex-start"
+          // ADDED: justifyContent: "center" to center the buttons
+          justifyContent: "center" 
         }}>
           <button
             onClick={() => handleScroll('left')}
             style={{
-              width: "64px",
-              height: "64px",
+              width: "50px",
+              height: "50px",
               borderRadius: "50%",
               border: "none",
               backgroundColor: "#ff6b35",
@@ -381,13 +391,13 @@ const FeaturedTrips = () => {
               e.currentTarget.style.transform = "scale(1)";
             }}
           >
-            
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
           </button>
           <button
             onClick={() => handleScroll('right')}
             style={{
-              width: "64px",
-              height: "64px",
+              width: "50px",
+              height: "50px",
               borderRadius: "50%",
               border: "none",
               backgroundColor: "#ff6b35",
@@ -411,7 +421,7 @@ const FeaturedTrips = () => {
               e.currentTarget.style.transform = "scale(1)";
             }}
           >
-            
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
           </button>
         </div>
 

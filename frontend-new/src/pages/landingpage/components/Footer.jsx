@@ -34,35 +34,35 @@ const Footer = () => {
             marginBottom: window.innerWidth <= 768 ? '0' : '0'
           }}>
             {/* Contact */}
-            <div style={{ 
+          <div style={{
               textAlign: window.innerWidth <= 768 ? 'center' : 'left',
               flex: '1',
               minWidth: window.innerWidth <= 768 ? 'auto' : '300px',
               paddingRight: window.innerWidth <= 768 ? '15px' : '0'
-            }}>
-              <h3 style={{
+        }}>
+            <h3 style={{
                 fontSize: window.innerWidth <= 480 ? '16px' : window.innerWidth <= 768 ? '17px' : '18px',
-                fontWeight: '700',
+              fontWeight: '700',
                 marginBottom: window.innerWidth <= 768 ? '15px' : '20px',
-                color: '#ff6b35'
-              }}>
-                Contact Us
-              </h3>
+              color: '#ff6b35'
+            }}>
+              Contact Us
+            </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: window.innerWidth <= 768 ? '10px' : '12px' }}>
                 <p style={{ margin: 0, lineHeight: '1.6', fontSize: window.innerWidth <= 480 ? '12px' : window.innerWidth <= 768 ? '13px' : '14px', opacity: 0.9 }}>
                   <strong style={{ color: '#ff6b35' }}>LSIAA Tours & Travels</strong><br />
                   U.G. 58, P.C.F. PLAZA, MINT HOUSE, VARANASI, UP 221001
-                </p>
+              </p>
                 <p style={{ margin: 0, fontSize: window.innerWidth <= 480 ? '12px' : window.innerWidth <= 768 ? '13px' : '14px', opacity: 0.9, display: 'flex', alignItems: 'center', gap: '8px', justifyContent: window.innerWidth <= 768 ? 'center' : 'flex-start' }}>
                   <span style={{ fontSize: '16px' }}>📞</span>
                   <span><strong>Phone:</strong> +91 9263616263</span>
-                </p>
+              </p>
                 <p style={{ margin: 0, fontSize: window.innerWidth <= 480 ? '12px' : window.innerWidth <= 768 ? '13px' : '14px', opacity: 0.9, display: 'flex', alignItems: 'center', gap: '8px', justifyContent: window.innerWidth <= 768 ? 'center' : 'flex-start' }}>
                   <span style={{ fontSize: '16px' }}>✉️</span>
                   <span><strong>Email:</strong> Lsiaatech@gmail.com</span>
-                </p>
-              </div>
+              </p>
             </div>
+          </div>
             
             {/* Gray Line (Mobile Only) */}
             {window.innerWidth <= 768 && (
@@ -74,64 +74,64 @@ const Footer = () => {
                 alignSelf: 'stretch'
               }} />
             )}
-            
-            {/* Quick Links */}
+          
+          {/* Quick Links */}
             <div style={{ 
               textAlign: window.innerWidth <= 768 ? 'center' : 'left',
               flex: '1',
               minWidth: window.innerWidth <= 768 ? 'auto' : '300px',
               paddingLeft: window.innerWidth <= 768 ? '15px' : '0'
             }}>
-              <h3 style={{
+            <h3 style={{
                 fontSize: window.innerWidth <= 480 ? '16px' : window.innerWidth <= 768 ? '17px' : '18px',
-                fontWeight: '700',
+              fontWeight: '700',
                 marginBottom: window.innerWidth <= 768 ? '15px' : '20px',
-                color: '#ff6b35'
-              }}>
-                Quick Links
-              </h3>
+              color: '#ff6b35'
+            }}>
+              Quick Links
+            </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: window.innerWidth <= 768 ? '10px' : '12px' }}>
-                {[
-                  { name: 'Contact Us', route: '/contact', icon: '📧' },
-                  { name: 'Share Your Experience', route: '/share-experience', icon: '✈️' },
-                  { name: 'Media Gallery', route: '/gallery', icon: '📸' }
-                ].map(link => (
-                  <a 
-                    key={link.name} 
-                    href="#" 
-                    onClick={(e) => {
-                      e.preventDefault();
-                      navigate(link.route);
-                    }}
-                    style={{
-                      color: '#000000',
-                      textDecoration: 'none',
+              {[
+                { name: 'Contact Us', route: '/contact', icon: '📧' },
+                { name: 'Share Your Experience', route: '/share-experience', icon: '✈️' },
+                { name: 'Media Gallery', route: '/gallery', icon: '📸' }
+              ].map(link => (
+                <a 
+                  key={link.name} 
+                  href="#" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    navigate(link.route);
+                  }}
+                  style={{
+                    color: '#000000',
+                    textDecoration: 'none',
                       fontSize: window.innerWidth <= 480 ? '12px' : window.innerWidth <= 768 ? '13px' : '14px',
-                      opacity: 0.9,
-                      cursor: 'pointer',
-                      fontWeight: '500',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
+                    opacity: 0.9,
+                    cursor: 'pointer',
+                    fontWeight: '500',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
                       transition: 'all 0.3s ease',
                       padding: window.innerWidth <= 768 ? '5px 0' : '0',
                       justifyContent: window.innerWidth <= 768 ? 'center' : 'flex-start'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.target.style.opacity = '1';
-                      e.target.style.color = '#ff6b35';
-                      e.target.style.transform = 'translateX(5px)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.target.style.opacity = '0.9';
-                      e.target.style.color = '#000000';
-                      e.target.style.transform = 'translateX(0)';
-                    }}
-                  >
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.opacity = '1';
+                    e.target.style.color = '#ff6b35';
+                    e.target.style.transform = 'translateX(5px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.opacity = '0.9';
+                    e.target.style.color = '#000000';
+                    e.target.style.transform = 'translateX(0)';
+                  }}
+                >
                     <span style={{ fontSize: window.innerWidth <= 480 ? '14px' : window.innerWidth <= 768 ? '15px' : '16px' }}>{link.icon}</span>
-                    <span>{link.name}</span>
-                  </a>
-                ))}
+                  <span>{link.name}</span>
+                </a>
+              ))}
               </div>
             </div>
           </div>

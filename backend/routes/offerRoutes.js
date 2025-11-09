@@ -104,7 +104,10 @@ router.put('/:id', async (req, res) => {
     res.json({ message: 'Offer updated successfully', offer });
   } catch (error) {
     console.error('Update offer error:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ 
+      message: 'Server error',
+      error: error.message || 'Unknown error'
+    });
   }
 });
 
