@@ -141,6 +141,51 @@ const authService = {
       throw new Error(error.response?.data?.message || 'Facebook login failed');
     }
   },
+
+  requestPasswordReset: async (identifier) => {
+    try {
+      const response = await api.post('/users/request-password-reset', { identifier });
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to send OTP');
+    }
+  },
+
+  verifyPasswordResetOtp: async ({ identifier, otp }) => {
+    try {
+      const response = await api.post('/users/verify-password-reset', { identifier, otp });
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to verify OTP');
+    }
+  },
+
+  updatePasswordWithOtp: async ({ identifier, newPassword }) => {
+    try {
+      const response = await api.post('/users/reset-password', { identifier, newPassword });
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to reset password');
+    }
+  },
+
+  requestRegistrationOtp: async ({ identifier, type }) => {
+    try {
+      const response = await api.post('/users/request-registration-otp', { identifier, type });
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to send OTP');
+    }
+  },
+
+  verifyRegistrationOtp: async ({ identifier, otp, type }) => {
+    try {
+      const response = await api.post('/users/verify-registration-otp', { identifier, otp, type });
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to verify OTP');
+    }
+  },
 };
 
 export default authService;

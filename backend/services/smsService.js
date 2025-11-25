@@ -23,6 +23,40 @@ const initializeSmsService = () => {
 // Initialize on module load
 initializeSmsService();
 
+// Send password reset OTP via SMS
+const sendPasswordResetOtp = async (phoneNumber, otp) => {
+  try {
+    if (!twilioClient) {
+      const message = 'SMS service not configured. Skipping password reset OTP send.';
+      console.warn('⚠️', message);
+      throw new Error(message);
+    }
+
+    if (!phoneNumber) {
+      throw new Error('Phone number is required for SMS OTP delivery');
+    }
+
+    let formattedPhone = phoneNumber;
+    const digits = phoneNumber.replace(/\D/g, "");
+    if (!formattedPhone.startsWith('+')) {
+      formattedPhone = `+91${digits}`;
+    }
+
+    const smsBody = `Your Lisaa Tours & Travels OTP is ${otp}. It expires in 5 minutes.`;
+    const twilioMessage = await twilioClient.messages.create({
+      body: smsBody,
+      from: process.env.TWILIO_PHONE_NUMBER,
+      to: formattedPhone,
+    });
+
+    console.log('✅ Password reset OTP SMS sent:', twilioMessage.sid);
+    return { success: true, sid: twilioMessage.sid };
+  } catch (error) {
+    console.error('❌ Error sending password reset OTP SMS:', error);
+    throw error;
+  }
+};
+
 // Send booking confirmation SMS
 const sendBookingConfirmationSMS = async (bookingData) => {
   try {
@@ -62,6 +96,7 @@ const sendBookingConfirmationSMS = async (bookingData) => {
 };
 
 module.exports = {
+  sendPasswordResetOtp,
   sendBookingConfirmationSMS,
   initializeSmsService
 };

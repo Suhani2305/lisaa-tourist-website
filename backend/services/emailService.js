@@ -25,6 +25,50 @@ if (process.env.EMAIL_USER || process.env.EMAIL_PASSWORD || process.env.GMAIL_AP
   initializeEmailService();
 }
 
+// Generic OTP email sender with overridable subject/body
+const sendOtpEmail = async (email, otp, options = {}) => {
+  try {
+    if (!transporter) {
+      const message = 'Email service not configured. Skipping password reset OTP send.';
+      console.warn('⚠️', message);
+      throw new Error(message);
+    }
+
+    const subject =
+      options.subject || 'Your Lisaa Tours & Travels OTP';
+    const bodyText =
+      options.text || `Your OTP is ${otp}. It will expire in 5 minutes.`;
+
+    const mailOptions = {
+      from: `"Lisaa Tours & Travels" <${process.env.EMAIL_USER || 'Lsiaatech@gmail.com'}>`,
+      to: email,
+      subject,
+      text: bodyText,
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log('✅ OTP email sent:', info.messageId);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('❌ Error sending OTP email:', error);
+    throw error;
+  }
+};
+
+const sendPasswordResetOtp = async (email, otp) => {
+  return sendOtpEmail(email, otp, {
+    subject: 'Your OTP to reset the password',
+    text: `Your password reset OTP is ${otp}. It will expire in 5 minutes.`,
+  });
+};
+
+const sendRegistrationOtpEmail = async (email, otp) => {
+  return sendOtpEmail(email, otp, {
+    subject: 'Verify your email address',
+    text: `Use ${otp} to verify your email address. This code expires in 5 minutes.`,
+  });
+};
+
 // Send booking confirmation email
 const sendBookingConfirmationEmail = async (bookingData) => {
   try {
@@ -968,6 +1012,9 @@ const sendBookingConfirmationEmailUpdated = async (bookingData) => {
 };
 
 module.exports = {
+  sendOtpEmail,
+  sendPasswordResetOtp,
+  sendRegistrationOtpEmail,
   sendBookingConfirmationEmail: sendBookingConfirmationEmailUpdated,
   sendBookingReminderEmail,
   sendBookingCancellationEmail,

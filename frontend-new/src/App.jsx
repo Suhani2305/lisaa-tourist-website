@@ -25,6 +25,8 @@ import Admin from './pages/Admin/Admin'
 import Login from './pages/Login/Login'
 // Register Page
 import Register from './pages/Register/Register'
+// Change Password Page
+import ChangePassword from './pages/ChangePassword/ChangePassword'
 // User Dashboard
 import UserDashboard from './pages/UserDashboard/UserDashboard'
 // Profile Page
@@ -57,6 +59,7 @@ function App() {
           {/* Authentication Routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/change-password" element={<ChangePassword />} />
           
           {/* User Dashboard - Protected Route */}
           <Route path="/dashboard" element={

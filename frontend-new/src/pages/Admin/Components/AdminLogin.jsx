@@ -11,6 +11,7 @@ import {
   Modal,
   Select,
   message,
+  Radio,
 } from "antd";
 import {
   UserOutlined,
@@ -48,8 +49,9 @@ const AdminLogin = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [adminEmail, setAdminEmail] = useState("");
+const [resetMethod, setResetMethod] = useState("phone");
+const [adminIdentifier, setAdminIdentifier] = useState("");
 
-  // Responsive resize
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
     window.addEventListener("resize", handleResize);
@@ -58,7 +60,7 @@ const AdminLogin = () => {
 
   const allowedEmails = [
     "pushpendrarawat868@gmail.com",
-    "Lsiaatech@gmail.com",
+    "lsiaatech@gmail.com",
     "vp312600@gmail.com", // Note: If email is vp312600@gmailcom (without dot), update here
   ];
 
@@ -69,6 +71,12 @@ const AdminLogin = () => {
     "9263616263",
     "8840206492"
   ];
+
+  const adminEmailToPhoneMap = {
+    "pushpendrarawat868@gmail.com": "9263616263",
+    "lsiaatech@gmail.com": "8840206492",
+    "vp312600@gmail.com": "8840206492",
+  };
 
   const onFinish = async (values) => {
     setLoading(true);
@@ -116,9 +124,10 @@ const AdminLogin = () => {
   };
 
   const getAdminRole = (email) => {
-    if (email === "pushpendrarawat868@gmail.com") return "Super Admin";
-    if (email === "Lsiaatech@gmail.com") return "Admin";
-    if (email === "vp312600@gmail.com") return "Admin";
+    const normalized = email?.toLowerCase();
+    if (normalized === "pushpendrarawat868@gmail.com") return "Super Admin";
+    if (normalized === "lsiaatech@gmail.com") return "Admin";
+    if (normalized === "vp312600@gmail.com") return "Admin";
     return "Admin";
   };
 
@@ -132,6 +141,8 @@ const AdminLogin = () => {
     setNewPassword("");
     setConfirmPassword("");
     setAdminEmail("");
+    setAdminIdentifier("");
+    setResetMethod("phone");
   };
 
   // Handle Password Reset
@@ -142,7 +153,9 @@ const AdminLogin = () => {
       return;
     }
 
-    if (!allowedEmails.includes(adminEmail)) {
+    const normalizedAdminEmail = adminEmail.trim().toLowerCase();
+
+    if (!allowedEmails.includes(normalizedAdminEmail)) {
       message.error("This email is not authorized as admin!");
       return;
     }
@@ -159,7 +172,7 @@ const AdminLogin = () => {
 
     setLoading(true);
     try {
-      console.log(`🔐 Resetting password for: ${adminEmail}`);
+      console.log(`🔐 Resetting password for: ${normalizedAdminEmail}`);
 
       const response = await fetch('http://localhost:5000/api/otp/reset-password', {
         method: 'POST',
@@ -168,7 +181,7 @@ const AdminLogin = () => {
         },
         body: JSON.stringify({
           phone: selectedPhone,
-          email: adminEmail,
+          email: normalizedAdminEmail,
           newPassword: newPassword
         })
       });
@@ -206,14 +219,37 @@ const AdminLogin = () => {
 
   // Send OTP to selected phone
   const handleSendOTP = async () => {
-    if (!selectedPhone) {
+    let phoneToUse = selectedPhone;
+
+    if (resetMethod === "email") {
+      if (!adminIdentifier.trim()) {
+        message.error("Please enter your registered admin email!");
+        return;
+      }
+
+      const normalized = adminIdentifier.trim().toLowerCase();
+      if (!allowedEmails.includes(normalized)) {
+        message.error("This email is not authorized for admin access!");
+        return;
+      }
+
+      const mappedPhone = adminEmailToPhoneMap[normalized];
+      if (!mappedPhone) {
+        message.error("No phone number is linked to this email. Please contact support.");
+        return;
+      }
+
+      phoneToUse = mappedPhone;
+      setSelectedPhone(mappedPhone);
+      setAdminEmail(normalized);
+    } else if (!phoneToUse) {
       message.error("Please select a phone number!");
       return;
     }
 
     setLoading(true);
     try {
-      console.log(`📤 Sending OTP request for phone: ${selectedPhone}`);
+      console.log(`📤 Sending OTP request for phone: ${phoneToUse}`);
       
       // Call backend API to send real SMS OTP
       const response = await fetch('http://localhost:5000/api/otp/send-otp', {
@@ -221,7 +257,7 @@ const AdminLogin = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ phone: selectedPhone })
+        body: JSON.stringify({ phone: phoneToUse })
       });
 
       const data = await response.json();
@@ -241,7 +277,7 @@ const AdminLogin = () => {
         } else {
           // Production mode - OTP sent via SMS
           message.success({
-            content: `📱 OTP sent to ${selectedPhone} via SMS! Please check your phone.`,
+            content: `📱 OTP sent to ${phoneToUse} via SMS! Please check your phone.`,
             duration: 5
           });
         }
@@ -312,41 +348,28 @@ const AdminLogin = () => {
 
   return (
     <div
-  style={{
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    height: "100vh", // minHeight hatake height
-    width: "100vw",  // minWidth hatake width
-    overflow: "hidden", // <-- scroll disable
-    background: "linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)",
-    boxSizing: "border-box",
-    padding: "0 20px",
-  }}
->
-
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding:
+          windowWidth <= 480 ? "24px 14px" : windowWidth <= 768 ? "32px 16px" : "48px 24px",
+        background: "linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)",
+        boxSizing: "border-box",
+      }}
+    >
       <Card
         style={{
-          // --- BEGIN: WIDTH CHANGE FOR WIDER CARD ---
-          width:
-            windowWidth <= 480
-              ? "95%" // Increased from 90%
-              : windowWidth <= 768
-              ? "70%" // Decreased from 80% to give a fixed width instead
-              : "600px", // Increased fixed width from 420px to 600px
-          // --- END: WIDTH CHANGE FOR WIDER CARD ---
-          borderRadius: "20px",
-          boxShadow: "0 6px 25px rgba(0,0,0,0.1)",
+          width: "100%",
+          maxWidth: "640px",
+          borderRadius: "24px",
           border: "none",
-          background: "white",
+          boxShadow: "0 12px 40px rgba(0,0,0,0.08)",
         }}
         bodyStyle={{
           padding:
-            windowWidth <= 480
-              ? "24px"
-              : windowWidth <= 768
-              ? "32px"
-              : "40px",
+            windowWidth <= 480 ? "26px 18px" : windowWidth <= 768 ? "32px 24px" : "48px",
           fontFamily: "'Poppins', sans-serif",
         }}
       >
@@ -354,14 +377,14 @@ const AdminLogin = () => {
         <div style={{ textAlign: "center", marginBottom: "28px" }}>
           <div
             style={{
-              width: "80px",
-              height: "80px",
-              backgroundColor: "#ff6b35",
+              width: windowWidth <= 480 ? "70px" : "80px",
+              height: windowWidth <= 480 ? "70px" : "80px",
               borderRadius: "50%",
+              margin: "0 auto 20px",
+              background: "#ff6b35",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              margin: "0 auto 20px",
               boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
             }}
           >
@@ -494,94 +517,17 @@ const AdminLogin = () => {
           </Button>
         </Form>
 
-        <Divider style={{ margin: "24px 0" }}>
-          <Text type="secondary" style={{ fontSize: "14px" }}>
-            Admin Access
-          </Text>
-        </Divider>
+         
 
-        {/* Demo Admin Credentials */}
-        <div
-          style={{
-            marginTop: "20px",
-            padding: "15px",
-            backgroundColor: "#fff7e6",
-            borderRadius: "10px",
-            border: "1px solid #ffd591",
-          }}
-        >
-          <Text
-            strong
-            style={{
-              color: "#ff6b35",
-              fontSize: "14px",
-              display: "block",
-              marginBottom: "8px",
-            }}
-          >
-            🔑 Demo Admin Credentials:
-          </Text>
-          <Text
-            style={{
-              color: "#666",
-              fontSize: "11px",
-              display: "block",
-              marginBottom: "4px",
-            }}
-          >
-            1. pushpendrarawat868@gmail.com
-          </Text>
-          <Text
-            style={{
-              color: "#666",
-              fontSize: "11px",
-              display: "block",
-              marginBottom: "4px",
-            }}
-          >
-            2. Lsiaatech@gmail.com
-          </Text>
-          <Text
-            style={{
-              color: "#666",
-              fontSize: "11px",
-              display: "block",
-              marginBottom: "8px",
-            }}
-          >
-            3. vp312600@gmail.com
-          </Text>
-          <Text
-            style={{
-              color: "#999",
-              fontSize: "10px",
-              display: "block",
-              fontStyle: "italic",
-              marginBottom: "4px"
-            }}
-          >
-            🔑 First time? Use "Forgot Password" to set your password
-          </Text>
-          <Text
-            style={{
-              color: "#999",
-              fontSize: "10px",
-              display: "block",
-              fontStyle: "italic",
-            }}
-          >
-            📱 OTP Numbers: 9263616263 or 8840206492
-          </Text>
-        </div>
-
+         
         {/* Footer */}
         <div
           style={{
             textAlign: "center",
             marginTop: "24px",
             padding: "12px",
-            background: "rgba(255, 107, 53, 0.05)",
-            borderRadius: "8px",
+            background: "rgba(255, 107, 53, 0.08)",
+            borderRadius: "10px",
           }}
         >
           <Text type="secondary" style={{ fontSize: "12px" }}>
@@ -612,22 +558,49 @@ const AdminLogin = () => {
           {/* Step 1: Phone Selection */}
           {!otpSent && !otpVerified && (
             <>
-              <Text>Select a phone number to receive OTP:</Text>
-              <Select
-                size="large"
-                placeholder="Select phone number"
-                style={{ width: "100%" }}
-                value={selectedPhone}
-                onChange={setSelectedPhone}
-                prefix={<PhoneOutlined />}
+              <Radio.Group
+                value={resetMethod}
+                onChange={(e) => {
+                  setResetMethod(e.target.value);
+                  setSelectedPhone("");
+                  setAdminIdentifier("");
+                }}
+                style={{ width: "100%", display: "flex", justifyContent: "center" }}
               >
-                {otpPhones.map((phone) => (
-                  <Select.Option key={phone} value={phone}>
-                    <PhoneOutlined style={{ marginRight: "8px" }} />
-                    {phone}
-                  </Select.Option>
-                ))}
-              </Select>
+                <Radio.Button value="phone">Use Mobile</Radio.Button>
+                <Radio.Button value="email">Use Email</Radio.Button>
+              </Radio.Group>
+              {resetMethod === "phone" ? (
+                <>
+                  <Text>Select a phone number to receive OTP:</Text>
+                  <Select
+                    size="large"
+                    placeholder="Select phone number"
+                    style={{ width: "100%" }}
+                    value={selectedPhone}
+                    onChange={setSelectedPhone}
+                    prefix={<PhoneOutlined />}
+                  >
+                    {otpPhones.map((phone) => (
+                      <Select.Option key={phone} value={phone}>
+                        <PhoneOutlined style={{ marginRight: "8px" }} />
+                        {phone}
+                      </Select.Option>
+                    ))}
+                  </Select>
+                </>
+              ) : (
+                <>
+                  <Text>Enter your registered admin email to receive OTP:</Text>
+                  <Input
+                    size="large"
+                    placeholder="e.g. admin@email.com"
+                    prefix={<MailOutlined style={{ color: "#ff6b35" }} />}
+                    value={adminIdentifier}
+                    onChange={(e) => setAdminIdentifier(e.target.value)}
+                  />
+                </>
+              )}
               <Button
                 type="primary"
                 block
