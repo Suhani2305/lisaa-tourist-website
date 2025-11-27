@@ -8,6 +8,33 @@ const TrendingDestinations = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const normalizeTours = (data) => {
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.tours)) return data.tours;
+    return [];
+  };
+
+  const isTourAvailable = (tour) => {
+    if (!tour) return false;
+    const { isActive, availability = {} } = tour;
+    const { isAvailable, startDate, endDate } = availability;
+
+    if (isActive === false) return false;
+    if (isAvailable === false) return false;
+
+    const now = new Date();
+    const normalizedStart = startDate ? new Date(startDate) : null;
+    const normalizedEnd = endDate ? new Date(endDate) : null;
+
+    if (normalizedStart && normalizedStart > now) return false;
+    if (normalizedEnd) {
+      normalizedEnd.setHours(23, 59, 59, 999);
+      if (normalizedEnd < now) return false;
+    }
+
+    return true;
+  };
+
   // Category mapping with icons and images
   const categoryMapping = {
     "Culture & Heritage": {
@@ -58,12 +85,13 @@ const TrendingDestinations = () => {
       
       // Fetch all active packages (backend filters by isActive automatically)
       const packages = await tourService.getAllTours();
+      const activePackages = normalizeTours(packages).filter(isTourAvailable);
       
       // Create all 7 categories with package counts (even if 0 packages)
       const allCategories = Object.keys(categoryMapping).map(cat => ({
         category: cat,
         ...categoryMapping[cat],
-        packageCount: packages.filter(pkg => 
+        packageCount: activePackages.filter(pkg => 
           pkg.trendingCategories && pkg.trendingCategories.includes(cat)
         ).length
       }));

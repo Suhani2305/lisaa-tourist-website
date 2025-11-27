@@ -579,19 +579,117 @@ router.post('/request-registration-otp', async (req, res) => {
 
     try {
       if (identifierIsEmail) {
-        if (typeof emailService.sendRegistrationOtpEmail === 'function') {
-          await emailService.sendRegistrationOtpEmail(targetValue, otp);
+        // Check if email service is available
+        const hasEmailService = emailService && 
+          (typeof emailService.sendRegistrationOtpEmail === 'function' || 
+           typeof emailService.sendOtpEmail === 'function');
+        
+        if (!hasEmailService) {
+          // In development mode, allow OTP to be returned without sending email
+          if (process.env.NODE_ENV !== 'production') {
+            console.warn('⚠️ Email service not configured. OTP will be returned in response for testing.');
+            console.log(`[DEV MODE] Registration OTP for ${targetValue}: ${otp}`);
+          } else {
+            registrationOtpStore.delete(key);
+            return res.status(500).json({ 
+              message: 'Email service is not configured. Please contact support or check server configuration.' 
+            });
+          }
         } else {
-          await emailService.sendOtpEmail(targetValue, otp);
+          try {
+            if (typeof emailService.sendRegistrationOtpEmail === 'function') {
+              await emailService.sendRegistrationOtpEmail(targetValue, otp);
+            } else {
+              await emailService.sendOtpEmail(targetValue, otp);
+            }
+          } catch (emailError) {
+            console.error('Registration OTP email delivery error:', emailError);
+            
+            // In development mode, allow OTP to be returned even if email fails
+            if (process.env.NODE_ENV !== 'production') {
+              console.warn('⚠️ Email sending failed, but OTP will be returned for testing.');
+              console.log(`[DEV MODE] Registration OTP for ${targetValue}: ${otp}`);
+              // Don't delete the key in dev mode so OTP can still be verified
+            } else {
+              registrationOtpStore.delete(key);
+              // Provide helpful error message
+              if (emailError.message && emailError.message.includes('not configured')) {
+                return res.status(500).json({ 
+                  message: 'Email service is not configured. Please configure EMAIL_USER and EMAIL_PASSWORD in server environment variables.' 
+                });
+              }
+              
+              return res.status(500).json({ 
+                message: `Failed to send OTP email: ${emailError.message || 'Unknown error'}. Please try again or contact support.` 
+              });
+            }
+          }
         }
       } else {
-        await smsService.sendPasswordResetOtp(targetValue, otp);
+        // Use registration-specific SMS function
+        const hasSmsService = smsService && 
+          (typeof smsService.sendRegistrationOtp === 'function' || 
+           typeof smsService.sendPasswordResetOtp === 'function');
+        
+        if (!hasSmsService) {
+          // In development mode, allow OTP to be returned without sending SMS
+          if (process.env.NODE_ENV !== 'production') {
+            console.warn('⚠️ SMS service not configured. OTP will be returned in response for testing.');
+            console.log(`[DEV MODE] Registration OTP for ${targetValue}: ${otp}`);
+          } else {
+            registrationOtpStore.delete(key);
+            return res.status(500).json({ 
+              message: 'SMS service is not configured. Please configure Twilio credentials (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER) in server environment variables.' 
+            });
+          }
+        } else {
+          try {
+            if (typeof smsService.sendRegistrationOtp === 'function') {
+              await smsService.sendRegistrationOtp(targetValue, otp);
+            } else {
+              // Fallback to password reset function if registration function doesn't exist
+              await smsService.sendPasswordResetOtp(targetValue, otp);
+            }
+          } catch (smsError) {
+            console.error('Registration OTP SMS delivery error:', smsError);
+            
+            // In development mode, allow OTP to be returned even if SMS fails
+            if (process.env.NODE_ENV !== 'production') {
+              console.warn('⚠️ SMS sending failed, but OTP will be returned for testing.');
+              console.log(`[DEV MODE] Registration OTP for ${targetValue}: ${otp}`);
+              // Don't delete the key in dev mode so OTP can still be verified
+            } else {
+              registrationOtpStore.delete(key);
+              // Provide helpful error message
+              if (smsError.message && smsError.message.includes('not configured')) {
+                return res.status(500).json({ 
+                  message: 'SMS service is not configured. Please configure Twilio credentials (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER) in server environment variables.' 
+                });
+              }
+              
+              return res.status(500).json({ 
+                message: `Failed to send OTP SMS: ${smsError.message || 'Unknown error'}. Please try again or contact support.` 
+              });
+            }
+          }
+        }
       }
     } catch (deliveryError) {
-      registrationOtpStore.delete(key);
       console.error('Registration OTP delivery error:', deliveryError);
-      return res.status(500).json({ message: 'Failed to send OTP. Please try again.' });
+      
+      // In development mode, still return OTP for testing
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('⚠️ OTP delivery failed, but OTP will be returned for testing.');
+        console.log(`[DEV MODE] Registration OTP: ${otp}`);
+        // Don't delete the key in dev mode so OTP can still be verified
+      } else {
+        registrationOtpStore.delete(key);
+        return res.status(500).json({ 
+          message: `Failed to send OTP: ${deliveryError.message || 'Unknown error'}. Please try again.` 
+        });
+      }
     }
+
 
     const response = {
       success: true,

@@ -3,6 +3,27 @@ const router = express.Router();
 const City = require('../models/City');
 const Tour = require('../models/Tour');
 
+const buildAvailabilityFilters = (now = new Date()) => ([
+  {
+    $or: [
+      { 'availability.isAvailable': { $exists: false } },
+      { 'availability.isAvailable': true }
+    ]
+  },
+  {
+    $or: [
+      { 'availability.startDate': { $exists: false } },
+      { 'availability.startDate': { $lte: now } }
+    ]
+  },
+  {
+    $or: [
+      { 'availability.endDate': { $exists: false } },
+      { 'availability.endDate': { $gte: now } }
+    ]
+  }
+]);
+
 // Get all cities (optionally filtered by state)
 router.get('/', async (req, res) => {
   try {
@@ -33,6 +54,9 @@ router.get('/', async (req, res) => {
 // Get single city by slug
 router.get('/:stateSlug/:citySlug', async (req, res) => {
   try {
+    const { limit } = req.query;
+    const limitNumber = Number(limit);
+
     const city = await City.findOne({ 
       stateSlug: req.params.stateSlug,
       slug: req.params.citySlug,
@@ -43,15 +67,27 @@ router.get('/:stateSlug/:citySlug', async (req, res) => {
       return res.status(404).json({ message: 'City not found' });
     }
 
-    // Get tours for this city (by citySlug or city name)
-    const tours = await Tour.find({ 
-      $or: [
-        { citySlug: req.params.citySlug },
-        { city: { $regex: city.name, $options: 'i' } },
-        { destination: { $regex: city.name, $options: 'i' } }
-      ],
-      isActive: true 
-    }).limit(12).sort({ createdAt: -1 });
+    const cityMatchConditions = [
+      { citySlug: req.params.citySlug },
+      { city: { $regex: city.name, $options: 'i' } },
+      { destination: { $regex: city.name, $options: 'i' } }
+    ];
+
+    const availabilityFilters = buildAvailabilityFilters(new Date());
+
+    let toursQuery = Tour.find({ 
+      $and: [
+        { $or: cityMatchConditions },
+        { isActive: { $ne: false } },
+        ...availabilityFilters
+      ]
+    }).sort({ createdAt: -1 });
+
+    if (!Number.isNaN(limitNumber) && limitNumber > 0) {
+      toursQuery = toursQuery.limit(limitNumber);
+    }
+
+    const tours = await toursQuery.exec();
 
     res.json({ city, tours });
   } catch (error) {

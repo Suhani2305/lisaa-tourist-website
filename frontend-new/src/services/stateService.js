@@ -11,9 +11,9 @@ const stateService = {
     }
   },
 
-  getStateBySlug: async (slug) => {
+  getStateBySlug: async (slug, params = {}) => {
     try {
-      const response = await api.get(`/states/${slug}`);
+      const response = await api.get(`/states/${slug}`, { params });
       return response.data;
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Failed to get state');
@@ -65,9 +65,9 @@ const stateService = {
     }
   },
 
-  getCityBySlug: async (stateSlug, citySlug) => {
+  getCityBySlug: async (stateSlug, citySlug, params = {}) => {
     try {
-      const response = await api.get(`/cities/${stateSlug}/${citySlug}`);
+      const response = await api.get(`/cities/${stateSlug}/${citySlug}`, { params });
       return response.data;
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Failed to get city');

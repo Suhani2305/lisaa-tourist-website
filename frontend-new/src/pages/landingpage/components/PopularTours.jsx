@@ -8,6 +8,33 @@ const PopularTours = () => {
   const [tours, setTours] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const normalizeTours = (data) => {
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.tours)) return data.tours;
+    return [];
+  };
+
+  const isTourAvailable = (tour) => {
+    if (!tour) return false;
+    const { isActive, availability = {} } = tour;
+    const { isAvailable, startDate, endDate } = availability;
+
+    if (isActive === false) return false;
+    if (isAvailable === false) return false;
+
+    const now = new Date();
+    const normalizedStart = startDate ? new Date(startDate) : null;
+    const normalizedEnd = endDate ? new Date(endDate) : null;
+
+    if (normalizedStart && normalizedStart > now) return false;
+    if (normalizedEnd) {
+      normalizedEnd.setHours(23, 59, 59, 999);
+      if (normalizedEnd < now) return false;
+    }
+
+    return true;
+  };
+
   useEffect(() => {
     fetchPopularTours();
   }, []);
@@ -16,11 +43,12 @@ const PopularTours = () => {
     try {
       setLoading(true);
       const data = await tourService.getAllTours();
+      const availableTours = normalizeTours(data).filter(isTourAvailable);
       
       // Helper function to calculate discounted price
       const calculateDiscountedPrice = (tour) => {
-        const originalPrice = tour.price?.adult || 0;
-        const discount = tour.discount;
+        const { price, discount } = tour;
+        const originalPrice = price?.adult || 0;
         
         if (!discount || !discount.isActive) {
           return { originalPrice, finalPrice: originalPrice, hasDiscount: false };
@@ -63,7 +91,7 @@ const PopularTours = () => {
       };
       
       // Transform backend data to component format
-      const formattedTours = data.slice(0, 4).map(tour => {
+      const formattedTours = availableTours.slice(0, 4).map(tour => {
         const priceInfo = calculateDiscountedPrice(tour);
         return {
           id: tour._id,

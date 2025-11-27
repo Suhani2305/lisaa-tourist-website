@@ -43,14 +43,14 @@ const AdminLogin = () => {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [selectedPhone, setSelectedPhone] = useState("");
   const [otpSent, setOtpSent] = useState(false);
-  const [generatedOTP, setGeneratedOTP] = useState("");
   const [enteredOTP, setEnteredOTP] = useState("");
   const [otpVerified, setOtpVerified] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [adminEmail, setAdminEmail] = useState("");
-const [resetMethod, setResetMethod] = useState("phone");
-const [adminIdentifier, setAdminIdentifier] = useState("");
+  const [resetMethod, setResetMethod] = useState("phone");
+  const [adminIdentifier, setAdminIdentifier] = useState("");
+  const [forgotError, setForgotError] = useState("");
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
@@ -69,12 +69,13 @@ const [adminIdentifier, setAdminIdentifier] = useState("");
   // Phone numbers for OTP
   const otpPhones = [
     "9263616263",
-    "8840206492"
+    "8840206492",
+    "9815381382"
   ];
 
   const adminEmailToPhoneMap = {
-    "pushpendrarawat868@gmail.com": "9263616263",
-    "lsiaatech@gmail.com": "8840206492",
+    "pushpendrarawat868@gmail.com": "9815381382",
+    "lsiaatech@gmail.com": "9263616263",
     "vp312600@gmail.com": "8840206492",
   };
 
@@ -109,12 +110,16 @@ const [adminIdentifier, setAdminIdentifier] = useState("");
         navigate("/admin/dashboard");
       } else {
         // Login failed
-        setError(data.message || "Invalid email or password. Try again.");
+        const loginError = data.message || "Invalid email or password. Try again.";
+        setError(loginError);
+        message.error(loginError);
         setLoading(false);
       }
     } catch (error) {
       console.error('Login error:', error);
-      setError("Login failed. Please check if backend is running.");
+      const fallbackError = error.message || "Login failed. Please check if backend is running.";
+      setError(fallbackError);
+      message.error(fallbackError);
       setLoading(false);
     } finally {
       if (!error) {
@@ -142,31 +147,37 @@ const [adminIdentifier, setAdminIdentifier] = useState("");
     setConfirmPassword("");
     setAdminEmail("");
     setAdminIdentifier("");
+    setForgotError("");
     setResetMethod("phone");
+  };
+
+  const notifyForgotError = (msg) => {
+    setForgotError(msg);
+    message.error(msg);
   };
 
   // Handle Password Reset
   const handlePasswordReset = async () => {
     // Validation
     if (!adminEmail) {
-      message.error("Please enter your admin email!");
+      notifyForgotError("Please enter your admin email!");
       return;
     }
 
     const normalizedAdminEmail = adminEmail.trim().toLowerCase();
 
     if (!allowedEmails.includes(normalizedAdminEmail)) {
-      message.error("This email is not authorized as admin!");
+      notifyForgotError("This email is not authorized as admin!");
       return;
     }
 
     if (!newPassword || newPassword.length < 6) {
-      message.error("Password must be at least 6 characters!");
+      notifyForgotError("Password must be at least 6 characters!");
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      message.error("Passwords do not match!");
+      notifyForgotError("Passwords do not match!");
       return;
     }
 
@@ -180,9 +191,10 @@ const [adminIdentifier, setAdminIdentifier] = useState("");
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          phone: selectedPhone,
+          phone: resetMethod === "phone" ? selectedPhone : null,
           email: normalizedAdminEmail,
-          newPassword: newPassword
+          newPassword: newPassword,
+          method: resetMethod
         })
       });
 
@@ -194,6 +206,7 @@ const [adminIdentifier, setAdminIdentifier] = useState("");
           content: `✅ Password reset successfully! You can now login with your new password.`,
           duration: 5
         });
+        setForgotError("");
         
         // Close modal and reset states
         setTimeout(() => {
@@ -207,57 +220,56 @@ const [adminIdentifier, setAdminIdentifier] = useState("");
           setAdminEmail("");
         }, 1500);
       } else {
-        message.error(data.message || 'Failed to reset password!');
+        const resetError = data.message || 'Failed to reset password!';
+        notifyForgotError(resetError);
       }
     } catch (error) {
       console.error('❌ Password reset error:', error);
-      message.error('Failed to reset password. Check if backend is running!');
+      notifyForgotError(error.message || 'Failed to reset password. Check if backend is running!');
     } finally {
       setLoading(false);
     }
   };
 
-  // Send OTP to selected phone
+  // Send OTP to selected phone or email
   const handleSendOTP = async () => {
     let phoneToUse = selectedPhone;
+    let emailToUse = null;
 
     if (resetMethod === "email") {
       if (!adminIdentifier.trim()) {
-        message.error("Please enter your registered admin email!");
+        notifyForgotError("Please enter your registered admin email!");
         return;
       }
 
       const normalized = adminIdentifier.trim().toLowerCase();
       if (!allowedEmails.includes(normalized)) {
-        message.error("This email is not authorized for admin access!");
+        notifyForgotError("This email is not authorized for admin access!");
         return;
       }
 
-      const mappedPhone = adminEmailToPhoneMap[normalized];
-      if (!mappedPhone) {
-        message.error("No phone number is linked to this email. Please contact support.");
-        return;
-      }
-
-      phoneToUse = mappedPhone;
-      setSelectedPhone(mappedPhone);
+      emailToUse = normalized;
       setAdminEmail(normalized);
     } else if (!phoneToUse) {
-      message.error("Please select a phone number!");
+      notifyForgotError("Please select a phone number!");
       return;
     }
 
     setLoading(true);
     try {
-      console.log(`📤 Sending OTP request for phone: ${phoneToUse}`);
+      const requestBody = resetMethod === "email" 
+        ? { email: emailToUse, method: 'email' }
+        : { phone: phoneToUse, method: 'phone' };
       
-      // Call backend API to send real SMS OTP
+      console.log(`📤 Sending OTP request via ${resetMethod}:`, requestBody);
+      
+      // Call backend API to send OTP via email or SMS
       const response = await fetch('http://localhost:5000/api/otp/send-otp', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ phone: phoneToUse })
+        body: JSON.stringify(requestBody)
       });
 
       const data = await response.json();
@@ -265,32 +277,21 @@ const [adminIdentifier, setAdminIdentifier] = useState("");
 
       if (response.ok) {
         setOtpSent(true);
+        setForgotError("");
         
-        // Only store demo_otp if it exists (development mode only)
-        if (data.demo_otp) {
-          setGeneratedOTP(data.demo_otp);
-          message.warning({
-            content: `⚠️ Demo Mode: OTP is ${data.demo_otp}. SMS provider not configured.`,
-            duration: 8
-          });
-          console.log(`🔑 [DEMO] Your OTP is: ${data.demo_otp}`);
-        } else {
-          // Production mode - OTP sent via SMS
-          message.success({
-            content: `📱 OTP sent to ${phoneToUse} via SMS! Please check your phone.`,
-            duration: 5
-          });
-        }
-        
-        if (data.warning) {
-          console.warn('⚠️', data.warning);
-        }
+        // OTP sent successfully
+        const target = resetMethod === "email" ? emailToUse : phoneToUse;
+        message.success({
+          content: `✅ OTP sent to ${target} via ${resetMethod === 'email' ? 'email' : 'SMS'}! Please check your ${resetMethod === 'email' ? 'email inbox' : 'phone'}.`,
+          duration: 5
+        });
       } else {
-        message.error(data.message || 'Failed to send OTP');
+        const otpSendError = data.message || 'Failed to send OTP';
+        notifyForgotError(otpSendError);
       }
     } catch (error) {
       console.error('❌ Send OTP error:', error);
-      message.error('Failed to send OTP. Check if backend is running!');
+      notifyForgotError(error.message || 'Failed to send OTP. Check if backend is running!');
     } finally {
       setLoading(false);
     }
@@ -299,17 +300,17 @@ const [adminIdentifier, setAdminIdentifier] = useState("");
   // Verify OTP
   const handleVerifyOTP = async () => {
     if (!enteredOTP || enteredOTP.length !== 6) {
-      message.error("Please enter a valid 6-digit OTP!");
+      notifyForgotError("Please enter a valid 6-digit OTP!");
       return;
     }
 
     setLoading(true);
     try {
-      console.log(`📤 Verifying OTP:`, { 
-        phone: selectedPhone, 
-        enteredOTP: enteredOTP,
-        type: typeof enteredOTP
-      });
+    const verifyBody = resetMethod === "email" && adminEmail
+        ? { email: adminEmail, otp: enteredOTP, method: 'email' }
+        : { phone: selectedPhone, otp: enteredOTP, method: 'phone' };
+      
+      console.log(`📤 Verifying OTP:`, verifyBody);
 
       // Call backend API to verify OTP
       const response = await fetch('http://localhost:5000/api/otp/verify-otp', {
@@ -317,10 +318,7 @@ const [adminIdentifier, setAdminIdentifier] = useState("");
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          phone: selectedPhone,
-          otp: enteredOTP 
-        })
+        body: JSON.stringify(verifyBody)
       });
 
       const data = await response.json();
@@ -330,17 +328,19 @@ const [adminIdentifier, setAdminIdentifier] = useState("");
         console.log(`✅ OTP Verified!`);
         // Set verified state and show password reset form
         setOtpVerified(true);
+        setForgotError("");
         message.success('OTP Verified! Now set your new password.');
       } else {
         console.error(`❌ Verification failed:`, data);
-        message.error(data.message || 'Invalid OTP! Please try again.');
+        const verifyError = data.message || 'Invalid OTP! Please try again.';
+        notifyForgotError(verifyError);
         if (data.debug) {
           console.error(`Debug info:`, data.debug);
         }
       }
     } catch (error) {
       console.error('❌ Verify OTP error:', error);
-      message.error('Failed to verify OTP. Check if backend is running!');
+      notifyForgotError(error.message || 'Failed to verify OTP. Check if backend is running!');
     } finally {
       setLoading(false);
     }
@@ -355,7 +355,7 @@ const [adminIdentifier, setAdminIdentifier] = useState("");
         justifyContent: "center",
         padding:
           windowWidth <= 480 ? "24px 14px" : windowWidth <= 768 ? "32px 16px" : "48px 24px",
-        background: "linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)",
+        background: "linear-gradient(135deg, #F7F9FC, #FFFFFF)",
         boxSizing: "border-box",
       }}
     >
@@ -363,9 +363,9 @@ const [adminIdentifier, setAdminIdentifier] = useState("");
         style={{
           width: "100%",
           maxWidth: "640px",
-          borderRadius: "24px",
+          borderRadius: "14px",
           border: "none",
-          boxShadow: "0 12px 40px rgba(0,0,0,0.08)",
+          boxShadow: "0 12px 40px #8b6456",
         }}
         bodyStyle={{
           padding:
@@ -517,23 +517,7 @@ const [adminIdentifier, setAdminIdentifier] = useState("");
           </Button>
         </Form>
 
-         
-
-         
-        {/* Footer */}
-        <div
-          style={{
-            textAlign: "center",
-            marginTop: "24px",
-            padding: "12px",
-            background: "rgba(255, 107, 53, 0.08)",
-            borderRadius: "10px",
-          }}
-        >
-          <Text type="secondary" style={{ fontSize: "12px" }}>
-            🔒 Secure Admin Access • Lsiaa Travel and Tours 
-          </Text>
-        </div>
+        
       </Card>
 
       {/* Forgot Password Modal with OTP */}
@@ -555,6 +539,13 @@ const [adminIdentifier, setAdminIdentifier] = useState("");
         width={450}
       >
         <Space direction="vertical" style={{ width: "100%" }} size="large">
+          {forgotError && (
+            <Alert
+              message={forgotError}
+              type="error"
+              showIcon
+            />
+          )}
           {/* Step 1: Phone Selection */}
           {!otpSent && !otpVerified && (
             <>
@@ -564,6 +555,8 @@ const [adminIdentifier, setAdminIdentifier] = useState("");
                   setResetMethod(e.target.value);
                   setSelectedPhone("");
                   setAdminIdentifier("");
+                  setAdminEmail("");
+                  setForgotError("");
                 }}
                 style={{ width: "100%", display: "flex", justifyContent: "center" }}
               >
@@ -621,32 +614,14 @@ const [adminIdentifier, setAdminIdentifier] = useState("");
           {otpSent && !otpVerified && (
             <>
               <Alert
-                message={`📱 OTP sent to ${selectedPhone}`}
+                message={resetMethod === "email" 
+                  ? `📧 OTP sent to ${adminEmail}` 
+                  : `📱 OTP sent to ${selectedPhone}`}
                 description={
-                  <div>
-                    <div style={{ fontSize: '14px', marginBottom: '8px' }}>
-                      Check your SMS for the 6-digit OTP code.
-                    </div>
-                    <div style={{ 
-                      marginTop: '12px', 
-                      padding: '12px', 
-                      background: '#fff7e6',
-                      border: '2px dashed #ff6b35',
-                      borderRadius: '8px',
-                      textAlign: 'center'
-                    }}>
-                      <div style={{ fontSize: '12px', color: '#888', marginBottom: '4px' }}>
-                        Demo Mode - Your OTP:
-                      </div>
-                      <div style={{ 
-                        fontSize: '24px', 
-                        fontWeight: 'bold', 
-                        color: '#ff6b35',
-                        letterSpacing: '4px'
-                      }}>
-                        {generatedOTP}
-                      </div>
-                    </div>
+                  <div style={{ fontSize: '14px' }}>
+                    {resetMethod === "email" 
+                      ? "Please check your email inbox for the 6-digit OTP code."
+                      : "Please check your SMS for the 6-digit OTP code."}
                   </div>
                 }
                 type="success"
@@ -746,22 +721,40 @@ const [adminIdentifier, setAdminIdentifier] = useState("");
                 </Text>
               </div>
 
-              <Button
-                type="primary"
-                block
-                size="large"
-                onClick={handlePasswordReset}
-                loading={loading}
-                style={{
-                  backgroundColor: "#ff6b35",
-                  borderColor: "#ff6b35",
-                  height: '50px',
-                  fontSize: '16px',
-                  fontWeight: '600'
-                }}
-              >
-                {loading ? "Resetting..." : "Reset Password"}
-              </Button>
+              <Space direction="vertical" style={{ width: "100%" }}>
+                <Button
+                  type="primary"
+                  block
+                  size="large"
+                  onClick={handlePasswordReset}
+                  loading={loading}
+                  style={{
+                    backgroundColor: "#ff6b35",
+                    borderColor: "#ff6b35",
+                    height: '50px',
+                    fontSize: '16px',
+                    fontWeight: '600'
+                  }}
+                >
+                  {loading ? "Resetting..." : "Reset Password"}
+                </Button>
+                <Button
+                  block
+                  onClick={() => {
+                    setShowForgotPassword(false);
+                    setOtpSent(false);
+                    setOtpVerified(false);
+                    setSelectedPhone("");
+                    setAdminIdentifier("");
+                    setEnteredOTP("");
+                    setNewPassword("");
+                    setConfirmPassword("");
+                    setAdminEmail("");
+                  }}
+                >
+                  Back to Login
+                </Button>
+              </Space>
             </>
           )}
         </Space>

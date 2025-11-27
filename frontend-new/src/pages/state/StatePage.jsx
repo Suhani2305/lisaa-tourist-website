@@ -14,6 +14,33 @@ const StatePage = () => {
   const [tours, setTours] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const normalizeTours = (data) => {
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.tours)) return data.tours;
+    return [];
+  };
+
+  const isTourAvailable = (tour) => {
+    if (!tour) return false;
+    const { isActive, availability = {} } = tour;
+    const { isAvailable, startDate, endDate } = availability;
+
+    if (isActive === false) return false;
+    if (isAvailable === false) return false;
+
+    const now = new Date();
+    const normalizedStart = startDate ? new Date(startDate) : null;
+    const normalizedEnd = endDate ? new Date(endDate) : null;
+
+    if (normalizedStart && normalizedStart > now) return false;
+    if (normalizedEnd) {
+      normalizedEnd.setHours(23, 59, 59, 999);
+      if (normalizedEnd < now) return false;
+    }
+
+    return true;
+  };
+
   const isSmall = window.innerWidth <= 480;
   const isMobile = window.innerWidth <= 768;
 
@@ -27,12 +54,13 @@ const StatePage = () => {
       setLoading(true);
       console.log('🔄 Fetching state data for:', stateSlug);
       
-      const data = await stateService.getStateBySlug(stateSlug);
+      const data = await stateService.getStateBySlug(stateSlug, { limit: 0 });
       console.log('✅ State data loaded:', data);
       
       setState(data.state);
       setCities(data.cities || []);
-      setTours(data.tours || []);
+      const toursArray = normalizeTours(data.tours);
+      setTours(toursArray.filter(isTourAvailable));
     } catch (error) {
       console.error('❌ Failed to fetch state:', error);
       message.error('Failed to load state data');
@@ -401,7 +429,7 @@ const StatePage = () => {
               marginBottom: '24px',
               fontFamily: 'Poppins, sans-serif'
             }}>
-              Tours in {state.name}
+              Tours in {state.name} ({tours.length})
             </h2>
             {tours.length > 0 ? (
               <Row gutter={[16, 16]}>

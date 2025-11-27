@@ -190,8 +190,17 @@ const OffersManagement = () => {
         search: searchText || undefined
       });
       
+      const now = dayjs();
+      
       // Transform API data to match component format
-      const transformedOffers = Array.isArray(response) ? response.map(offer => ({
+      const transformedOffers = Array.isArray(response) ? response.map(offer => {
+        const formattedStart = offer.startDate ? new Date(offer.startDate).toISOString().split('T')[0] : null;
+        const formattedEnd = offer.endDate ? new Date(offer.endDate).toISOString().split('T')[0] : null;
+        // Auto-mark coupons whose end date has passed
+        const hasExpired = formattedEnd ? dayjs(formattedEnd).endOf('day').isBefore(now) : false;
+        
+        return {
+        ...offer,
         id: offer._id || offer.id,
         title: offer.title,
         code: offer.code,
@@ -199,8 +208,8 @@ const OffersManagement = () => {
         value: offer.value,
         description: offer.description || '',
         status: offer.status,
-        startDate: offer.startDate ? new Date(offer.startDate).toISOString().split('T')[0] : null,
-        endDate: offer.endDate ? new Date(offer.endDate).toISOString().split('T')[0] : null,
+        startDate: formattedStart,
+        endDate: formattedEnd,
         minAmount: offer.minAmount || 0,
         maxDiscount: offer.maxDiscount || null,
         usageLimit: offer.usageLimit || null,
@@ -214,8 +223,9 @@ const OffersManagement = () => {
         terms: offer.terms || '',
         createdAt: offer.createdAt ? new Date(offer.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         updatedAt: offer.updatedAt ? new Date(offer.updatedAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-        ...offer
-      })) : [];
+        status: hasExpired ? 'expired' : offer.status,
+      };
+      }) : [];
       
       setOffers(transformedOffers);
     } catch (error) {
@@ -290,8 +300,11 @@ const OffersManagement = () => {
 
   const handleStatusUpdate = async (id, newStatus) => {
     try {
-      await offerService.updateOffer(id, { status: newStatus });
+      const response = await offerService.updateOffer(id, { status: newStatus });
       message.success(`Offer ${newStatus} successfully`);
+      if (response?.notificationQueued) {
+        message.info('Customers will be notified about this coupon shortly via email & WhatsApp.');
+      }
       fetchOffers(); // Refresh list
     } catch (error) {
       console.error('Failed to update offer status:', error);
@@ -344,14 +357,19 @@ const OffersManagement = () => {
       // Remove applicabilityType from offerData as it's not part of the schema
       delete offerData.applicabilityType;
       
+      let response;
       if (editingOffer) {
         // Update existing offer
-        await offerService.updateOffer(editingOffer.id, offerData);
+        response = await offerService.updateOffer(editingOffer.id, offerData);
         message.success('Offer updated successfully');
       } else {
         // Create new offer
-        await offerService.createOffer(offerData);
+        response = await offerService.createOffer(offerData);
         message.success('Offer created successfully');
+      }
+
+      if (response?.notificationQueued) {
+        message.info('Customers will be notified about this coupon shortly via email & WhatsApp.');
       }
       
       setModalVisible(false);

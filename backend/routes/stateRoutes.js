@@ -4,6 +4,27 @@ const State = require('../models/State');
 const City = require('../models/City');
 const Tour = require('../models/Tour');
 
+const buildAvailabilityFilters = (now = new Date()) => ([
+  {
+    $or: [
+      { 'availability.isAvailable': { $exists: false } },
+      { 'availability.isAvailable': true }
+    ]
+  },
+  {
+    $or: [
+      { 'availability.startDate': { $exists: false } },
+      { 'availability.startDate': { $lte: now } }
+    ]
+  },
+  {
+    $or: [
+      { 'availability.endDate': { $exists: false } },
+      { 'availability.endDate': { $gte: now } }
+    ]
+  }
+]);
+
 // Get all states
 router.get('/', async (req, res) => {
   try {
@@ -39,17 +60,22 @@ router.get('/', async (req, res) => {
     });
     
     // Optimized: Count tours for all states in parallel (instead of sequential N+1 queries)
-    const stateSlugs = states.map(s => s.slug);
+    const now = new Date();
+    const availabilityFilters = buildAvailabilityFilters(now);
     const tourCountPromises = states.map(async (state) => {
       const citySlugs = citiesByState[state.slug] || [];
+      const stateMatchConditions = [
+        { stateSlug: state.slug },
+        { state: { $regex: state.name, $options: 'i' } },
+        { destination: { $regex: state.name, $options: 'i' } },
+        ...(citySlugs.length > 0 ? [{ citySlug: { $in: citySlugs } }] : [])
+      ];
       const count = await Tour.countDocuments({
-        $or: [
-          { stateSlug: state.slug },
-          { state: { $regex: state.name, $options: 'i' } },
-          { destination: { $regex: state.name, $options: 'i' } },
-          ...(citySlugs.length > 0 ? [{ citySlug: { $in: citySlugs } }] : [])
-        ],
-        isActive: { $ne: false }
+        $and: [
+          { $or: stateMatchConditions },
+          { isActive: { $ne: false } },
+          ...availabilityFilters
+        ]
       });
       return { stateSlug: state.slug, count };
     });
@@ -78,6 +104,9 @@ router.get('/', async (req, res) => {
 // Get single state by slug
 router.get('/:slug', async (req, res) => {
   try {
+    const { limit } = req.query;
+    const limitNumber = Number(limit);
+
     const state = await State.findOne({ slug: req.params.slug, isActive: true });
     if (!state) {
       return res.status(404).json({ message: 'State not found' });
@@ -89,15 +118,28 @@ router.get('/:slug', async (req, res) => {
       isActive: true 
     }).sort({ order: 1, name: 1 });
 
-    // Get tours for this state (by stateSlug or state name)
-    const tours = await Tour.find({ 
-      $or: [
-        { stateSlug: req.params.slug },
-        { state: { $regex: state.name, $options: 'i' } },
-        { destination: { $regex: state.name, $options: 'i' } }
-      ],
-      isActive: true 
-    }).limit(12).sort({ createdAt: -1 });
+    const citySlugs = cities.map(city => city.slug);
+    const stateMatchConditions = [
+      { stateSlug: req.params.slug },
+      { state: { $regex: state.name, $options: 'i' } },
+      { destination: { $regex: state.name, $options: 'i' } },
+      ...(citySlugs.length > 0 ? [{ citySlug: { $in: citySlugs } }] : [])
+    ];
+    const availabilityFilters = buildAvailabilityFilters(new Date());
+
+    let toursQuery = Tour.find({
+      $and: [
+        { $or: stateMatchConditions },
+        { isActive: { $ne: false } },
+        ...availabilityFilters
+      ]
+    }).sort({ createdAt: -1 });
+
+    if (!Number.isNaN(limitNumber) && limitNumber > 0) {
+      toursQuery = toursQuery.limit(limitNumber);
+    }
+
+    const tours = await toursQuery.exec();
 
     res.json({ state, cities, tours });
   } catch (error) {

@@ -750,7 +750,7 @@ const Register = () => {
                       </Button>
                     </div>
                   )}
-                  {emailOtpSent && (
+                  {emailOtpSent && !emailOtpVerified && (
                     <div style={styles.otpVerifyContainer}>
                       <Input.OTP
                         length={6}
@@ -762,16 +762,14 @@ const Register = () => {
                         inputType="numeric"
                       />
                       <div style={{ display: "flex", gap: 8 }}>
-                        {!emailOtpVerified && (
-                          <Button
-                            type="primary"
-                            onClick={handleVerifyEmailOtp}
-                            loading={emailOtpVerifying}
-                            style={{ ...styles.otpButton, width: "100%" }}
-                          >
-                            Verify Email OTP
-                          </Button>
-                        )}
+                        <Button
+                          type="primary"
+                          onClick={handleVerifyEmailOtp}
+                          loading={emailOtpVerifying}
+                          style={{ ...styles.otpButton, width: "100%" }}
+                        >
+                          Verify Email OTP
+                        </Button>
                         <Button
                           type="default"
                           onClick={handleSendEmailOtp}
@@ -836,7 +834,7 @@ const Register = () => {
                       </Button>
                     </div>
                   )}
-                  {phoneOtpSent && (
+                  {phoneOtpSent && !phoneOtpVerified && (
                     <div style={styles.otpVerifyContainer}>
                       <Input.OTP
                         length={6}
@@ -848,16 +846,14 @@ const Register = () => {
                         inputType="numeric"
                       />
                       <div style={{ display: "flex", gap: 8 }}>
-                        {!phoneOtpVerified && (
-                          <Button
-                            type="primary"
-                            onClick={handleVerifyPhoneOtp}
-                            loading={phoneOtpVerifying}
-                            style={{ ...styles.otpButton, width: "100%" }}
-                          >
-                            Verify Mobile OTP
-                          </Button>
-                        )}
+                        <Button
+                          type="primary"
+                          onClick={handleVerifyPhoneOtp}
+                          loading={phoneOtpVerifying}
+                          style={{ ...styles.otpButton, width: "100%" }}
+                        >
+                          Verify Mobile OTP
+                        </Button>
                         <Button
                           type="default"
                           onClick={handleSendPhoneOtp}

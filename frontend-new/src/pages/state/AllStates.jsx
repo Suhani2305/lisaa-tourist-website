@@ -74,15 +74,30 @@ const AllStates = () => {
   const regions = ['all', 'North', 'South', 'East', 'West', 'Northeast', 'Central'];
 
   // Use API states if available, otherwise fallback
-  const displayStates = states.length > 0 ? states.map(state => ({
-    id: state.slug,
-    name: state.name,
-    slug: state.slug,
-    tours: `${state.tours || 0}+ Tours`,
-    region: state.region || 'Other',
-    image: state.heroImage || 'https://images.unsplash.com/photo-1599661046289-e31897846e41?w=800&q=90',
-    featured: state.featured
-  })) : fallbackStates;
+  const formatTourLabel = (count) => {
+    const safeCount = Number(count) || 0;
+    return `${safeCount} ${safeCount === 1 ? 'Package' : 'Packages'}`;
+  };
+
+  const displayStates = states.length > 0
+    ? states.map(state => {
+        const tourCount = Number(state.tours) || 0;
+        return {
+          id: state.slug,
+          name: state.name,
+          slug: state.slug,
+          tourCount,
+          tours: formatTourLabel(tourCount),
+          region: state.region || 'Other',
+          image: state.heroImage || 'https://images.unsplash.com/photo-1599661046289-e31897846e41?w=800&q=90',
+          featured: state.featured
+        };
+      })
+    : fallbackStates.map(state => ({
+        ...state,
+        tourCount: parseInt(state.tours, 10) || 0,
+        tours: state.tours
+      }));
 
   // Filter states
   const filteredStates = displayStates

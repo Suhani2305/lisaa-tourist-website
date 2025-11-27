@@ -1,6 +1,66 @@
 const express = require('express');
 const router = express.Router();
 const Offer = require('../models/Offer');
+const User = require('../models/User');
+const { sendCouponAnnouncementEmail } = require('../services/emailService');
+const { sendCouponAnnouncementWhatsApp } = require('../services/whatsappService');
+
+const notifyCustomersAboutOffer = async (offerDoc) => {
+  if (!offerDoc) return null;
+
+  const offer = typeof offerDoc.toObject === 'function' ? offerDoc.toObject() : offerDoc;
+
+  try {
+    const customers = await User.find({ role: 'user', isActive: true })
+      .select('name email phone');
+
+    if (!customers.length) {
+      return { totalCustomers: 0, emailSent: 0, whatsappSent: 0 };
+    }
+
+    let emailSent = 0;
+    let whatsappSent = 0;
+
+    for (const customer of customers) {
+      if (customer.email) {
+        try {
+          const result = await sendCouponAnnouncementEmail(customer, offer);
+          if (result?.success) emailSent += 1;
+        } catch (error) {
+          console.error(`Email notification failed for ${customer.email}:`, error.message || error);
+        }
+      }
+
+      if (customer.phone) {
+        try {
+          const result = await sendCouponAnnouncementWhatsApp(customer, offer);
+          if (result?.success) whatsappSent += 1;
+        } catch (error) {
+          console.error(`WhatsApp notification failed for ${customer.phone}:`, error.message || error);
+        }
+      }
+    }
+
+    return {
+      totalCustomers: customers.length,
+      emailSent,
+      whatsappSent
+    };
+  } catch (error) {
+    console.error('Bulk coupon notification error:', error);
+    throw error;
+  }
+};
+
+const queueOfferBroadcastIfActive = (offer) => {
+  if (!offer || offer.status !== 'active') return;
+
+  setImmediate(() => {
+    notifyCustomersAboutOffer(offer)
+      .then((summary) => console.log('📣 Coupon broadcast summary:', summary))
+      .catch((error) => console.error('❌ Coupon broadcast failed:', error));
+  });
+};
 
 // Get all offers
 router.get('/', async (req, res) => {
@@ -67,7 +127,13 @@ router.post('/', async (req, res) => {
     await offer.save();
     await offer.populate('applicableTours', 'title destination');
     
-    res.status(201).json({ message: 'Offer created successfully', offer });
+    queueOfferBroadcastIfActive(offer);
+    
+    res.status(201).json({ 
+      message: 'Offer created successfully',
+      offer,
+      notificationQueued: offer.status === 'active'
+    });
   } catch (error) {
     console.error('Create offer error:', error);
     res.status(500).json({ message: 'Server error' });
@@ -91,6 +157,11 @@ router.put('/:id', async (req, res) => {
       updateData.code = updateData.code.toUpperCase();
     }
     
+    const existingOffer = await Offer.findById(req.params.id);
+    if (!existingOffer) {
+      return res.status(404).json({ message: 'Offer not found' });
+    }
+
     const offer = await Offer.findByIdAndUpdate(
       req.params.id,
       updateData,
@@ -100,8 +171,17 @@ router.put('/:id', async (req, res) => {
     if (!offer) {
       return res.status(404).json({ message: 'Offer not found' });
     }
+
+    const shouldBroadcast = existingOffer.status !== 'active' && offer.status === 'active';
+    if (shouldBroadcast) {
+      queueOfferBroadcastIfActive(offer);
+    }
     
-    res.json({ message: 'Offer updated successfully', offer });
+    res.json({ 
+      message: 'Offer updated successfully',
+      offer,
+      notificationQueued: shouldBroadcast
+    });
   } catch (error) {
     console.error('Update offer error:', error);
     res.status(500).json({ 

@@ -6,24 +6,33 @@ let transporter;
 // Initialize email transporter
 const initializeEmailService = () => {
   try {
+    const emailUser = process.env.EMAIL_USER || 'Lsiaatech@gmail.com';
+    const emailPassword = process.env.EMAIL_PASSWORD || process.env.GMAIL_APP_PASSWORD;
+    
+    if (!emailPassword) {
+      console.warn('⚠️ Email password not found. Email service will not be available.');
+      console.warn('💡 Please set EMAIL_PASSWORD or GMAIL_APP_PASSWORD in your .env file');
+      transporter = null;
+      return;
+    }
+    
     // Use Gmail SMTP (you can change to other providers)
     transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
-        user: process.env.EMAIL_USER || 'Lsiaatech@gmail.com',
-        pass: process.env.EMAIL_PASSWORD || process.env.GMAIL_APP_PASSWORD
+        user: emailUser,
+        pass: emailPassword
       }
     });
-    console.log('✅ Email service initialized');
+    console.log('✅ Email service initialized with user:', emailUser);
   } catch (error) {
     console.error('❌ Email service initialization error:', error);
+    transporter = null;
   }
 };
 
 // Initialize on module load
-if (process.env.EMAIL_USER || process.env.EMAIL_PASSWORD || process.env.GMAIL_APP_PASSWORD) {
-  initializeEmailService();
-}
+initializeEmailService();
 
 // Generic OTP email sender with overridable subject/body
 const sendOtpEmail = async (email, otp, options = {}) => {
@@ -487,6 +496,137 @@ const getEmailTemplate = (options) => {
     </body>
     </html>
   `;
+};
+
+const formatOfferApplicabilityHtml = (offer = {}) => {
+  if (offer.applicableToAll) {
+    return `
+      <li><strong>Valid on:</strong> All available tours and destinations</li>
+    `;
+  }
+
+  const sections = [];
+
+  if (Array.isArray(offer.applicableTours) && offer.applicableTours.length > 0) {
+    const tours = offer.applicableTours
+      .map(tour => (typeof tour === 'object' ? tour.title || tour.name || tour._id : tour))
+      .filter(Boolean)
+      .slice(0, 10)
+      .join(', ');
+    sections.push(`<li><strong>Specific tours:</strong> ${tours || 'Selected packages'}</li>`);
+  }
+
+  if (Array.isArray(offer.applicableCities) && offer.applicableCities.length > 0) {
+    sections.push(`<li><strong>Cities:</strong> ${offer.applicableCities.slice(0, 10).join(', ')}</li>`);
+  }
+
+  if (Array.isArray(offer.applicableStates) && offer.applicableStates.length > 0) {
+    sections.push(`<li><strong>States:</strong> ${offer.applicableStates.slice(0, 10).join(', ')}</li>`);
+  }
+
+  return sections.join('') || `
+    <li><strong>Applicable on:</strong> Selected itineraries (see website for details)</li>
+  `;
+};
+
+const sendCouponAnnouncementEmail = async (user, offer) => {
+  try {
+    if (!transporter) {
+      console.warn('⚠️ Email service not configured. Skipping coupon announcement email.');
+      return { success: false, message: 'Email service not configured' };
+    }
+
+    if (!user?.email) {
+      return { success: false, message: 'Email not available for user' };
+    }
+
+    const offerTitle = offer?.title || 'Limited Time Coupon';
+    const validityStart = offer?.startDate ? new Date(offer.startDate).toLocaleDateString('en-IN') : 'Today';
+    const validityEnd = offer?.endDate ? new Date(offer.endDate).toLocaleDateString('en-IN') : 'Limited time';
+    const discountValue = offer?.type === 'percentage'
+      ? `${offer?.value || 0}% off`
+      : `₹${(offer?.value || 0).toLocaleString()} off`;
+
+    const applicabilityHtml = formatOfferApplicabilityHtml(offer);
+
+    const content = `
+      <p>Hi <strong>${user?.name || 'Traveler'}</strong>,</p>
+      <p>Great news! We just unlocked a brand-new travel coupon especially for our community.</p>
+      
+      <div class="info-box">
+        <h2>🎁 Coupon Snapshot</h2>
+        <div class="info-row">
+          <span class="info-label">Coupon Title:</span>
+          <span class="info-value"><strong>${offerTitle}</strong></span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Use Code:</span>
+          <span class="info-value"><strong>${offer?.code || 'N/A'}</strong></span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Discount:</span>
+          <span class="info-value">${discountValue}</span>
+        </div>
+        ${offer?.minAmount ? `
+          <div class="info-row">
+            <span class="info-label">Min. Booking Amount:</span>
+            <span class="info-value">₹${Number(offer.minAmount).toLocaleString()}</span>
+          </div>` : ''
+        }
+        ${offer?.maxDiscount ? `
+          <div class="info-row">
+            <span class="info-label">Max Discount Cap:</span>
+            <span class="info-value">₹${Number(offer.maxDiscount).toLocaleString()}</span>
+          </div>` : ''
+        }
+        <div class="info-row">
+          <span class="info-label">Valid Between:</span>
+          <span class="info-value">${validityStart} - ${validityEnd}</span>
+        </div>
+      </div>
+
+      <div class="highlight-box">
+        <h3>Where can you use it?</h3>
+        <ul style="margin-left: 18px; line-height: 1.9;">
+          ${applicabilityHtml}
+        </ul>
+      </div>
+
+      ${offer?.terms ? `
+        <div class="highlight-box" style="background:#f1faff;border-color:#0ea5e9;">
+          <h3>Quick terms</h3>
+          <p>${offer.terms}</p>
+        </div>
+      ` : ''}
+
+      <p>Apply the coupon while booking your next getaway on our website or through our team. Hurry—once the coupon expires, it’s gone!</p>
+
+      <p>Need help finding the perfect itinerary? Our travel experts are just a call away.</p>
+    `;
+
+    const html = getEmailTemplate({
+      title: '🎁 New Coupon Unlocked',
+      subtitle: `Use code ${offer?.code || ''} before ${validityEnd}`,
+      headerColor: '#f97316',
+      content,
+      buttonText: 'Apply Coupon Now',
+      buttonLink: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/package`
+    });
+
+    const mailOptions = {
+      from: `"Lisaa Tours & Travels" <${process.env.EMAIL_USER || 'Lsiaatech@gmail.com'}>`,
+      to: user.email,
+      subject: `🎁 ${offerTitle} — Use code ${offer?.code || ''} now`,
+      html
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log('✅ Coupon announcement email sent:', info.messageId, 'to', user.email);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('❌ Error sending coupon announcement email:', error);
+    return { success: false, error: error.message };
+  }
 };
 
 // Send booking reminder email (sent 3 days before travel)
@@ -1021,6 +1161,7 @@ module.exports = {
   sendBookingFollowUpEmail,
   sendReviewRequestEmail,
   sendInquiryReplyEmail,
+  sendCouponAnnouncementEmail,
   initializeEmailService
 };
 

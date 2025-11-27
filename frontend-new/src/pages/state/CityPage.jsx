@@ -13,6 +13,33 @@ const CityPage = () => {
   const [tours, setTours] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const normalizeTours = (data) => {
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.tours)) return data.tours;
+    return [];
+  };
+
+  const isTourAvailable = (tour) => {
+    if (!tour) return false;
+    const { isActive, availability = {} } = tour;
+    const { isAvailable, startDate, endDate } = availability;
+
+    if (isActive === false) return false;
+    if (isAvailable === false) return false;
+
+    const now = new Date();
+    const normalizedStart = startDate ? new Date(startDate) : null;
+    const normalizedEnd = endDate ? new Date(endDate) : null;
+
+    if (normalizedStart && normalizedStart > now) return false;
+    if (normalizedEnd) {
+      normalizedEnd.setHours(23, 59, 59, 999);
+      if (normalizedEnd < now) return false;
+    }
+
+    return true;
+  };
+
   const isSmall = window.innerWidth <= 480;
   const isMobile = window.innerWidth <= 768;
 
@@ -26,11 +53,12 @@ const CityPage = () => {
       setLoading(true);
       console.log('🔄 Fetching city data:', stateSlug, citySlug);
       
-      const data = await stateService.getCityBySlug(stateSlug, citySlug);
+      const data = await stateService.getCityBySlug(stateSlug, citySlug, { limit: 0 });
       console.log('✅ City data loaded:', data);
       
       setCity(data.city);
-      setTours(data.tours || []);
+      const toursArray = normalizeTours(data.tours);
+      setTours(toursArray.filter(isTourAvailable));
     } catch (error) {
       console.error('❌ Failed to fetch city:', error);
       message.error('Failed to load city data');
@@ -97,19 +125,23 @@ const CityPage = () => {
     <>
       <Header />
       
-      <div style={{ minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
-        {/* Hero Section */}
+      <div style={{ minHeight: '100vh', backgroundColor: 'white' }}>
+        {/* Main Content */}
         <div style={{
           maxWidth: isMobile ? '100%' : '1800px',
-          margin: isSmall ? '20px auto' : isMobile ? '30px auto' : '40px auto',
-          padding: isSmall ? '0 8px' : isMobile ? '0 12px' : window.innerWidth <= 1024 ? '0 32px' : '0 250px'
+          margin: '0 auto',
+          padding: isSmall ? '20px 8px' : isMobile ? '30px 12px' : window.innerWidth <= 1024 ? '40px 32px' : '60px 250px',
+          paddingTop: isMobile ? '40px' : '60px',
+          position: 'relative',
+          zIndex: 1
         }}>
           {/* Breadcrumb & Title */}
           <div style={{ 
             fontSize: isSmall ? '11px' : isMobile ? '12px' : '14px', 
             color: '#6c757d',
-            marginBottom: '12px',
-            fontFamily: 'Poppins, sans-serif'
+            marginBottom: '20px',
+            fontFamily: 'Poppins, sans-serif',
+            textAlign: 'center'
           }}>
             <span 
               onClick={() => {
@@ -164,89 +196,130 @@ const CityPage = () => {
             )}
           </div>
           <h1 style={{ 
-            fontSize: isSmall ? '1.2rem' : isMobile ? '1.5rem' : '2rem', 
-            fontWeight: '700', 
-            color: '#212529',
-            margin: '0 0 24px 0',
-            fontFamily: 'Poppins, sans-serif'
+            fontSize: isSmall ? '1.8rem' : isMobile ? '2.2rem' : '3rem', 
+            fontWeight: '800', 
+            color: '#FF6B35',
+            margin: '0 auto 40px auto',
+            fontFamily: "'Playfair Display', 'Georgia', serif",
+            lineHeight: '1.2',
+            textAlign: 'center',
+            letterSpacing: '-0.02em',
+            textShadow: '0 2px 4px rgba(255, 107, 53, 0.1)'
           }}>
-            {city.name}
+             {city.name}
           </h1>
-          <Card style={{
-            borderRadius: isMobile ? '12px' : '16px',
+          <div style={{
+            position: 'relative',
+            marginTop: isMobile ? '-10px' : '-20px',
             marginBottom: isSmall ? '20px' : isMobile ? '30px' : '40px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+            zIndex: 2
           }}>
-            {/* Hero Image */}
-            {city.heroImage && (
-              <div style={{
-                width: '100%',
-                height: isSmall ? '200px' : isMobile ? '300px' : '400px',
-                marginBottom: '24px',
-                borderRadius: '12px',
-                overflow: 'hidden'
-              }}>
-                <img
-                  src={city.heroImage}
-                  alt={city.name}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                    imageRendering: 'high-quality',
-                    WebkitImageRendering: 'high-quality'
-                  }}
-                />
-              </div>
-            )}
+            <Card
+              style={{
+                borderRadius: '16px 16px 0 0',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                border: 'none',
+                transform: 'translateZ(0)',
+                transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                backgroundColor: 'white',
+                marginBottom: '0'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-4px) translateZ(0)';
+                e.currentTarget.style.boxShadow = '0 12px 32px rgba(0,0,0,0.2)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0) translateZ(0)';
+                e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.15)';
+              }}
+            >
+              {/* Hero Image */}
+              {city.heroImage && (
+                <div style={{
+                  width: '100%',
+                  height: isSmall ? '200px' : isMobile ? '300px' : '400px',
+                  marginBottom: '24px',
+                  borderRadius: '12px',
+                  overflow: 'hidden',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                }}>
+                  <img
+                    src={city.heroImage}
+                    alt={city.name}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      imageRendering: 'high-quality',
+                      WebkitImageRendering: 'high-quality',
+                      transition: 'transform 0.3s ease'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                  />
+                </div>
+              )}
 
-            <h2 style={{
-              fontSize: isSmall ? '1.2rem' : isMobile ? '1.5rem' : '1.75rem',
-              fontWeight: '700',
-              color: '#212529',
-              marginBottom: isSmall ? '12px' : '16px',
-              fontFamily: 'Poppins, sans-serif'
-            }}>
-              {city.name}
-            </h2>
-            <p style={{
-              fontSize: isSmall ? '13px' : isMobile ? '14px' : '16px',
-              color: '#6c757d',
-              lineHeight: '1.6',
-              margin: 0,
-              whiteSpace: 'pre-wrap'
-            }}>
-              {city.description}
-            </p>
-
-            {/* City Info */}
-            {(city.bestTimeToVisit || city.attractions?.length > 0) && (
-              <div style={{
-                marginTop: '24px',
-                paddingTop: '24px',
-                borderTop: '1px solid #e9ecef'
+              <h2 style={{
+                fontSize: isSmall ? '1.2rem' : isMobile ? '1.5rem' : '1.75rem',
+                fontWeight: '700',
+                color: '#212529',
+                marginBottom: isSmall ? '12px' : '16px',
+                fontFamily: 'Poppins, sans-serif'
               }}>
-                {city.bestTimeToVisit && (
-                  <div style={{ marginBottom: '16px' }}>
-                    <strong style={{ color: '#FF6B35' }}>Best Time to Visit:</strong>
-                    <div style={{ color: '#6c757d', marginTop: '4px' }}>{city.bestTimeToVisit}</div>
-                  </div>
-                )}
-                {city.attractions && city.attractions.length > 0 && (
-                  <div>
-                    <strong style={{ color: '#FF6B35' }}>Popular Attractions:</strong>
-                    <div style={{ marginTop: '8px' }}>
-                      {city.attractions.map((attraction, index) => (
-                        <Tag key={index} color="orange" style={{ marginBottom: '8px' }}>
-                          {attraction}
-                        </Tag>
-                      ))}
+                {city.name}
+              </h2>
+              <p style={{
+                fontSize: isSmall ? '13px' : isMobile ? '14px' : '16px',
+                color: '#6c757d',
+                lineHeight: '1.6',
+                margin: 0,
+                whiteSpace: 'pre-wrap'
+              }}>
+                {city.description}
+              </p>
+
+              {/* City Info */}
+              {(city.bestTimeToVisit || city.attractions?.length > 0) && (
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: isSmall || isMobile ? '1fr' : 'repeat(2, 1fr)',
+                  gap: '16px',
+                  marginTop: '24px',
+                  paddingTop: '24px',
+                  borderTop: '1px solid #e9ecef'
+                }}>
+                  {city.bestTimeToVisit && (
+                    <div>
+                      <strong style={{ color: '#FF6B35' }}>Best Time to Visit:</strong>
+                      <div style={{ color: '#6c757d', marginTop: '4px' }}>{city.bestTimeToVisit}</div>
                     </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </Card>
+                  )}
+                  {city.attractions && city.attractions.length > 0 && (
+                    <div>
+                      <strong style={{ color: '#FF6B35' }}>Popular Attractions:</strong>
+                      <div style={{ marginTop: '8px' }}>
+                        {city.attractions.map((attraction, index) => (
+                          <Tag key={index} color="orange" style={{ marginBottom: '8px' }}>
+                            {attraction}
+                          </Tag>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </Card>
+
+            {/* Orange Accent Bar */}
+            <div style={{
+              height: '8px',
+              background: 'linear-gradient(90deg, #FF6B35 0%, #f15a29 100%)',
+              borderRadius: '0 0 8px 8px',
+              marginTop: '0',
+              boxShadow: '0 2px 8px rgba(255, 107, 53, 0.3)'
+            }} />
+          </div>
 
           {/* Tours Section */}
           <div>
@@ -257,7 +330,7 @@ const CityPage = () => {
               marginBottom: '24px',
               fontFamily: 'Poppins, sans-serif'
             }}>
-              Tours in {city.name}
+              Tours in {city.name} ({tours.length})
             </h2>
             {tours.length > 0 ? (
               <Row gutter={[16, 16]}>
