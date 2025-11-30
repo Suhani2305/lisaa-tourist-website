@@ -557,6 +557,7 @@ const CustomersManagement = () => {
     }}>
       {/* Header Section */}
       <div style={{
+        position: 'relative',
         marginBottom: windowWidth <= 768 ? '20px' : '32px',
         textAlign: 'center'
       }}>
@@ -582,6 +583,34 @@ const CustomersManagement = () => {
         }}>
           Manage customer profiles, preferences, and loyalty programs
         </p>
+
+        {/* Refresh Button - Top Right */}
+        <Button 
+          type="primary"
+          icon={<ReloadOutlined />}
+          loading={loading}
+          onClick={fetchCustomers}
+          style={{
+            position: 'absolute',
+            top: '0',
+            right: '0',
+            borderRadius: '12px',
+            background: '#ff6b35',
+            border: 'none',
+            fontFamily: "'Poppins', sans-serif",
+            fontWeight: '600',
+            boxShadow: '0 4px 12px rgba(255, 107, 53, 0.3)',
+            height: windowWidth <= 768 ? '36px' : '42px',
+            padding: windowWidth <= 768 ? '0 14px' : '0 20px',
+            fontSize: windowWidth <= 768 ? '12px' : '14px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px'
+          }}
+        >
+          {windowWidth > 768 && 'Refresh'}
+        </Button>
       </div>
 
       {/* Statistics Cards */}
@@ -658,11 +687,10 @@ const CustomersManagement = () => {
           boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
           border: 'none'
         }}
-        bodyStyle={{ padding: windowWidth <= 768 ? '12px' : '20px' }}
+        styles={{ body: { padding: windowWidth <= 768 ? '12px' : '20px' } }}
       >
-        <Row gutter={[12, 12]} align="middle">
-          {/* Row 1: Search and Status Filter (mobile) */}
-          <Col xs={16} sm={24} md={8}>
+        <Row gutter={[16, 16]} align="middle">
+          <Col xs={24} sm={24} md={10} lg={10}>
             <Input
               placeholder="Search customers..."
               prefix={<SearchOutlined />}
@@ -673,7 +701,7 @@ const CustomersManagement = () => {
               style={{ borderRadius: '8px' }}
             />
           </Col>
-          <Col xs={8} sm={24} md={4}>
+          <Col xs={12} sm={8} md={3} lg={3}>
             <Select
               placeholder="Status"
               value={filterStatus}
@@ -687,9 +715,7 @@ const CustomersManagement = () => {
               <Option value="suspended">Suspended</Option>
             </Select>
           </Col>
-          
-          {/* Row 2: Tier, Refresh, Export (mobile) */}
-          <Col xs={12} sm={24} md={4}>
+          <Col xs={12} sm={8} md={3} lg={3}>
             <Select
               placeholder="Tier"
               value={filterTier}
@@ -704,26 +730,18 @@ const CustomersManagement = () => {
               <Option value="bronze">Bronze</Option>
             </Select>
           </Col>
-          <Col xs={6} sm={12} md={4}>
-            <Button
-              icon={<ReloadOutlined />}
-              onClick={fetchCustomers}
-              loading={loading}
-              size={windowWidth <= 768 ? 'middle' : 'large'}
-              style={{ borderRadius: '8px', width: '100%' }}
-            >
-              {windowWidth > 768 && 'Refresh'}
-            </Button>
-          </Col>
-          <Col xs={6} sm={12} md={4}>
+          <Col xs={24} sm={24} md={8} lg={8}>
             <Tooltip title="Export Customers to CSV">
               <Button
                 icon={<ExportOutlined />}
                 onClick={handleExport}
                 size={windowWidth <= 768 ? 'middle' : 'large'}
-                style={{ borderRadius: '8px', width: '100%' }}
+                style={{ 
+                  width: '100%',
+                  borderRadius: '8px'
+                }}
               >
-                {windowWidth > 768 && 'Export'}
+                {windowWidth > 768 ? 'Export to CSV' : 'Export'}
               </Button>
             </Tooltip>
           </Col>
@@ -794,7 +812,7 @@ const CustomersManagement = () => {
                       </Tag>
                     </div>
                   }
-                  bodyStyle={{ padding: '16px' }}
+                  styles={{ body: { padding: '16px' } }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = 'translateY(-4px)';
                     e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.15)';

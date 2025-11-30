@@ -5,29 +5,75 @@ const User = require('../models/User');
 const Tour = require('../models/Tour');
 const Inquiry = require('../models/Inquiry');
 const Offer = require('../models/Offer');
+const { authenticateAdmin, requireManager } = require('../middleware/adminAuth');
 
 // Get dashboard analytics
-router.get('/dashboard', async (req, res) => {
+router.get('/dashboard', authenticateAdmin, requireManager, async (req, res) => {
   try {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startOfYear = new Date(now.getFullYear(), 0, 1);
     
-    // Get all bookings
-    const allBookings = await Booking.find({});
-    const monthlyBookings = await Booking.find({ createdAt: { $gte: startOfMonth } });
-    const yearlyBookings = await Booking.find({ createdAt: { $gte: startOfYear } });
+    // Build base query - filter for managers
+    let baseQuery = {};
+    if (req.admin.role === 'Manager') {
+      const assignedBookingIds = req.admin.assignedData?.bookings || [];
+      if (assignedBookingIds.length === 0) {
+        // Manager has no assigned bookings - return empty stats
+        return res.json({
+          overview: {
+            totalRevenue: 0,
+            monthlyRevenue: 0,
+            yearlyRevenue: 0,
+            totalCustomers: 0,
+            totalTours: 0,
+            totalBookings: 0,
+            totalInquiries: 0
+          },
+          bookingStatus: { confirmed: 0, pending: 0, cancelled: 0, completed: 0 },
+          paymentStatus: { paid: 0, pending: 0, failed: 0 },
+          recentBookings: [],
+          topTours: []
+        });
+      }
+      baseQuery._id = { $in: assignedBookingIds };
+    }
+    
+    // Get all bookings (filtered for managers)
+    const allBookings = await Booking.find(baseQuery);
+    const monthlyBookings = await Booking.find({ ...baseQuery, createdAt: { $gte: startOfMonth } });
+    const yearlyBookings = await Booking.find({ ...baseQuery, createdAt: { $gte: startOfYear } });
     
     // Calculate revenue
     const totalRevenue = allBookings.reduce((sum, b) => sum + (b.totalAmount || 0), 0);
     const monthlyRevenue = monthlyBookings.reduce((sum, b) => sum + (b.totalAmount || 0), 0);
     const yearlyRevenue = yearlyBookings.reduce((sum, b) => sum + (b.totalAmount || 0), 0);
     
-    // Get counts
-    const totalCustomers = await User.countDocuments({ isActive: true });
-    const totalTours = await Tour.countDocuments({ isActive: true });
+    // Get counts (filtered for managers)
+    let totalCustomers = 0;
+    let totalTours = 0;
+    let totalInquiries = 0;
+    
+    if (req.admin.role === 'Manager') {
+      // For managers, only count customers from their assigned bookings
+      const uniqueUserIds = [...new Set(allBookings.map(b => b.user?.toString()).filter(Boolean))];
+      totalCustomers = uniqueUserIds.length;
+      
+      // Only count tours from assigned bookings
+      const uniqueTourIds = [...new Set(allBookings.map(b => b.tour?.toString()).filter(Boolean))];
+      totalTours = uniqueTourIds.length;
+      
+      // Only count assigned inquiries
+      const assignedInquiryIds = req.admin.assignedData?.inquiries || [];
+      totalInquiries = assignedInquiryIds.length;
+    } else {
+      // For Admin/Superadmin, show all
+      totalCustomers = await User.countDocuments({ isActive: true });
+      totalTours = await Tour.countDocuments({ isActive: true });
+      totalInquiries = await Inquiry.countDocuments({});
+    }
+    
     const totalBookingsCount = allBookings.length;
-    const totalInquiries = await Inquiry.countDocuments({});
     
     // Booking status breakdown
     const bookingStatusCounts = {
@@ -44,15 +90,24 @@ router.get('/dashboard', async (req, res) => {
       failed: allBookings.filter(b => b.payment?.status === 'failed').length
     };
     
-    // Recent bookings (last 10)
-    const recentBookings = await Booking.find({})
+    // Recent bookings (last 10) - filtered for managers
+    const recentBookings = await Booking.find(baseQuery)
       .populate('user', 'name email')
       .populate('tour', 'title destination')
       .sort({ createdAt: -1 })
       .limit(10);
     
-    // Top tours by bookings
-    const tourBookings = await Booking.aggregate([
+    // Top tours by bookings - filtered for managers
+    const aggregationPipeline = [];
+    
+    // Add match stage for managers
+    if (req.admin.role === 'Manager' && req.admin.assignedData?.bookings?.length > 0) {
+      aggregationPipeline.push({
+        $match: { _id: { $in: req.admin.assignedData.bookings.map(id => id.toString()) } }
+      });
+    }
+    
+    aggregationPipeline.push(
       {
         $group: {
           _id: '$tour',
@@ -62,7 +117,9 @@ router.get('/dashboard', async (req, res) => {
       },
       { $sort: { count: -1 } },
       { $limit: 10 }
-    ]);
+    );
+    
+    const tourBookings = await Booking.aggregate(aggregationPipeline);
     
     const topTours = await Tour.populate(tourBookings, { path: '_id', select: 'title destination images' });
     

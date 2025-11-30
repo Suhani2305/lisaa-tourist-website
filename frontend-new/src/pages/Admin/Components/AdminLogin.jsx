@@ -100,13 +100,18 @@ const AdminLogin = () => {
 
       if (response.ok) {
         // Successful login
-        localStorage.setItem("adminToken", "admin-logged-in");
+        if (data.token) {
+          localStorage.setItem("adminToken", data.token);
+        } else {
+          localStorage.setItem("adminToken", "admin-logged-in");
+        }
         localStorage.setItem("adminEmail", values.email);
-        localStorage.setItem("adminRole", data.admin.role);
+        localStorage.setItem("adminRole", data.admin?.role || "Admin");
+        localStorage.setItem("adminUser", JSON.stringify(data.admin));
         // Set flag to show greeting on dashboard
         sessionStorage.setItem("adminJustLoggedIn", "true");
 
-        console.log(`✅ Admin logged in: ${values.email}`);
+        console.log(`✅ Admin logged in: ${values.email} (${data.admin?.role || "Admin"})`);
         navigate("/admin/dashboard");
       } else {
         // Login failed

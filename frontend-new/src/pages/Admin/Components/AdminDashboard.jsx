@@ -84,6 +84,7 @@ const AdminDashboard = () => {
   // Get admin info from localStorage
   const adminEmail = localStorage.getItem('adminEmail') || 'admin@touristwebsite.com';
   const adminRole = localStorage.getItem('adminRole') || 'Super Admin';
+  const normalizedRole = adminRole === 'Super Admin' ? 'Superadmin' : adminRole;
   
   // Handle window resize
   useEffect(() => {
@@ -376,13 +377,13 @@ const AdminDashboard = () => {
               transition: 'all 0.3s ease',
               overflow: 'hidden'
             }}
-            bodyStyle={{ 
+            styles={{ body: { 
               padding: '0',
               height: '100%',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center'
-            }}
+            } }}
             hoverable
           >
             <div style={{ textAlign: 'center', padding: windowWidth <= 768 ? '12px 8px' : '20px 16px', width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -438,13 +439,13 @@ const AdminDashboard = () => {
               transition: 'all 0.3s ease',
               overflow: 'hidden'
             }}
-            bodyStyle={{ 
+            styles={{ body: { 
               padding: '0',
               height: '100%',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center'
-            }}
+            } }}
             hoverable
           >
             <div style={{ textAlign: 'center', padding: windowWidth <= 768 ? '12px 8px' : '20px 16px', width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -500,13 +501,13 @@ const AdminDashboard = () => {
               transition: 'all 0.3s ease',
               overflow: 'hidden'
             }}
-            bodyStyle={{ 
+            styles={{ body: { 
               padding: '0',
               height: '100%',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center'
-            }}
+            } }}
             hoverable
           >
             <div style={{ textAlign: 'center', padding: windowWidth <= 768 ? '12px 8px' : '20px 16px', width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -564,13 +565,13 @@ const AdminDashboard = () => {
               transition: 'all 0.3s ease',
               overflow: 'hidden'
             }}
-            bodyStyle={{ 
+            styles={{ body: { 
               padding: '0',
               height: '100%',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center'
-            }}
+            } }}
             hoverable
           >
             <div style={{ textAlign: 'center', padding: windowWidth <= 768 ? '12px 8px' : '20px 16px', width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -668,7 +669,7 @@ const AdminDashboard = () => {
                       }}
                       onClick={() => navigate('/admin/packages')}
                     >
-                      Create Package
+                      {(normalizedRole === 'Superadmin' || normalizedRole === 'Admin') ? 'Create Package' : 'View Packages'}
                     </Button>
                   </div>
                 }
@@ -897,25 +898,28 @@ const AdminDashboard = () => {
               }}
             >
               <Space direction="vertical" size={windowWidth <= 768 ? "small" : "middle"} style={{ width: '100%' }}>
-                <Button 
-                  type="primary" 
-                  block 
-                  size="large"
-                  icon={<PlusOutlined />}
-                  onClick={() => navigate('/admin/packages')}
-                  style={{
-                    height: windowWidth <= 768 ? '48px' : '55px',
-                    borderRadius: windowWidth <= 768 ? '12px' : '15px',
-                    background: 'linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%)',
-                    border: 'none',
-                    fontSize: windowWidth <= 768 ? '14px' : '16px',
-                    fontWeight: '600',
-                    fontFamily: "'Poppins', sans-serif",
-                    boxShadow: '0 8px 20px rgba(255, 107, 53, 0.3)'
-                  }}
-                >
-                  Add New Package
-                </Button>
+                {/* Only show for Superadmin and Admin, not Manager */}
+                {(normalizedRole === 'Superadmin' || normalizedRole === 'Admin') && (
+                  <Button 
+                    type="primary" 
+                    block 
+                    size="large"
+                    icon={<PlusOutlined />}
+                    onClick={() => navigate('/admin/packages')}
+                    style={{
+                      height: windowWidth <= 768 ? '48px' : '55px',
+                      borderRadius: windowWidth <= 768 ? '12px' : '15px',
+                      background: 'linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%)',
+                      border: 'none',
+                      fontSize: windowWidth <= 768 ? '14px' : '16px',
+                      fontWeight: '600',
+                      fontFamily: "'Poppins', sans-serif",
+                      boxShadow: '0 8px 20px rgba(255, 107, 53, 0.3)'
+                    }}
+                  >
+                    Add New Package
+                  </Button>
+                )}
                 <Button 
                   block 
                   size="large"
@@ -943,33 +947,36 @@ const AdminDashboard = () => {
                 >
                   View All Bookings
                 </Button>
-                <Button 
-                  block 
-                  size="large"
-                  icon={<DownloadOutlined />}
-                  onClick={() => navigate('/admin/reports')}
-                  style={{
-                    height: windowWidth <= 768 ? '48px' : '55px',
-                    borderRadius: windowWidth <= 768 ? '12px' : '15px',
-                    fontSize: windowWidth <= 768 ? '14px' : '16px',
-                    fontWeight: '600',
-                    fontFamily: "'Poppins', sans-serif",
-                    border: '2px solid #43e97b',
-                    color: '#43e97b',
-                    background: 'transparent',
-                    transition: 'all 0.3s ease'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.background = '#43e97b';
-                    e.target.style.color = 'white';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.background = 'transparent';
-                    e.target.style.color = '#43e97b';
-                  }}
-                >
-                  Generate Report
-                </Button>
+                {/* Only show Generate Report for Superadmin and Admin, not Manager */}
+                {(normalizedRole === 'Superadmin' || normalizedRole === 'Admin') && (
+                  <Button 
+                    block 
+                    size="large"
+                    icon={<DownloadOutlined />}
+                    onClick={() => navigate('/admin/reports')}
+                    style={{
+                      height: windowWidth <= 768 ? '48px' : '55px',
+                      borderRadius: windowWidth <= 768 ? '12px' : '15px',
+                      fontSize: windowWidth <= 768 ? '14px' : '16px',
+                      fontWeight: '600',
+                      fontFamily: "'Poppins', sans-serif",
+                      border: '2px solid #43e97b',
+                      color: '#43e97b',
+                      background: 'transparent',
+                      transition: 'all 0.3s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.background = '#43e97b';
+                      e.target.style.color = 'white';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.background = 'transparent';
+                      e.target.style.color = '#43e97b';
+                    }}
+                  >
+                    Generate Report
+                  </Button>
+                )}
               </Space>
             </Card>
           </Space>

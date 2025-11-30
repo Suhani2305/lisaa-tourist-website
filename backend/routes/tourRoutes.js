@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const Tour = require('../models/Tour');
+const AdminApproval = require('../models/AdminApproval');
+const { authenticateAdmin, requireAdmin, requireSuperadmin } = require('../middleware/adminAuth');
 
 // Get all tours
 router.get('/', async (req, res) => {
@@ -112,16 +114,41 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Create tour (admin only)
-router.post('/', async (req, res) => {
+// Create tour (admin only - requires approval for Admin role)
+router.post('/', authenticateAdmin, requireAdmin, async (req, res) => {
   try {
     console.log('📦 Received tour data:', JSON.stringify(req.body, null, 2));
     
-    const tour = new Tour(req.body);
-    await tour.save();
+    // Superadmin can create directly, Admin needs approval
+    if (req.admin.role === 'Superadmin') {
+      const tour = new Tour(req.body);
+      await tour.save();
+      
+      console.log('✅ Tour created successfully:', tour._id);
+      return res.status(201).json({ message: 'Tour created successfully', tour });
+    }
     
-    console.log('✅ Tour created successfully:', tour._id);
-    res.status(201).json({ message: 'Tour created successfully', tour });
+    // Admin role - create approval request
+    if (req.admin.role === 'Admin') {
+      const approval = new AdminApproval({
+        actionType: 'package_create',
+        requestedBy: req.adminId,
+        data: req.body,
+        entityType: 'Tour',
+        notes: 'Package creation request'
+      });
+      
+      await approval.save();
+      
+      console.log('⏳ Package creation approval requested:', approval._id);
+      return res.status(202).json({ 
+        message: 'Package creation request submitted for approval',
+        approvalId: approval._id,
+        status: 'pending'
+      });
+    }
+    
+    return res.status(403).json({ message: 'Access denied' });
   } catch (error) {
     console.error('❌ Create tour error:', error);
     console.error('Error details:', error.message);
@@ -157,24 +184,52 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Update tour (admin only)
-router.put('/:id', async (req, res) => {
+// Update tour (admin only - requires approval for Admin role)
+router.put('/:id', authenticateAdmin, requireAdmin, async (req, res) => {
   try {
     console.log('📝 Updating tour:', req.params.id);
     console.log('Update data:', JSON.stringify(req.body, null, 2));
     
-    const tour = await Tour.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    );
-
-    if (!tour) {
+    const existingTour = await Tour.findById(req.params.id);
+    if (!existingTour) {
       return res.status(404).json({ message: 'Tour not found' });
     }
+    
+    // Superadmin can update directly, Admin needs approval
+    if (req.admin.role === 'Superadmin') {
+      const tour = await Tour.findByIdAndUpdate(
+        req.params.id,
+        req.body,
+        { new: true, runValidators: true }
+      );
 
-    console.log('✅ Tour updated successfully');
-    res.json({ message: 'Tour updated successfully', tour });
+      console.log('✅ Tour updated successfully');
+      return res.json({ message: 'Tour updated successfully', tour });
+    }
+    
+    // Admin role - create approval request
+    if (req.admin.role === 'Admin') {
+      const approval = new AdminApproval({
+        actionType: 'package_update',
+        requestedBy: req.adminId,
+        data: req.body,
+        originalData: existingTour.toObject(),
+        entityId: req.params.id,
+        entityType: 'Tour',
+        notes: 'Package update request'
+      });
+      
+      await approval.save();
+      
+      console.log('⏳ Package update approval requested:', approval._id);
+      return res.status(202).json({ 
+        message: 'Package update request submitted for approval',
+        approvalId: approval._id,
+        status: 'pending'
+      });
+    }
+    
+    return res.status(403).json({ message: 'Access denied' });
   } catch (error) {
     console.error('❌ Update tour error:', error);
     
@@ -208,20 +263,46 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// Delete tour (admin only)
-router.delete('/:id', async (req, res) => {
+// Delete tour (admin only - requires approval for Admin role)
+router.delete('/:id', authenticateAdmin, requireAdmin, async (req, res) => {
   try {
-    const tour = await Tour.findByIdAndUpdate(
-      req.params.id,
-      { isActive: false },
-      { new: true }
-    );
-
+    const tour = await Tour.findById(req.params.id);
     if (!tour) {
       return res.status(404).json({ message: 'Tour not found' });
     }
-
-    res.json({ message: 'Tour deleted successfully' });
+    
+    // Superadmin can delete directly, Admin needs approval
+    if (req.admin.role === 'Superadmin') {
+      await Tour.findByIdAndUpdate(
+        req.params.id,
+        { isActive: false },
+        { new: true }
+      );
+      return res.json({ message: 'Tour deleted successfully' });
+    }
+    
+    // Admin role - create approval request
+    if (req.admin.role === 'Admin') {
+      const approval = new AdminApproval({
+        actionType: 'package_delete',
+        requestedBy: req.adminId,
+        data: { tourId: req.params.id, tourTitle: tour.title },
+        originalData: tour.toObject(),
+        entityId: req.params.id,
+        entityType: 'Tour',
+        notes: 'Package deletion request'
+      });
+      
+      await approval.save();
+      
+      return res.status(202).json({ 
+        message: 'Package deletion request submitted for approval',
+        approvalId: approval._id,
+        status: 'pending'
+      });
+    }
+    
+    return res.status(403).json({ message: 'Access denied' });
   } catch (error) {
     console.error('Delete tour error:', error);
     res.status(500).json({ message: 'Server error' });

@@ -9,6 +9,7 @@ const Header = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [adminRole, setAdminRole] = useState(null);
 
   useEffect(() => {
     checkAuthStatus();
@@ -22,19 +23,23 @@ const Header = () => {
     // Check admin token
     const adminToken = localStorage.getItem('adminToken');
     const admin = authService.getCurrentAdmin();
+    const role = localStorage.getItem('adminRole');
     
     if (token && user) {
       setIsLoggedIn(true);
       setCurrentUser(user);
       setIsAdmin(false);
+      setAdminRole(null);
     } else if (adminToken && admin) {
       setIsLoggedIn(true);
       setCurrentUser(admin);
       setIsAdmin(true);
+      setAdminRole(role || 'Admin');
     } else {
       setIsLoggedIn(false);
       setCurrentUser(null);
       setIsAdmin(false);
+      setAdminRole(null);
     }
   };
 
@@ -43,12 +48,13 @@ const Header = () => {
     setIsLoggedIn(false);
     setCurrentUser(null);
     setIsAdmin(false);
+    setAdminRole(null);
     navigate('/');
     window.location.reload(); // Refresh to clear all state
   };
 
   const handleLogin = () => {
-    navigate('/login');
+    navigate('/login', { state: { from: { pathname: window.location.pathname } } });
   };
 
   const handleRegister = () => {
@@ -93,6 +99,16 @@ const Header = () => {
     }
   };
 
+  // Get panel title based on role
+  const getPanelTitle = () => {
+    if (!adminRole) return 'Admin Panel';
+    const normalizedRole = adminRole === 'Super Admin' ? 'Superadmin' : adminRole;
+    if (normalizedRole === 'Superadmin') return 'Superadmin Panel';
+    if (normalizedRole === 'Admin') return 'Admin Panel';
+    if (normalizedRole === 'Manager') return 'Manager Panel';
+    return 'Admin Panel';
+  };
+
   // Dropdown menu items for logged-in user
   const userMenuItems = [
     {
@@ -116,7 +132,7 @@ const Header = () => {
       {
         key: 'admin-panel',
         icon: <DashboardOutlined />,
-        label: 'Admin Panel',
+        label: getPanelTitle(),
         onClick: handleAdminPanel,
       },
     ] : [

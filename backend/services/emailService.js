@@ -1151,6 +1151,154 @@ const sendBookingConfirmationEmailUpdated = async (bookingData) => {
   }
 };
 
+// Send approval notification email to admin
+const sendApprovalNotificationEmail = async ({ admin, approval, action }) => {
+  try {
+    if (!transporter) {
+      console.warn('⚠️ Email service not configured. Skipping approval notification.');
+      return { success: false, error: 'Email service not configured' };
+    }
+
+    if (!admin || !admin.email) {
+      console.warn('⚠️ Admin email not provided. Skipping approval notification.');
+      return { success: false, error: 'Admin email not provided' };
+    }
+
+    const actionTypeMap = {
+      'package_create': 'Package Creation',
+      'package_update': 'Package Update',
+      'package_delete': 'Package Deletion',
+      'package_publish': 'Package Publication'
+    };
+
+    const actionName = actionTypeMap[approval.actionType] || approval.actionType;
+    const statusText = action === 'approved' ? 'Approved' : 'Rejected';
+    const statusColor = action === 'approved' ? '#52c41a' : '#ff4d4f';
+    const statusIcon = action === 'approved' ? '✅' : '❌';
+
+    const subject = `Your ${actionName} Request Has Been ${statusText}`;
+    
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Approval Notification</title>
+      </head>
+      <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f5f5;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+          <!-- Header -->
+          <div style="background: linear-gradient(135deg, #ff6b35 0%, #ff8a3d 100%); padding: 30px; text-align: center;">
+            <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 600;">
+              ${statusIcon} Approval ${statusText}
+            </h1>
+          </div>
+
+          <!-- Content -->
+          <div style="padding: 40px 30px;">
+            <p style="color: #333333; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+              Hello <strong>${admin.name || 'Admin'}</strong>,
+            </p>
+
+            <p style="color: #333333; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+              Your request for <strong>${actionName}</strong> has been <strong style="color: ${statusColor};">${statusText.toLowerCase()}</strong> by Superadmin.
+            </p>
+
+            ${action === 'approved' ? `
+              <div style="background-color: #f6ffed; border-left: 4px solid #52c41a; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                <p style="color: #389e0d; margin: 0; font-weight: 600;">
+                  ✅ Your request has been approved and processed successfully!
+                </p>
+                <p style="color: #389e0d; margin: 10px 0 0 0; font-size: 14px;">
+                  The changes are now live on the website.
+                </p>
+              </div>
+            ` : `
+              <div style="background-color: #fff2f0; border-left: 4px solid #ff4d4f; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                <p style="color: #cf1322; margin: 0; font-weight: 600;">
+                  ❌ Your request has been rejected.
+                </p>
+                ${approval.rejectionReason ? `
+                  <p style="color: #cf1322; margin: 10px 0 0 0; font-size: 14px;">
+                    <strong>Reason:</strong> ${approval.rejectionReason}
+                  </p>
+                ` : ''}
+              </div>
+            `}
+
+            <div style="background-color: #fafafa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="color: #333333; margin: 0 0 15px 0; font-size: 18px;">Request Details:</h3>
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="padding: 8px 0; color: #666666; font-size: 14px; width: 40%;">Action Type:</td>
+                  <td style="padding: 8px 0; color: #333333; font-size: 14px; font-weight: 600;">${actionName}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; color: #666666; font-size: 14px;">Requested On:</td>
+                  <td style="padding: 8px 0; color: #333333; font-size: 14px;">${new Date(approval.createdAt).toLocaleString('en-IN', { 
+                    day: '2-digit', 
+                    month: 'long', 
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; color: #666666; font-size: 14px;">Processed On:</td>
+                  <td style="padding: 8px 0; color: #333333; font-size: 14px;">${approval.approvedAt ? new Date(approval.approvedAt).toLocaleString('en-IN', { 
+                    day: '2-digit', 
+                    month: 'long', 
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  }) : 'N/A'}</td>
+                </tr>
+              </table>
+            </div>
+
+            <p style="color: #333333; font-size: 16px; line-height: 1.6; margin: 30px 0 20px 0;">
+              You can view all your approval requests in the Admin Panel.
+            </p>
+
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/admin/approvals" 
+                 style="display: inline-block; background-color: #ff6b35; color: #ffffff; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px;">
+                View Approval Requests
+              </a>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div style="background-color: #fafafa; padding: 20px 30px; text-align: center; border-top: 1px solid #e8e8e8;">
+            <p style="color: #999999; font-size: 12px; margin: 0 0 10px 0;">
+              This is an automated notification from Lisaa Tours & Travels Admin Panel.
+            </p>
+            <p style="color: #999999; font-size: 12px; margin: 0;">
+              Please do not reply to this email.
+            </p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const mailOptions = {
+      from: `"Lisaa Tours & Travels" <${process.env.EMAIL_USER || 'Lsiaatech@gmail.com'}>`,
+      to: admin.email,
+      subject: subject,
+      html: html
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`✅ Approval notification email sent to ${admin.email}:`, info.messageId);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('❌ Error sending approval notification email:', error);
+    return { success: false, error: error.message };
+  }
+};
+
 module.exports = {
   sendOtpEmail,
   sendPasswordResetOtp,
@@ -1162,6 +1310,7 @@ module.exports = {
   sendReviewRequestEmail,
   sendInquiryReplyEmail,
   sendCouponAnnouncementEmail,
+  sendApprovalNotificationEmail,
   initializeEmailService
 };
 

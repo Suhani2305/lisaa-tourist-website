@@ -18,16 +18,19 @@ const initAdmins = async () => {
 
     const adminEmails = [
       {
+        name: 'Super Admin',
         email: 'pushpendrarawat868@gmail.com',
         phone: '9263616263',
-        role: 'Super Admin'
+        role: 'Superadmin'
       },
       {
+        name: 'Admin User',
         email: 'Lsiaatech@gmail.com',
         phone: '8840206492',
         role: 'Admin'
       },
       {
+        name: 'Admin User 2',
         email: 'vp312600@gmail.com',
         phone: '9263616263',
         role: 'Admin'
@@ -44,6 +47,7 @@ const initAdmins = async () => {
       } else {
         // Create admin with default password
         const admin = new AdminUser({
+          name: adminData.name,
           email: adminData.email.toLowerCase(),
           password: 'admin@123', // Default password - user should reset
           phone: adminData.phone,

@@ -103,6 +103,16 @@ const PackageManagement = () => {
 
   useEffect(() => {
     fetchPackages();
+    
+    // Listen for package refresh event (triggered after approval)
+    const handleRefresh = () => {
+      fetchPackages();
+    };
+    window.addEventListener('packages-refresh', handleRefresh);
+    
+    return () => {
+      window.removeEventListener('packages-refresh', handleRefresh);
+    };
   }, []);
 
   const fetchPackages = async () => {
@@ -250,13 +260,32 @@ const PackageManagement = () => {
 
       console.log('📦 Sending package data:', JSON.stringify(packageData, null, 2));
 
+      const adminRole = localStorage.getItem('adminRole') || 'Admin';
+      const normalizedRole = adminRole === 'Super Admin' ? 'Superadmin' : adminRole;
+
       if (editingPackage) {
-        await tourService.updateTour(editingPackage._id, packageData);
-        message.success('Package updated successfully! ✅');
+        const result = await tourService.updateTour(editingPackage._id, packageData);
+        
+        if (result?.isApprovalRequest || result?.requiresApproval) {
+          message.warning({
+            content: 'Package update request submitted for approval. It will be processed after Superadmin approval.',
+            duration: 5
+          });
+        } else {
+          message.success('Package updated successfully! ✅');
+        }
       } else {
         const result = await tourService.createTour(packageData);
-        console.log('✅ Package created:', result);
-        message.success('Package created successfully! ✅');
+        console.log('✅ Package creation result:', result);
+        
+        if (result?.isApprovalRequest || result?.requiresApproval) {
+          message.warning({
+            content: 'Package creation request submitted for approval. It will be created after Superadmin approval.',
+            duration: 5
+          });
+        } else {
+          message.success('Package created successfully! ✅');
+        }
       }
 
       setModalVisible(false);
@@ -550,6 +579,7 @@ const PackageManagement = () => {
     }}>
       {/* Header Section */}
       <div style={{
+        position: 'relative',
         marginBottom: windowWidth <= 768 ? '20px' : '32px',
         textAlign: 'center'
       }}>
@@ -578,6 +608,34 @@ const PackageManagement = () => {
         }}>
           Manage and organize your tour packages
         </p>
+
+        {/* Refresh Button - Top Right */}
+        <Button 
+          type="primary"
+          icon={<ReloadOutlined />}
+          loading={loading}
+          onClick={fetchPackages}
+          style={{
+            position: 'absolute',
+            top: '0',
+            right: '0',
+            borderRadius: '12px',
+            background: '#ff6b35',
+            border: 'none',
+            fontFamily: "'Poppins', sans-serif",
+            fontWeight: '600',
+            boxShadow: '0 4px 12px rgba(255, 107, 53, 0.3)',
+            height: windowWidth <= 768 ? '36px' : '42px',
+            padding: windowWidth <= 768 ? '0 14px' : '0 20px',
+            fontSize: windowWidth <= 768 ? '12px' : '14px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px'
+          }}
+        >
+          {windowWidth > 768 && 'Refresh'}
+        </Button>
       </div>
 
       {/* Statistics Cards */}
@@ -652,10 +710,10 @@ const PackageManagement = () => {
           boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
           border: 'none'
         }}
-        bodyStyle={{ padding: windowWidth <= 768 ? '12px' : '20px' }}
+        styles={{ body: { padding: windowWidth <= 768 ? '12px' : '20px' } }}
       >
         <Row gutter={[16, 16]} align="middle">
-          <Col xs={24} sm={24} md={8}>
+          <Col xs={24} sm={24} md={10} lg={10}>
             <Input
               placeholder="Search packages..."
               prefix={<SearchOutlined />}
@@ -666,7 +724,7 @@ const PackageManagement = () => {
               style={{ borderRadius: '8px' }}
             />
           </Col>
-          <Col xs={12} sm={8} md={4}>
+          <Col xs={12} sm={8} md={3} lg={3}>
             <Select
               placeholder="Category"
               value={categoryFilter}
@@ -685,7 +743,7 @@ const PackageManagement = () => {
               <Option value="wildlife">Wildlife</Option>
             </Select>
           </Col>
-          <Col xs={12} sm={8} md={4}>
+          <Col xs={12} sm={8} md={3} lg={3}>
             <Select
               placeholder="Status"
               value={statusFilter}
@@ -698,7 +756,7 @@ const PackageManagement = () => {
               <Option value="unavailable">Unavailable</Option>
             </Select>
           </Col>
-          <Col xs={12} sm={8} md={4}>
+          <Col xs={12} sm={8} md={4} lg={4}>
             <Space style={{ width: '100%', justifyContent: 'center' }}>
               <Tooltip title="Table View">
                 <Button
@@ -724,37 +782,22 @@ const PackageManagement = () => {
               </Tooltip>
             </Space>
           </Col>
-          <Col xs={12} sm={8} md={4}>
-            <Space 
+          <Col xs={12} sm={8} md={4} lg={4}>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={handleAdd}
+              size={windowWidth <= 768 ? 'middle' : 'large'}
               style={{ 
-                width: '100%', 
-                justifyContent: 'center'
+                width: '100%',
+                backgroundColor: '#ff6b35', 
+                borderColor: '#ff6b35',
+                borderRadius: '8px',
+                fontWeight: '600'
               }}
             >
-              <Button
-                icon={<ReloadOutlined />}
-                onClick={fetchPackages}
-                loading={loading}
-                size={windowWidth <= 768 ? 'middle' : 'large'}
-                style={{ borderRadius: '8px' }}
-              >
-                {windowWidth > 768 && 'Refresh'}
-              </Button>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={handleAdd}
-                size={windowWidth <= 768 ? 'middle' : 'large'}
-                style={{ 
-                  backgroundColor: '#ff6b35', 
-                  borderColor: '#ff6b35',
-                  borderRadius: '8px',
-                  fontWeight: '600'
-                }}
-          >
-                {windowWidth > 768 ? 'Add Package' : 'Add'}
-          </Button>
-            </Space>
+              {windowWidth > 768 ? 'Add Package' : 'Add'}
+            </Button>
           </Col>
         </Row>
       </Card>
@@ -845,7 +888,7 @@ const PackageManagement = () => {
                     transition: 'all 0.3s ease',
                     cursor: 'pointer'
                   }}
-                  bodyStyle={{ padding: '16px' }}
+                  styles={{ body: { padding: '16px' } }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = 'translateY(-4px)';
                     e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.15)';

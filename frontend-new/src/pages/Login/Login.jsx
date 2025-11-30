@@ -16,8 +16,9 @@ import {
   EyeTwoTone,
   GoogleOutlined,
 } from "@ant-design/icons";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation, useSearchParams } from "react-router-dom";
 import { authService } from "../../services";
+import wishlistService from "../../services/wishlistService";
 
 // Import Google Font (Poppins)
 const link = document.createElement("link");
@@ -39,6 +40,8 @@ const Login = () => {
   ];
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
@@ -251,9 +254,23 @@ const Login = () => {
         password: values.password,
       });
       
+      // Sync guest wishlist to backend after login
+      try {
+        await wishlistService.syncGuestWishlist();
+      } catch (wishlistError) {
+        console.warn('Failed to sync guest wishlist:', wishlistError);
+        // Don't block login if wishlist sync fails
+      }
+      
       message.success(`Welcome back, ${response.user.name || 'User'}!`);
+      
+      // Get redirect location from state, search params, or default to home
+      const redirectTo = location.state?.from?.pathname 
+        || searchParams.get('redirect') 
+        || "/";
+      
       setTimeout(() => {
-        navigate("/");
+        navigate(redirectTo, { replace: true });
       }, 500);
     } catch (error) {
       console.error("Login error:", error);
@@ -337,9 +354,23 @@ const Login = () => {
       const response = await authService.googleLogin(token);
       
       if (response && response.user) {
+        // Sync guest wishlist to backend after login
+        try {
+          await wishlistService.syncGuestWishlist();
+        } catch (wishlistError) {
+          console.warn('Failed to sync guest wishlist:', wishlistError);
+          // Don't block login if wishlist sync fails
+        }
+        
         message.success(`Welcome, ${response.user.name || 'User'}!`);
+        
+        // Get redirect location from state, search params, or default to home
+        const redirectTo = location.state?.from?.pathname 
+          || searchParams.get('redirect') 
+          || "/";
+        
         setTimeout(() => {
-          navigate("/");
+          navigate(redirectTo, { replace: true });
         }, 500);
       } else {
         throw new Error('Invalid response from server');

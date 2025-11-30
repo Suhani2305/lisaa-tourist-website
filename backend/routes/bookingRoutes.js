@@ -5,8 +5,9 @@ const Tour = require('../models/Tour');
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const emailService = require('../services/emailService');
+const { authenticateAdmin, requireManager, canAccessData } = require('../middleware/adminAuth');
 
-// Middleware to verify JWT token
+// Middleware to verify JWT token (for regular users)
 const authenticateToken = (req, res, next) => {
   const token = req.header('Authorization')?.replace('Bearer ', '');
   if (!token) {
@@ -285,11 +286,26 @@ router.put('/:id/cancel', authenticateToken, async (req, res) => {
   }
 });
 
-// Get all bookings (admin only)
-router.get('/admin/all', authenticateToken, async (req, res) => {
+// Get all bookings (admin/manager only)
+router.get('/admin/all', authenticateAdmin, requireManager, canAccessData, async (req, res) => {
   try {
     const { page = 1, limit = 10, status } = req.query;
-    const query = status ? { status } : {};
+    let query = status ? { status } : {};
+
+    // Filter for managers - only show assigned bookings
+    if (req.admin.role === 'Manager') {
+      const assignedBookingIds = req.admin.assignedData?.bookings || [];
+      if (assignedBookingIds.length === 0) {
+        // Manager has no assigned bookings
+        return res.json({
+          bookings: [],
+          totalPages: 0,
+          currentPage: parseInt(page),
+          total: 0
+        });
+      }
+      query._id = { $in: assignedBookingIds };
+    }
 
     const bookings = await Booking.find(query)
       .populate('user', 'name email')
@@ -303,7 +319,7 @@ router.get('/admin/all', authenticateToken, async (req, res) => {
     res.json({
       bookings,
       totalPages: Math.ceil(total / limit),
-      currentPage: page,
+      currentPage: parseInt(page),
       total
     });
   } catch (error) {
@@ -417,14 +433,24 @@ router.put('/:id/special-requests', authenticateToken, async (req, res) => {
   }
 });
 
-// Get modification requests (admin)
-router.get('/admin/modification-requests', authenticateToken, async (req, res) => {
+// Get modification requests (admin/manager)
+router.get('/admin/modification-requests', authenticateAdmin, requireManager, canAccessData, async (req, res) => {
   try {
     const { status = 'pending' } = req.query;
     
-    const bookings = await Booking.find({
-      'modificationRequests.status': status
-    })
+    // Build query with manager filtering
+    let query = { 'modificationRequests.status': status };
+    
+    // Filter for managers - only show assigned bookings
+    if (req.admin.role === 'Manager') {
+      const assignedBookingIds = req.admin.assignedData?.bookings || [];
+      if (assignedBookingIds.length === 0) {
+        return res.json({ requests: [] });
+      }
+      query._id = { $in: assignedBookingIds };
+    }
+
+    const bookings = await Booking.find(query)
       .populate('user', 'name email')
       .populate('tour', 'title destination price')
       .select('bookingNumber user tour travelers travelDates pricing status modificationRequests');
@@ -460,8 +486,8 @@ router.get('/admin/modification-requests', authenticateToken, async (req, res) =
   }
 });
 
-// Approve/Reject modification request (admin)
-router.put('/:bookingId/modify/:requestId', authenticateToken, async (req, res) => {
+// Approve/Reject modification request (admin/manager)
+router.put('/:bookingId/modify/:requestId', authenticateAdmin, requireManager, canAccessData, async (req, res) => {
   try {
     const { bookingId, requestId } = req.params;
     const { action, adminNotes } = req.body; // action: 'approve' or 'reject'
@@ -470,6 +496,14 @@ router.put('/:bookingId/modify/:requestId', authenticateToken, async (req, res) 
 
     if (!booking) {
       return res.status(404).json({ message: 'Booking not found' });
+    }
+
+    // Check if manager can access this booking
+    if (req.admin.role === 'Manager') {
+      const assignedBookingIds = req.admin.assignedData?.bookings || [];
+      if (!assignedBookingIds.includes(bookingId)) {
+        return res.status(403).json({ message: 'Access denied. This booking is not assigned to you.' });
+      }
     }
 
     const request = booking.modificationRequests.id(requestId);
@@ -549,6 +583,71 @@ router.put('/:bookingId/modify/:requestId', authenticateToken, async (req, res) 
     }
   } catch (error) {
     console.error('Process modification request error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Update booking status (admin/manager)
+router.put('/:id/status', authenticateAdmin, requireManager, canAccessData, async (req, res) => {
+  try {
+    const { status } = req.body;
+    const booking = await Booking.findById(req.params.id);
+
+    if (!booking) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+
+    // Check if manager can access this booking
+    if (req.admin.role === 'Manager') {
+      const assignedBookingIds = req.admin.assignedData?.bookings || [];
+      if (!assignedBookingIds.includes(req.params.id)) {
+        return res.status(403).json({ message: 'Access denied. This booking is not assigned to you.' });
+      }
+    }
+
+    booking.status = status;
+    await booking.save();
+
+    res.json({ message: 'Booking status updated successfully', booking });
+  } catch (error) {
+    console.error('Update booking status error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Update payment status (admin/manager)
+router.put('/:id/payment-status', authenticateAdmin, requireManager, canAccessData, async (req, res) => {
+  try {
+    const { paymentStatus, transactionId } = req.body;
+    const booking = await Booking.findById(req.params.id);
+
+    if (!booking) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+
+    // Check if manager can access this booking
+    if (req.admin.role === 'Manager') {
+      const assignedBookingIds = req.admin.assignedData?.bookings || [];
+      if (!assignedBookingIds.includes(req.params.id)) {
+        return res.status(403).json({ message: 'Access denied. This booking is not assigned to you.' });
+      }
+    }
+
+    if (!booking.payment) {
+      booking.payment = {};
+    }
+
+    booking.payment.status = paymentStatus;
+    if (transactionId) {
+      booking.payment.transactionId = transactionId;
+    }
+    booking.payment.updatedAt = new Date();
+
+    await booking.save();
+
+    res.json({ message: 'Payment status updated successfully', booking });
+  } catch (error) {
+    console.error('Update payment status error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

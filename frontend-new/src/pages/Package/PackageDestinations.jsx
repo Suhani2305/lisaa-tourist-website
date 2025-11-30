@@ -151,11 +151,6 @@ const PackageDestinations = () => {
 
   // Fetch wishlist status for all packages
   const fetchWishlistStatus = async () => {
-    if (!authService.isAuthenticated()) {
-      setWishlistItems([]);
-      return;
-    }
-
     try {
       const wishlist = await wishlistService.getWishlist();
       const tourIds = wishlist.map(item => item.tour?._id || item.tour);
@@ -172,12 +167,6 @@ const PackageDestinations = () => {
 
   const handleWishlistToggle = async (e, packageId) => {
     e.stopPropagation(); // Prevent package card click
-    
-    if (!authService.isAuthenticated()) {
-      message.warning('Please login to add packages to wishlist');
-      navigate('/login');
-      return;
-    }
 
     try {
       setWishlistLoading(prev => ({ ...prev, [packageId]: true }));

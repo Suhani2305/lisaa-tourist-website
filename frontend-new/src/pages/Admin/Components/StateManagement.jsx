@@ -786,6 +786,7 @@ const StateManagement = () => {
     }}>
       {/* Header Section */}
       <div style={{
+        position: 'relative',
         marginBottom: windowWidth <= 768 ? '20px' : '32px',
         textAlign: 'center'
       }}>
@@ -814,6 +815,38 @@ const StateManagement = () => {
         }}>
           Manage states, cities, and city tours
         </p>
+
+        {/* Refresh Button - Top Right */}
+        <Button 
+          type="primary"
+          icon={<ReloadOutlined />}
+          loading={loading}
+          onClick={() => {
+            if (activeTab === 'states') fetchStates();
+            else if (activeTab === 'cities') fetchCities();
+            else fetchCityTours();
+          }}
+          style={{
+            position: 'absolute',
+            top: '0',
+            right: '0',
+            borderRadius: '12px',
+            background: '#ff6b35',
+            border: 'none',
+            fontFamily: "'Poppins', sans-serif",
+            fontWeight: '600',
+            boxShadow: '0 4px 12px rgba(255, 107, 53, 0.3)',
+            height: windowWidth <= 768 ? '36px' : '42px',
+            padding: windowWidth <= 768 ? '0 14px' : '0 20px',
+            fontSize: windowWidth <= 768 ? '12px' : '14px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px'
+          }}
+        >
+          {windowWidth > 768 && 'Refresh'}
+        </Button>
       </div>
 
       {/* Statistics Cards */}
@@ -873,11 +906,10 @@ const StateManagement = () => {
           boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
           border: 'none'
         }}
-        bodyStyle={{ padding: windowWidth <= 768 ? '12px' : '20px' }}
+        styles={{ body: { padding: windowWidth <= 768 ? '12px' : '20px' } }}
       >
-        <Row gutter={[12, 12]} align="middle">
-          {/* Row 1: Search and Filter (mobile) / Search only (desktop) */}
-          <Col xs={16} sm={24} md={10}>
+        <Row gutter={[16, 16]} align="middle">
+          <Col xs={24} sm={24} md={10} lg={10}>
             <Input
               placeholder={`Search ${activeTab}...`}
               prefix={<SearchOutlined />}
@@ -888,7 +920,7 @@ const StateManagement = () => {
               style={{ borderRadius: '8px' }}
             />
           </Col>
-          <Col xs={8} sm={24} md={4}>
+          <Col xs={12} sm={8} md={3} lg={3}>
             <Select
               placeholder="Status"
               value={statusFilter}
@@ -901,67 +933,50 @@ const StateManagement = () => {
               <Option value="inactive">Inactive</Option>
             </Select>
           </Col>
-          
-          {/* Row 2: View Toggle, Refresh, Create (mobile) / All in one row (desktop) */}
-          <Col xs={6} sm={8} md={4}>
-            <Tooltip title="Table View">
+          <Col xs={12} sm={8} md={4} lg={4}>
+            <Space style={{ width: '100%', justifyContent: 'center' }}>
+              <Tooltip title="Table View">
+                <Button
+                  type={viewMode === 'table' ? 'primary' : 'default'}
+                  icon={<UnorderedListOutlined />}
+                  onClick={() => setViewMode('table')}
+                  size={windowWidth <= 768 ? 'middle' : 'large'}
+                  style={{ borderRadius: '8px', flex: 1 }}
+                >
+                  {windowWidth <= 768 && 'Table'}
+                </Button>
+              </Tooltip>
+              <Tooltip title="Grid View">
+                <Button
+                  type={viewMode === 'grid' ? 'primary' : 'default'}
+                  icon={<AppstoreOutlined />}
+                  onClick={() => setViewMode('grid')}
+                  size={windowWidth <= 768 ? 'middle' : 'large'}
+                  style={{ borderRadius: '8px', flex: 1 }}
+                >
+                  {windowWidth <= 768 && 'Grid'}
+                </Button>
+              </Tooltip>
+            </Space>
+          </Col>
+          <Col xs={24} sm={24} md={7} lg={7}>
+            {activeTab !== 'city-tours' && (
               <Button
-                type={viewMode === 'table' ? 'primary' : 'default'}
-                icon={<UnorderedListOutlined />}
-                onClick={() => setViewMode('table')}
-                size={windowWidth <= 768 ? 'middle' : 'large'}
-                style={{ borderRadius: '8px', width: '100%' }}
-              >
-                {windowWidth <= 768 && 'Table'}
-              </Button>
-            </Tooltip>
-          </Col>
-          <Col xs={6} sm={8} md={4}>
-            <Tooltip title="Grid View">
-              <Button
-                type={viewMode === 'grid' ? 'primary' : 'default'}
-                icon={<AppstoreOutlined />}
-                onClick={() => setViewMode('grid')}
-                size={windowWidth <= 768 ? 'middle' : 'large'}
-                style={{ borderRadius: '8px', width: '100%' }}
-              >
-                {windowWidth <= 768 && 'Grid'}
-              </Button>
-            </Tooltip>
-          </Col>
-          <Col xs={6} sm={8} md={3}>
-            <Button
-              icon={<ReloadOutlined />}
-              onClick={() => {
-                if (activeTab === 'states') fetchStates();
-                else if (activeTab === 'cities') fetchCities();
-                else fetchCityTours();
-              }}
-              loading={loading}
-              size={windowWidth <= 768 ? 'middle' : 'large'}
-              style={{ borderRadius: '8px', width: '100%' }}
-            >
-              {windowWidth > 768 && 'Refresh'}
-            </Button>
-          </Col>
-          <Col xs={6} sm={24} md={3}>
-          {activeTab !== 'city-tours' && (
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={handleAdd}
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={handleAdd}
                 size={windowWidth <= 768 ? 'middle' : 'large'}
                 style={{ 
+                  width: '100%',
                   backgroundColor: '#ff6b35', 
                   borderColor: '#ff6b35',
                   borderRadius: '8px',
-                  fontWeight: '600',
-                  width: '100%'
+                  fontWeight: '600'
                 }}
-            >
+              >
                 {windowWidth > 768 ? `Create ${activeTab === 'states' ? 'State' : 'City'}` : 'Create'}
-            </Button>
-          )}
+              </Button>
+            )}
             {activeTab === 'city-tours' && (
               <Button
                 type="primary"
@@ -976,11 +991,11 @@ const StateManagement = () => {
                 }}
                 size={windowWidth <= 768 ? 'middle' : 'large'}
                 style={{ 
+                  width: '100%',
                   backgroundColor: '#ff6b35', 
                   borderColor: '#ff6b35',
                   borderRadius: '8px',
-                  fontWeight: '600',
-                  width: '100%'
+                  fontWeight: '600'
                 }}
               >
                 {windowWidth > 768 ? 'Create Tour' : 'Create'}
@@ -1139,7 +1154,7 @@ const StateManagement = () => {
                             </div>
                           )
                         }
-                        bodyStyle={{ padding: '16px' }}
+                        styles={{ body: { padding: '16px' } }}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.transform = 'translateY(-4px)';
                           e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.15)';
@@ -1400,7 +1415,7 @@ const StateManagement = () => {
                             </div>
                           )
                         }
-                        bodyStyle={{ padding: '16px' }}
+                        styles={{ body: { padding: '16px' } }}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.transform = 'translateY(-4px)';
                           e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.15)';
@@ -1645,7 +1660,7 @@ const StateManagement = () => {
                             </Tag>
                           </div>
                         }
-                        bodyStyle={{ padding: '16px' }}
+                        styles={{ body: { padding: '16px' } }}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.transform = 'translateY(-4px)';
                           e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.15)';

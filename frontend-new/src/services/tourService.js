@@ -47,12 +47,42 @@ const tourService = {
   createTour: async (tourData) => {
     try {
       console.log('🚀 Creating tour with data:', tourData);
-      const response = await api.post('/tours', tourData);
-      console.log('✅ Tour created response:', response.data);
+      
+      // Get admin token for admin routes
+      const adminToken = localStorage.getItem('adminToken');
+      const config = adminToken ? {
+        headers: {
+          Authorization: `Bearer ${adminToken}`
+        }
+      } : {};
+      
+      const response = await api.post('/tours', tourData, config);
+      console.log('✅ Tour created response:', response);
+      console.log('✅ Response status:', response.status);
+      console.log('✅ Response data:', response.data);
+      
+      // Handle approval request (202 status) - axios treats 2xx as success
+      if (response.status === 202 || response.data?.status === 'pending' || response.data?.approvalId) {
+        return {
+          ...response.data,
+          requiresApproval: true,
+          isApprovalRequest: true
+        };
+      }
+      
       return response.data;
     } catch (error) {
       console.error('❌ Create tour error:', error);
       console.error('❌ Response data:', error.response?.data);
+      
+      // Handle 202 status (approval request) - axios treats it as success but check anyway
+      if (error.response?.status === 202 || error.response?.data?.status === 'pending') {
+        return {
+          ...error.response.data,
+          requiresApproval: true,
+          isApprovalRequest: true
+        };
+      }
       
       // Handle duplicate key error (MongoDB E11000)
       if (error.response?.data?.message && error.response.data.message.includes('E11000')) {
@@ -75,9 +105,35 @@ const tourService = {
   // Update tour (admin)
   updateTour: async (tourId, tourData) => {
     try {
-      const response = await api.put(`/tours/${tourId}`, tourData);
+      // Get admin token for admin routes
+      const adminToken = localStorage.getItem('adminToken');
+      const config = adminToken ? {
+        headers: {
+          Authorization: `Bearer ${adminToken}`
+        }
+      } : {};
+      
+      const response = await api.put(`/tours/${tourId}`, tourData, config);
+      
+      // Handle approval request (202 status)
+      if (response.status === 202 || response.data?.status === 'pending' || response.data?.approvalId) {
+        return {
+          ...response.data,
+          requiresApproval: true,
+          isApprovalRequest: true
+        };
+      }
+      
       return response.data;
     } catch (error) {
+      // Handle 202 status (approval request)
+      if (error.response?.status === 202 || error.response?.data?.status === 'pending') {
+        return {
+          ...error.response.data,
+          requiresApproval: true,
+          isApprovalRequest: true
+        };
+      }
       throw new Error(error.response?.data?.message || 'Failed to update tour');
     }
   },
@@ -85,9 +141,35 @@ const tourService = {
   // Delete tour (admin)
   deleteTour: async (tourId) => {
     try {
-      const response = await api.delete(`/tours/${tourId}`);
+      // Get admin token for admin routes
+      const adminToken = localStorage.getItem('adminToken');
+      const config = adminToken ? {
+        headers: {
+          Authorization: `Bearer ${adminToken}`
+        }
+      } : {};
+      
+      const response = await api.delete(`/tours/${tourId}`, config);
+      
+      // Handle approval request (202 status)
+      if (response.status === 202 || response.data?.status === 'pending' || response.data?.approvalId) {
+        return {
+          ...response.data,
+          requiresApproval: true,
+          isApprovalRequest: true
+        };
+      }
+      
       return response.data;
     } catch (error) {
+      // Handle 202 status (approval request)
+      if (error.response?.status === 202 || error.response?.data?.status === 'pending') {
+        return {
+          ...error.response.data,
+          requiresApproval: true,
+          isApprovalRequest: true
+        };
+      }
       throw new Error(error.response?.data?.message || 'Failed to delete tour');
     }
   },

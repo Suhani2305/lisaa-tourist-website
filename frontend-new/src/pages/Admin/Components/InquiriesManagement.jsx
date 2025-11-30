@@ -772,6 +772,7 @@ Lisaa Tours & Travels Team`
     }}>
       {/* Header Section */}
       <div style={{
+        position: 'relative',
         marginBottom: windowWidth <= 768 ? '20px' : '32px',
         textAlign: 'center'
       }}>
@@ -797,6 +798,34 @@ Lisaa Tours & Travels Team`
         }}>
           Manage customer inquiries, leads, and follow-up activities
         </p>
+
+        {/* Refresh Button - Top Right */}
+        <Button 
+          type="primary"
+          icon={<ReloadOutlined />}
+          loading={loading}
+          onClick={fetchInquiries}
+          style={{
+            position: 'absolute',
+            top: '0',
+            right: '0',
+            borderRadius: '12px',
+            background: '#ff6b35',
+            border: 'none',
+            fontFamily: "'Poppins', sans-serif",
+            fontWeight: '600',
+            boxShadow: '0 4px 12px rgba(255, 107, 53, 0.3)',
+            height: windowWidth <= 768 ? '36px' : '42px',
+            padding: windowWidth <= 768 ? '0 14px' : '0 20px',
+            fontSize: windowWidth <= 768 ? '12px' : '14px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px'
+          }}
+        >
+          {windowWidth > 768 && 'Refresh'}
+        </Button>
       </div>
 
       {/* Statistics Cards */}
@@ -865,185 +894,93 @@ Lisaa Tours & Travels Team`
       </Row>
 
       {/* Actions Bar */}
-      <Card style={{ 
-        marginBottom: '24px',
-        borderRadius: '12px',
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-        border: 'none',
-        padding: windowWidth <= 768 ? '16px' : '20px'
-      }}>
-        <Row gutter={[12, 12]}>
-          {windowWidth <= 768 ? (
-            <>
-              <Col xs={16}>
-                <Input
-                  placeholder="Search inquiries..."
-                  prefix={<SearchOutlined />}
-                  value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
-                  style={{ borderRadius: '8px' }}
-                />
-              </Col>
-              <Col xs={8}>
-                <Select
-                  placeholder="Status"
-                  value={filterStatus}
-                  onChange={setFilterStatus}
-                  style={{ width: '100%', borderRadius: '8px' }}
-                >
-                  <Option value="all">All Status</Option>
-                  <Option value="new">New</Option>
-                  <Option value="contacted">Contacted</Option>
-                  <Option value="qualified">Qualified</Option>
-                  <Option value="converted">Converted</Option>
-                  <Option value="closed">Closed</Option>
-                </Select>
-              </Col>
-              <Col xs={12}>
-                <Select
-                  placeholder="Priority"
-                  value={filterPriority}
-                  onChange={setFilterPriority}
-                  style={{ width: '100%', borderRadius: '8px' }}
-                >
-                  <Option value="all">All Priority</Option>
-                  <Option value="high">High</Option>
-                  <Option value="medium">Medium</Option>
-                  <Option value="low">Low</Option>
-                </Select>
-              </Col>
-              <Col xs={6}>
-                <Tooltip title="Refresh">
-                  <Button
-                    icon={<ReloadOutlined />}
-                    onClick={fetchInquiries}
-                    loading={loading}
-                    size="middle"
-                    style={{ borderRadius: '8px', width: '100%' }}
-                  />
-                </Tooltip>
-              </Col>
-              <Col xs={6}>
-                <Tooltip title="Export">
-                  <Button
-                    icon={<ExportOutlined />}
-                    onClick={handleExport}
-                    size="middle"
-                    style={{ borderRadius: '8px', width: '100%' }}
-                  />
-                </Tooltip>
-              </Col>
-              <Col xs={24}>
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={() => {
-                    setEditingInquiry(null);
-                    form.resetFields();
-                    setModalVisible(true);
-                  }}
-                  size="middle"
-                  style={{ 
-                    borderRadius: '8px', 
-                    width: '100%',
-                    background: '#ff6b35',
-                    border: 'none',
-                    fontFamily: "'Poppins', sans-serif",
-                    fontWeight: '600'
-                  }}
-                >
-                  Add Inquiry
-                </Button>
-              </Col>
-            </>
-          ) : (
-            <>
-              <Col xs={24} sm={12} md={8} lg={6}>
-                <Input
-                  placeholder="Search inquiries..."
-                  prefix={<SearchOutlined />}
-                  value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
-                  style={{ borderRadius: '8px' }}
-                />
-              </Col>
-              <Col xs={12} sm={6} md={4} lg={3}>
-                <Select
-                  placeholder="Status"
-                  value={filterStatus}
-                  onChange={setFilterStatus}
-                  style={{ width: '100%', borderRadius: '8px' }}
-                >
-                  <Option value="all">All Status</Option>
-                  <Option value="new">New</Option>
-                  <Option value="contacted">Contacted</Option>
-                  <Option value="qualified">Qualified</Option>
-                  <Option value="converted">Converted</Option>
-                  <Option value="closed">Closed</Option>
-                </Select>
-              </Col>
-              <Col xs={12} sm={6} md={4} lg={3}>
-                <Select
-                  placeholder="Priority"
-                  value={filterPriority}
-                  onChange={setFilterPriority}
-                  style={{ width: '100%', borderRadius: '8px' }}
-                >
-                  <Option value="all">All Priority</Option>
-                  <Option value="high">High</Option>
-                  <Option value="medium">Medium</Option>
-                  <Option value="low">Low</Option>
-                </Select>
-              </Col>
-              <Col xs={12} sm={6} md={4} lg={3}>
-                <Tooltip title="Refresh">
-                  <Button
-                    icon={<ReloadOutlined />}
-                    onClick={fetchInquiries}
-                    loading={loading}
-                    size={windowWidth <= 768 ? 'middle' : 'large'}
-                    style={{ borderRadius: '8px', width: '100%' }}
-                  >
-                    {windowWidth > 768 && 'Refresh'}
-                  </Button>
-                </Tooltip>
-              </Col>
-              <Col xs={12} sm={6} md={4} lg={3}>
-                <Tooltip title="Export to CSV">
-                  <Button
-                    icon={<ExportOutlined />}
-                    onClick={handleExport}
-                    size={windowWidth <= 768 ? 'middle' : 'large'}
-                    style={{ borderRadius: '8px', width: '100%' }}
-                  >
-                    {windowWidth > 768 && 'Export'}
-                  </Button>
-                </Tooltip>
-              </Col>
-              <Col xs={24} sm={12} md={8} lg={6}>
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={() => {
-                    setEditingInquiry(null);
-                    form.resetFields();
-                    setModalVisible(true);
-                  }}
-                  size={windowWidth <= 768 ? 'middle' : 'large'}
-                  style={{ 
-                    borderRadius: '8px', 
-                    width: '100%',
-                    background: '#ff6b35',
-                    border: 'none',
-                    fontFamily: "'Poppins', sans-serif",
-                    fontWeight: '600'
-                  }}
-                >
-                  {windowWidth > 768 ? 'Add Inquiry' : 'Add'}
-                </Button>
-              </Col>
-            </>
-          )}
+      <Card 
+        style={{ 
+          marginBottom: '24px',
+          borderRadius: '12px',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+          border: 'none'
+        }}
+        styles={{ body: { padding: windowWidth <= 768 ? '12px' : '20px' } }}
+      >
+        <Row gutter={[16, 16]} align="middle">
+          <Col xs={24} sm={24} md={10} lg={10}>
+            <Input
+              placeholder="Search inquiries..."
+              prefix={<SearchOutlined />}
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              size={windowWidth <= 768 ? 'middle' : 'large'}
+              allowClear
+              style={{ borderRadius: '8px' }}
+            />
+          </Col>
+          <Col xs={12} sm={8} md={3} lg={3}>
+            <Select
+              placeholder="Status"
+              value={filterStatus}
+              onChange={setFilterStatus}
+              size={windowWidth <= 768 ? 'middle' : 'large'}
+              style={{ width: '100%', borderRadius: '8px' }}
+            >
+              <Option value="all">All Status</Option>
+              <Option value="new">New</Option>
+              <Option value="contacted">Contacted</Option>
+              <Option value="qualified">Qualified</Option>
+              <Option value="converted">Converted</Option>
+              <Option value="closed">Closed</Option>
+            </Select>
+          </Col>
+          <Col xs={12} sm={8} md={3} lg={3}>
+            <Select
+              placeholder="Priority"
+              value={filterPriority}
+              onChange={setFilterPriority}
+              size={windowWidth <= 768 ? 'middle' : 'large'}
+              style={{ width: '100%', borderRadius: '8px' }}
+            >
+              <Option value="all">All Priority</Option>
+              <Option value="high">High</Option>
+              <Option value="medium">Medium</Option>
+              <Option value="low">Low</Option>
+            </Select>
+          </Col>
+          <Col xs={12} sm={8} md={4} lg={4}>
+            <Tooltip title="Export to CSV">
+              <Button
+                icon={<ExportOutlined />}
+                onClick={handleExport}
+                size={windowWidth <= 768 ? 'middle' : 'large'}
+                style={{ 
+                  width: '100%',
+                  borderRadius: '8px'
+                }}
+              >
+                {windowWidth > 768 ? 'Export' : 'Export'}
+              </Button>
+            </Tooltip>
+          </Col>
+          <Col xs={12} sm={24} md={4} lg={4}>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => {
+                setEditingInquiry(null);
+                form.resetFields();
+                setModalVisible(true);
+              }}
+              size={windowWidth <= 768 ? 'middle' : 'large'}
+              style={{ 
+                width: '100%',
+                backgroundColor: '#ff6b35', 
+                borderColor: '#ff6b35',
+                borderRadius: '8px',
+                fontWeight: '600'
+              }}
+            >
+              {windowWidth > 768 ? 'Add Inquiry' : 'Add'}
+            </Button>
+          </Col>
         </Row>
       </Card>
 

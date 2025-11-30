@@ -133,7 +133,7 @@ const PackageDetail = () => {
   }, [packageData]);
 
   const checkWishlistStatus = async () => {
-    if (!authService.isAuthenticated() || !packageData?._id) {
+    if (!packageData?._id) {
       setIsInWishlist(false);
       return;
     }
@@ -148,12 +148,6 @@ const PackageDetail = () => {
   };
 
   const handleWishlistToggle = async () => {
-    if (!authService.isAuthenticated()) {
-      message.warning('Please login to add packages to wishlist');
-      navigate('/login');
-      return;
-    }
-
     if (!packageData?._id) {
       message.error('Package information not available');
       return;
@@ -306,7 +300,7 @@ const PackageDetail = () => {
       // Check if user is logged in
       if (!authService.isAuthenticated()) {
         message.error('Please login to submit a review');
-        navigate('/login');
+        navigate('/login', { state: { from: { pathname: window.location.pathname } } });
         return;
       }
 
@@ -354,7 +348,7 @@ const PackageDetail = () => {
   const handleReviewModalOpen = () => {
     if (!authService.isAuthenticated()) {
       message.error('Please login to submit a review');
-      navigate('/login');
+      navigate('/login', { state: { from: { pathname: window.location.pathname } } });
       return;
     }
     setReviewModalVisible(true);
@@ -364,7 +358,7 @@ const PackageDetail = () => {
   const handleMarkHelpful = async (reviewId) => {
     if (!authService.isAuthenticated()) {
       message.warning('Please login to mark reviews as helpful');
-      navigate('/login');
+      navigate('/login', { state: { from: { pathname: window.location.pathname } } });
       return;
     }
 
@@ -399,7 +393,7 @@ const PackageDetail = () => {
       const user = await authService.getProfile();
       if (!user) {
         message.error('Please login to book this package');
-        navigate('/login');
+        navigate('/login', { state: { from: { pathname: window.location.pathname } } });
         return;
       }
 

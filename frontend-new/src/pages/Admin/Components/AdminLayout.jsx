@@ -30,6 +30,7 @@ import {
   SearchOutlined,
   PlusOutlined,
   CheckCircleOutlined,
+  CloseCircleOutlined,
   ExclamationCircleOutlined,
   InfoCircleOutlined,
   ClockCircleOutlined,
@@ -112,10 +113,35 @@ const AdminLayout = () => {
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
-        const [bookingsData, inquiriesData] = await Promise.all([
+        const adminRole = localStorage.getItem('adminRole') || 'Admin';
+        const normalizedRole = adminRole === 'Super Admin' ? 'Superadmin' : adminRole;
+        const token = localStorage.getItem('adminToken');
+        
+        const promises = [
           bookingService.getAllBookings({ limit: 20, sort: '-createdAt' }),
           inquiryService.getAllInquiries({ limit: 20, sort: '-createdAt' })
-        ]);
+        ];
+        
+        // Fetch approval notifications
+        if (normalizedRole === 'Superadmin') {
+          // Fetch pending approvals for Superadmin
+          promises.push(
+            fetch('http://localhost:5000/api/admin/approvals/pending?status=pending', {
+              headers: { 'Authorization': `Bearer ${token}` }
+            }).then(res => res.ok ? res.json() : [])
+          );
+        } else if (normalizedRole === 'Admin') {
+          // Fetch admin's approval requests
+          promises.push(
+            fetch('http://localhost:5000/api/admin/approvals/my-requests', {
+              headers: { 'Authorization': `Bearer ${token}` }
+            }).then(res => res.ok ? res.json() : [])
+          );
+        } else {
+          promises.push(Promise.resolve([]));
+        }
+        
+        const [bookingsData, inquiriesData, approvalsData] = await Promise.all(promises);
 
         const bookings = Array.isArray(bookingsData) ? bookingsData : (bookingsData?.bookings || []);
         const inquiries = Array.isArray(inquiriesData) ? inquiriesData : (inquiriesData?.inquiries || inquiriesData || []);
@@ -193,6 +219,58 @@ const AdminLayout = () => {
           });
         });
 
+        // Process approval notifications
+        if (approvalsData && Array.isArray(approvalsData)) {
+          if (normalizedRole === 'Superadmin') {
+            // Show pending approvals that need action
+            const pendingApprovals = approvalsData.filter(a => a.status === 'pending').slice(0, 5);
+            pendingApprovals.forEach(approval => {
+              const actionType = approval.actionType?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Action';
+              const requesterName = approval.requestedBy?.name || 'Admin';
+              const approvalDate = new Date(approval.createdAt);
+              
+              notificationList.push({
+                id: `approval-pending-${approval._id}`,
+                type: 'warning',
+                title: 'Approval Required',
+                message: `${requesterName} requested ${actionType}. Please review and approve/reject.`,
+                time: approvalDate,
+                read: false,
+                icon: <ExclamationCircleOutlined />,
+                link: `/admin/approvals`
+              });
+            });
+          } else if (normalizedRole === 'Admin') {
+            // Show approval status updates for Admin
+            const recentApprovals = approvalsData
+              .filter(a => {
+                const approvalDate = new Date(a.approvedAt || a.createdAt);
+                const hoursAgo = (Date.now() - approvalDate.getTime()) / (1000 * 60 * 60);
+                return hoursAgo <= 24 && (a.status === 'approved' || a.status === 'rejected');
+              })
+              .slice(0, 5);
+            
+            recentApprovals.forEach(approval => {
+              const actionType = approval.actionType?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Package';
+              const isApproved = approval.status === 'approved';
+              const approvalDate = new Date(approval.approvedAt || approval.createdAt);
+              
+              notificationList.push({
+                id: `approval-${approval.status}-${approval._id}`,
+                type: isApproved ? 'success' : 'error',
+                title: isApproved ? 'Package Approved' : 'Package Rejected',
+                message: isApproved 
+                  ? `Your ${actionType} request has been approved! The changes are now live.`
+                  : `Your ${actionType} request was rejected. ${approval.rejectionReason ? `Reason: ${approval.rejectionReason}` : ''}`,
+                time: approvalDate,
+                read: false,
+                icon: isApproved ? <CheckCircleOutlined /> : <CloseCircleOutlined />,
+                link: `/admin/approvals`
+              });
+            });
+          }
+        }
+
         // Sort by time (newest first) and limit to 10
         notificationList.sort((a, b) => new Date(b.time) - new Date(a.time));
         const finalNotifications = notificationList.slice(0, 10);
@@ -242,6 +320,17 @@ const AdminLayout = () => {
   const adminEmail =
     localStorage.getItem("adminEmail") || "admin@touristwebsite.com";
   const adminRole = localStorage.getItem("adminRole") || "Super Admin";
+  
+  // Normalize role
+  const normalizedRole = adminRole === 'Super Admin' ? 'Superadmin' : adminRole;
+  
+  // Get panel title based on role
+  const getPanelTitle = () => {
+    if (normalizedRole === 'Superadmin') return 'Superadmin Panel';
+    if (normalizedRole === 'Admin') return 'Admin Panel';
+    if (normalizedRole === 'Manager') return 'Manager Panel';
+    return 'Admin Panel';
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("adminToken");
@@ -302,12 +391,6 @@ const AdminLayout = () => {
       label: "Profile",
       onClick: () => navigate("/admin/profile")
     },
-    { 
-      key: "settings", 
-      icon: <SettingOutlined />, 
-      label: "Settings",
-      onClick: () => navigate("/admin/settings")
-    },
     { type: "divider" },
     { 
       key: "logout", 
@@ -318,19 +401,28 @@ const AdminLayout = () => {
     },
   ];
 
-  const menuItems = [
-    { key: "/admin/dashboard", icon: <DashboardOutlined />, label: "Dashboard", onClick: () => navigate("/admin/dashboard") },
-    { key: "/admin/packages", icon: <AppstoreOutlined />, label: "Packages", onClick: () => navigate("/admin/packages") },
-    { key: "/admin/states", icon: <HomeOutlined />, label: "States & Cities", onClick: () => navigate("/admin/states") },
-    { key: "/admin/bookings", icon: <ShoppingCartOutlined />, label: "Bookings", onClick: () => navigate("/admin/bookings") },
-    { key: "/admin/customers", icon: <TeamOutlined />, label: "Customers", onClick: () => navigate("/admin/customers") },
-    { key: "/admin/inquiries", icon: <MessageOutlined />, label: "Inquiries", onClick: () => navigate("/admin/inquiries") },
-    { key: "/admin/offers", icon: <GiftOutlined />, label: "Offers & Coupons", onClick: () => navigate("/admin/offers") },
-    { key: "/admin/content", icon: <FileTextOutlined />, label: "Content Management", onClick: () => navigate("/admin/content") },
-    { key: "/admin/gallery", icon: <PictureOutlined />, label: "Media Gallery", onClick: () => navigate("/admin/gallery") },
-    { key: "/admin/reports", icon: <BarChartOutlined />, label: "Reports & Analytics", onClick: () => navigate("/admin/reports") },
-    { key: "/admin/settings", icon: <SettingOutlined />, label: "Settings", onClick: () => navigate("/admin/settings") },
+  // Define all menu items (using adminRole from line 244)
+  const allMenuItems = [
+    { key: "/admin/dashboard", icon: <DashboardOutlined />, label: "Dashboard", onClick: () => navigate("/admin/dashboard"), roles: ['Superadmin', 'Admin', 'Manager'] },
+    { key: "/admin/packages", icon: <AppstoreOutlined />, label: "Packages", onClick: () => navigate("/admin/packages"), roles: ['Superadmin', 'Admin'] },
+    { key: "/admin/states", icon: <HomeOutlined />, label: "States & Cities", onClick: () => navigate("/admin/states"), roles: ['Superadmin', 'Admin'] },
+    { key: "/admin/bookings", icon: <ShoppingCartOutlined />, label: "Bookings", onClick: () => navigate("/admin/bookings"), roles: ['Superadmin', 'Admin', 'Manager'] },
+    { key: "/admin/customers", icon: <TeamOutlined />, label: "Customers", onClick: () => navigate("/admin/customers"), roles: ['Superadmin', 'Admin'] },
+    { key: "/admin/inquiries", icon: <MessageOutlined />, label: "Inquiries", onClick: () => navigate("/admin/inquiries"), roles: ['Superadmin', 'Admin', 'Manager'] },
+    { key: "/admin/offers", icon: <GiftOutlined />, label: "Offers & Coupons", onClick: () => navigate("/admin/offers"), roles: ['Superadmin', 'Admin'] },
+    { key: "/admin/content", icon: <FileTextOutlined />, label: "Content Management", onClick: () => navigate("/admin/content"), roles: ['Superadmin', 'Admin'] },
+    { key: "/admin/gallery", icon: <PictureOutlined />, label: "Media Gallery", onClick: () => navigate("/admin/gallery"), roles: ['Superadmin', 'Admin'] },
+    { key: "/admin/reports", icon: <BarChartOutlined />, label: "Reports & Analytics", onClick: () => navigate("/admin/reports"), roles: ['Superadmin', 'Admin'] },
+    { key: "/admin/management", icon: <TeamOutlined />, label: "Admin Management", onClick: () => navigate("/admin/management"), roles: ['Superadmin', 'Admin'] },
+    { key: "/admin/approvals", icon: <CheckCircleOutlined />, label: "Approvals", onClick: () => navigate("/admin/approvals"), roles: ['Superadmin', 'Admin'] },
   ];
+
+  // Filter menu items based on role
+  const menuItems = allMenuItems.filter(item => {
+    // Handle legacy role names
+    const normalizedRole = adminRole === 'Super Admin' ? 'Superadmin' : adminRole;
+    return item.roles.includes(normalizedRole);
+  });
 
   const getSelectedKey = () => {
     const path = location.pathname;
@@ -363,7 +455,7 @@ const AdminLayout = () => {
             <HomeOutlined style={{ color: "white", fontSize: "20px" }} />
           </div>
           <Title level={4} style={{ margin: 0, color: "#ff6b35", fontSize: "18px" }}>
-            Admin Panel
+            {getPanelTitle()}
           </Title>
         </div>
       }
@@ -459,7 +551,7 @@ const AdminLayout = () => {
         </div>
         {!collapsed && (
           <Title level={4} style={{ margin: 0, color: "#ff6b35", fontSize: "18px" }}>
-            Admin Panel
+            {getPanelTitle()}
           </Title>
         )}
       </div>
@@ -624,7 +716,8 @@ const AdminLayout = () => {
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: windowWidth <= 768 ? "8px" : "16px" }}>
-            {windowWidth > 768 && (
+            {/* Only show Quick Add for Superadmin and Admin, not Manager */}
+            {windowWidth > 768 && (normalizedRole === 'Superadmin' || normalizedRole === 'Admin') && (
             <Dropdown
               menu={{
                 items: [
@@ -712,26 +805,15 @@ const AdminLayout = () => {
                   }}
                 />
                 {windowWidth > 768 && (
-                  <div>
                   <Text
                     style={{
-                      color: "white",
-                      fontSize: "14px",
-                      fontWeight: "600",
+                      color: "rgba(255,255,255,0.9)",
+                      fontSize: "13px",
+                      fontWeight: "500",
                     }}
                   >
-                    {adminRole}
+                    {adminEmail.split('@')[0]}
                   </Text>
-                  <br />
-                  <Text
-                    style={{
-                      color: "rgba(255,255,255,0.8)",
-                      fontSize: "12px",
-                    }}
-                  >
-                    {adminEmail}
-                  </Text>
-                </div>
                 )}
               </div>
             </Dropdown>

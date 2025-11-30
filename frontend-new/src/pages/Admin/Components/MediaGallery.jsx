@@ -101,7 +101,8 @@ import {
   DeleteOutlined as DeleteIcon,
   StarOutlined as StarIcon,
   HeartOutlined as HeartIcon,
-  DownloadOutlined as DownloadIcon
+  DownloadOutlined as DownloadIcon,
+  ReloadOutlined
 } from '@ant-design/icons';
 
 // Import Google Font (Poppins) - Same as landing page
@@ -918,6 +919,7 @@ const MediaGallery = () => {
     }}>
       {/* Header Section */}
       <div style={{
+        position: 'relative',
         marginBottom: windowWidth <= 768 ? '20px' : '32px',
         textAlign: 'center'
       }}>
@@ -946,6 +948,34 @@ const MediaGallery = () => {
         }}>
           Manage images, videos, documents, and other media files
         </p>
+
+        {/* Refresh Button - Top Right */}
+        <Button 
+          type="primary"
+          icon={<ReloadOutlined />}
+          loading={loading}
+          onClick={fetchMediaFiles}
+          style={{
+            position: 'absolute',
+            top: '0',
+            right: '0',
+            borderRadius: '12px',
+            background: '#ff6b35',
+            border: 'none',
+            fontFamily: "'Poppins', sans-serif",
+            fontWeight: '600',
+            boxShadow: '0 4px 12px rgba(255, 107, 53, 0.3)',
+            height: windowWidth <= 768 ? '36px' : '42px',
+            padding: windowWidth <= 768 ? '0 14px' : '0 20px',
+            fontSize: windowWidth <= 768 ? '12px' : '14px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px'
+          }}
+        >
+          {windowWidth > 768 && 'Refresh'}
+        </Button>
       </div>
 
       {/* Statistics Cards */}
@@ -1020,10 +1050,10 @@ const MediaGallery = () => {
           boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
           border: 'none'
         }}
-        bodyStyle={{ padding: windowWidth <= 768 ? '12px' : '20px' }}
+        styles={{ body: { padding: windowWidth <= 768 ? '12px' : '20px' } }}
       >
         <Row gutter={[16, 16]} align="middle">
-          <Col xs={24} sm={24} md={8}>
+          <Col xs={24} sm={24} md={10} lg={10}>
             <Input
               placeholder="Search media..."
               prefix={<SearchOutlined />}
@@ -1034,7 +1064,7 @@ const MediaGallery = () => {
               style={{ borderRadius: '8px' }}
             />
           </Col>
-          <Col xs={12} sm={8} md={4}>
+          <Col xs={12} sm={8} md={3} lg={3}>
             <Select
               placeholder="Type"
               value={filterType}
@@ -1049,7 +1079,7 @@ const MediaGallery = () => {
               <Option value="document">Documents</Option>
             </Select>
           </Col>
-          <Col xs={12} sm={8} md={4}>
+          <Col xs={12} sm={8} md={3} lg={3}>
             <Select
               placeholder="Category"
               value={filterCategory}
@@ -1065,67 +1095,54 @@ const MediaGallery = () => {
               <Option value="Marketing">Marketing</Option>
             </Select>
           </Col>
-          <Col xs={24} sm={24} md={8}>
-            <Space style={{ width: '100%', justifyContent: windowWidth <= 768 ? 'flex-start' : 'flex-end', flexWrap: 'wrap' }}>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => setModalVisible(true)}
-                size={windowWidth <= 768 ? 'middle' : 'large'}
-                style={{
-                  borderRadius: '8px',
-                  background: '#ff6b35',
-                  border: 'none',
-                  fontFamily: "'Poppins', sans-serif",
-                  fontWeight: '600',
-                  boxShadow: '0 4px 12px rgba(255, 107, 53, 0.3)',
-                  height: windowWidth <= 768 ? '32px' : '40px'
-                }}
-              >
-                Add Media
-              </Button>
-              <Button
-                type="primary"
-                icon={<CloudUploadOutlined />}
-                onClick={() => setUploadModalVisible(true)}
-                size={windowWidth <= 768 ? 'middle' : 'large'}
-                style={{
-                  borderRadius: '8px',
-                  background: '#1890ff',
-                  border: 'none',
-                  fontFamily: "'Poppins', sans-serif",
-                  fontWeight: '600',
-                  boxShadow: '0 4px 12px rgba(24, 144, 255, 0.3)',
-                  height: windowWidth <= 768 ? '32px' : '40px'
-                }}
-              >
-                Upload
-              </Button>
-              <Button
-                icon={<FileTextOutlined />}
-                type={viewMode === 'list' ? 'primary' : 'default'}
-                onClick={() => setViewMode('list')}
-                size={windowWidth <= 768 ? 'middle' : 'large'}
-                style={{ 
-                  borderRadius: '8px',
-                  background: viewMode === 'list' ? '#52c41a' : undefined,
-                  border: viewMode === 'list' ? 'none' : undefined,
-                  boxShadow: viewMode === 'list' ? '0 4px 12px rgba(82, 196, 26, 0.3)' : undefined
-                }}
-              />
-              <Button
-                icon={<PictureOutlined />}
-                type={viewMode === 'grid' ? 'primary' : 'default'}
-                onClick={() => setViewMode('grid')}
-                size={windowWidth <= 768 ? 'middle' : 'large'}
-                style={{ 
-                  borderRadius: '8px',
-                  background: viewMode === 'grid' ? '#52c41a' : undefined,
-                  border: viewMode === 'grid' ? 'none' : undefined,
-                  boxShadow: viewMode === 'grid' ? '0 4px 12px rgba(82, 196, 26, 0.3)' : undefined
-                }}
-              />
+          <Col xs={12} sm={8} md={4} lg={4}>
+            <Space style={{ width: '100%', justifyContent: 'center' }}>
+              <Tooltip title="List View">
+                <Button
+                  icon={<FileTextOutlined />}
+                  type={viewMode === 'list' ? 'primary' : 'default'}
+                  onClick={() => setViewMode('list')}
+                  size={windowWidth <= 768 ? 'middle' : 'large'}
+                  style={{ 
+                    borderRadius: '8px',
+                    background: viewMode === 'list' ? '#52c41a' : undefined,
+                    border: viewMode === 'list' ? 'none' : undefined,
+                    boxShadow: viewMode === 'list' ? '0 4px 12px rgba(82, 196, 26, 0.3)' : undefined
+                  }}
+                />
+              </Tooltip>
+              <Tooltip title="Grid View">
+                <Button
+                  icon={<PictureOutlined />}
+                  type={viewMode === 'grid' ? 'primary' : 'default'}
+                  onClick={() => setViewMode('grid')}
+                  size={windowWidth <= 768 ? 'middle' : 'large'}
+                  style={{ 
+                    borderRadius: '8px',
+                    background: viewMode === 'grid' ? '#52c41a' : undefined,
+                    border: viewMode === 'grid' ? 'none' : undefined,
+                    boxShadow: viewMode === 'grid' ? '0 4px 12px rgba(82, 196, 26, 0.3)' : undefined
+                  }}
+                />
+              </Tooltip>
             </Space>
+          </Col>
+          <Col xs={12} sm={24} md={4} lg={4}>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => setModalVisible(true)}
+              size={windowWidth <= 768 ? 'middle' : 'large'}
+              style={{
+                width: '100%',
+                backgroundColor: '#ff6b35', 
+                borderColor: '#ff6b35',
+                borderRadius: '8px',
+                fontWeight: '600'
+              }}
+            >
+              {windowWidth > 768 ? 'Add Media' : 'Add'}
+            </Button>
           </Col>
         </Row>
       </Card>
@@ -1137,7 +1154,7 @@ const MediaGallery = () => {
           boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
           border: 'none'
         }}
-        bodyStyle={{ padding: windowWidth <= 768 ? '12px' : '20px' }}
+        styles={{ body: { padding: windowWidth <= 768 ? '12px' : '20px' } }}
       >
         {viewMode === 'grid' ? <GridView /> : <ListView />}
       </Card>

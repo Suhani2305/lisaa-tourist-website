@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import AdminLayout from './Components/AdminLayout';
 import AdminDashboard from './Components/AdminDashboard';
+import ManagerDashboard from './Components/ManagerDashboard';
 import AdminLogin from './Components/AdminLogin';
 import PackageManagement from './Components/PackageManagement';
 import BookingsManagement from './Components/BookingsManagement';
@@ -11,8 +12,9 @@ import OffersManagement from './Components/OffersManagement';
 import ContentManagement from './Components/ContentManagement';
 import MediaGallery from './Components/MediaGallery';
 import ReportsAnalytics from './Components/ReportsAnalytics';
-import Settings from './Components/Settings';
 import StateManagement from './Components/StateManagement';
+import AdminManagement from './Components/AdminManagement';
+import ApprovalsManagement from './Components/ApprovalsManagement';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -27,6 +29,18 @@ const ProtectedRoute = ({ children }) => {
 
 // Placeholder components for other pages (to be built)
 const PackagesManagement = PackageManagement;
+
+// Dashboard Router Component - Determines which dashboard to show based on role
+const DashboardRouter = () => {
+  const adminRole = localStorage.getItem('adminRole') || 'Super Admin';
+  const normalizedRole = adminRole === 'Super Admin' ? 'Superadmin' : adminRole;
+  
+  // Manager gets ManagerDashboard, others get AdminDashboard
+  if (normalizedRole === 'Manager') {
+    return <ManagerDashboard />;
+  }
+  return <AdminDashboard />;
+};
 
 const Admin = () => {
   // Check if user is logged in
@@ -43,7 +57,7 @@ const Admin = () => {
           <AdminLayout />
         </ProtectedRoute>
       }>
-        <Route path="dashboard" element={<AdminDashboard />} />
+        <Route path="dashboard" element={<DashboardRouter />} />
         <Route path="packages" element={<PackagesManagement />} />
         <Route path="states" element={<StateManagement />} />
         <Route path="bookings" element={<BookingsManagement />} />
@@ -53,7 +67,8 @@ const Admin = () => {
         <Route path="content" element={<ContentManagement />} />
         <Route path="gallery" element={<MediaGallery />} />
         <Route path="reports" element={<ReportsAnalytics />} />
-        <Route path="settings" element={<Settings />} />
+        <Route path="management" element={<AdminManagement />} />
+        <Route path="approvals" element={<ApprovalsManagement />} />
       </Route>
       
       {/* Redirect /admin based on login status */}

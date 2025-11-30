@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const jwt = require('jsonwebtoken');
 const AdminUser = require('../models/AdminUser');
 
 // Admin Login
@@ -34,18 +35,48 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
-    // Update last login
+    // Update last login and normalize role/name if needed
     adminUser.lastLogin = new Date();
+    
+    // Normalize role if it's legacy value
+    if (adminUser.role === 'Super Admin') {
+      adminUser.role = 'Superadmin';
+    }
+    
+    // Ensure name is set
+    if (!adminUser.name && adminUser.email) {
+      const emailName = adminUser.email.split('@')[0];
+      adminUser.name = emailName.charAt(0).toUpperCase() + emailName.slice(1);
+    }
+    
     await adminUser.save();
 
-    console.log(`✅ Admin logged in successfully: ${email}`);
+    // Normalize role for response (ensure it's not legacy value)
+    const normalizedRole = adminUser.role === 'Super Admin' ? 'Superadmin' : adminUser.role;
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { 
+        adminId: adminUser._id, 
+        email: adminUser.email,
+        role: normalizedRole
+      },
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '7d' }
+    );
+
+    console.log(`✅ Admin logged in successfully: ${email} (${normalizedRole})`);
 
     res.json({
       success: true,
       message: 'Login successful',
+      token,
       admin: {
+        _id: adminUser._id,
+        name: adminUser.name || (adminUser.email ? adminUser.email.split('@')[0].charAt(0).toUpperCase() + adminUser.email.split('@')[0].slice(1) : 'Admin User'),
         email: adminUser.email,
-        role: adminUser.role
+        role: normalizedRole,
+        phone: adminUser.phone
       }
     });
 

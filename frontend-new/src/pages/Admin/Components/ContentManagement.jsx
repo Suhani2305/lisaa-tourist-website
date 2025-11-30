@@ -725,7 +725,7 @@ const ContentManagement = () => {
           boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
           border: 'none'
         }}
-        bodyStyle={{ padding: windowWidth <= 768 ? '12px' : '20px' }}
+        styles={{ body: { padding: windowWidth <= 768 ? '12px' : '20px' } }}
       >
         <Row gutter={[16, 16]} align="middle">
           <Col xs={24} sm={24} md={8}>
@@ -800,7 +800,7 @@ const ContentManagement = () => {
           boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
           border: 'none'
         }}
-        bodyStyle={{ padding: windowWidth <= 768 ? '12px' : '20px' }}
+        styles={{ body: { padding: windowWidth <= 768 ? '12px' : '20px' } }}
       >
         <Table
           columns={columns}

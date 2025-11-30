@@ -5,8 +5,9 @@ const Inquiry = require('../models/Inquiry');
 const Tour = require('../models/Tour');
 const jwt = require('jsonwebtoken');
 const { sendInquiryReplyEmail } = require('../services/emailService');
+const { authenticateAdmin, requireManager, canAccessData } = require('../middleware/adminAuth');
 
-// Middleware to verify JWT token (for admin routes)
+// Middleware to verify JWT token (for regular users - kept for backward compatibility)
 const authenticateToken = (req, res, next) => {
   const token = req.header('Authorization')?.replace('Bearer ', '');
   if (!token) {
@@ -81,12 +82,12 @@ router.post('/', async (req, res) => {
 });
 
 // Admin route - Get all inquiries
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', authenticateAdmin, requireManager, canAccessData, async (req, res) => {
   try {
     const { status, priority, search, page = 1, limit = 50 } = req.query;
 
     // Build query
-    const query = {};
+    let query = {};
     if (status && status !== 'all') {
       query.status = status;
     }
@@ -100,6 +101,22 @@ router.get('/', authenticateToken, async (req, res) => {
         { subject: { $regex: search, $options: 'i' } },
         { message: { $regex: search, $options: 'i' } }
       ];
+    }
+
+    // Filter for managers - only show assigned inquiries
+    if (req.admin.role === 'Manager') {
+      const assignedInquiryIds = req.admin.assignedData?.inquiries || [];
+      if (assignedInquiryIds.length === 0) {
+        // Manager has no assigned inquiries
+        return res.json({
+          success: true,
+          inquiries: [],
+          total: 0,
+          page: parseInt(page),
+          totalPages: 0
+        });
+      }
+      query._id = { $in: assignedInquiryIds };
     }
 
     const inquiries = await Inquiry.find(query)
@@ -128,7 +145,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // Admin route - Get single inquiry
-router.get('/:id', authenticateToken, async (req, res) => {
+router.get('/:id', authenticateAdmin, requireManager, canAccessData, async (req, res) => {
   try {
     const inquiry = await Inquiry.findById(req.params.id)
       .populate('interestedTour', 'title destination duration price');
@@ -138,6 +155,17 @@ router.get('/:id', authenticateToken, async (req, res) => {
         success: false,
         message: 'Inquiry not found'
       });
+    }
+
+    // Check if manager can access this inquiry
+    if (req.admin.role === 'Manager') {
+      const assignedInquiryIds = req.admin.assignedData?.inquiries || [];
+      if (!assignedInquiryIds.includes(req.params.id)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied. This inquiry is not assigned to you.'
+        });
+      }
     }
 
     res.json({
@@ -155,7 +183,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 });
 
 // Admin route - Update inquiry
-router.put('/:id', authenticateToken, async (req, res) => {
+router.put('/:id', authenticateAdmin, requireManager, canAccessData, async (req, res) => {
   try {
     const {
       status,
@@ -178,6 +206,17 @@ router.put('/:id', authenticateToken, async (req, res) => {
         success: false,
         message: 'Inquiry not found'
       });
+    }
+
+    // Check if manager can access this inquiry
+    if (req.admin.role === 'Manager') {
+      const assignedInquiryIds = req.admin.assignedData?.inquiries || [];
+      if (!assignedInquiryIds.includes(req.params.id)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied. This inquiry is not assigned to you.'
+        });
+      }
     }
 
     const previousStatus = inquiry.status;
@@ -253,7 +292,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 });
 
 // Admin route - Delete inquiry
-router.delete('/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', authenticateAdmin, requireManager, canAccessData, async (req, res) => {
   try {
     const inquiry = await Inquiry.findByIdAndDelete(req.params.id);
 
@@ -281,18 +320,35 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 });
 
 // Admin route - Get inquiry statistics
-router.get('/stats/overview', authenticateToken, async (req, res) => {
+router.get('/stats/overview', authenticateAdmin, requireManager, canAccessData, async (req, res) => {
   try {
-    const total = await Inquiry.countDocuments();
-    const newCount = await Inquiry.countDocuments({ status: 'new' });
-    const contactedCount = await Inquiry.countDocuments({ status: 'contacted' });
-    const qualifiedCount = await Inquiry.countDocuments({ status: 'qualified' });
-    const convertedCount = await Inquiry.countDocuments({ status: 'converted' });
-    const closedCount = await Inquiry.countDocuments({ status: 'closed' });
+    // Build base query - filter for managers
+    let baseQuery = {};
+    if (req.admin.role === 'Manager') {
+      const assignedInquiryIds = req.admin.assignedData?.inquiries || [];
+      if (assignedInquiryIds.length === 0) {
+        return res.json({
+          success: true,
+          stats: {
+            total: 0,
+            byStatus: { new: 0, contacted: 0, qualified: 0, converted: 0, closed: 0 },
+            byPriority: { high: 0, medium: 0, low: 0 }
+          }
+        });
+      }
+      baseQuery._id = { $in: assignedInquiryIds };
+    }
 
-    const highPriority = await Inquiry.countDocuments({ priority: 'high' });
-    const mediumPriority = await Inquiry.countDocuments({ priority: 'medium' });
-    const lowPriority = await Inquiry.countDocuments({ priority: 'low' });
+    const total = await Inquiry.countDocuments(baseQuery);
+    const newCount = await Inquiry.countDocuments({ ...baseQuery, status: 'new' });
+    const contactedCount = await Inquiry.countDocuments({ ...baseQuery, status: 'contacted' });
+    const qualifiedCount = await Inquiry.countDocuments({ ...baseQuery, status: 'qualified' });
+    const convertedCount = await Inquiry.countDocuments({ ...baseQuery, status: 'converted' });
+    const closedCount = await Inquiry.countDocuments({ ...baseQuery, status: 'closed' });
+
+    const highPriority = await Inquiry.countDocuments({ ...baseQuery, priority: 'high' });
+    const mediumPriority = await Inquiry.countDocuments({ ...baseQuery, priority: 'medium' });
+    const lowPriority = await Inquiry.countDocuments({ ...baseQuery, priority: 'low' });
 
     res.json({
       success: true,
