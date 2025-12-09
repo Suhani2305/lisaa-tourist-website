@@ -518,7 +518,7 @@ router.put('/:bookingId/modify/:requestId', authenticateAdmin, requireManager, c
     if (action === 'approve') {
       request.status = 'approved';
       request.reviewedAt = new Date();
-      request.reviewedBy = req.user.userId;
+      request.reviewedBy = req.adminId; // Use adminId for admin routes
       request.requestDetails.adminNotes = adminNotes;
 
       // Apply the modification
@@ -569,7 +569,7 @@ router.put('/:bookingId/modify/:requestId', authenticateAdmin, requireManager, c
     } else if (action === 'reject') {
       request.status = 'rejected';
       request.reviewedAt = new Date();
-      request.reviewedBy = req.user.userId;
+      request.reviewedBy = req.adminId; // Use adminId for admin routes
       request.requestDetails.adminNotes = adminNotes;
 
       await booking.save();

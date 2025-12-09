@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { tourService, paymentService, authService, reviewService, bookingService, wishlistService, offerService } from '../../services';
 import { Spin, message, Tabs, Timeline, Tag, Card, Row, Col, Modal, Form, Input, InputNumber, DatePicker, Button, Collapse, Rate, Avatar, Empty, Divider, Select, Alert, Typography } from 'antd';
@@ -52,6 +52,13 @@ const PackageDetail = () => {
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponError, setCouponError] = useState('');
   const [helpfulLoading, setHelpfulLoading] = useState({});
+
+  // Preserve the user's current page so we can return after login
+  const redirectToLoginWithReturn = () => {
+    const currentPath = `${window.location.pathname}${window.location.search}`;
+    sessionStorage.setItem('postLoginRedirect', currentPath);
+    navigate('/login', { state: { from: { pathname: currentPath } } });
+  };
   
   // Watch form values for price calculation (must be at top level, before any returns)
   const adultsCount = Form.useWatch('adults', form) || 1;
@@ -121,9 +128,36 @@ const PackageDetail = () => {
     message.info('Coupon removed');
   };
   
+  // Scroll to top immediately when component mounts or packageSlug changes
+  useLayoutEffect(() => {
+    // Force scroll to top immediately
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, [packageSlug]);
+
   useEffect(() => {
+    // Also scroll to top when component mounts
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
     fetchPackageDetails();
   }, [packageSlug]);
+
+  // Also scroll to top when package data loads
+  useEffect(() => {
+    if (packageData) {
+      // Multiple attempts to ensure scroll happens
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      setTimeout(() => {
+        window.scrollTo(0, 0);
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+      }, 100);
+    }
+  }, [packageData]);
 
   useEffect(() => {
     if (packageData && packageData._id) {
@@ -131,6 +165,23 @@ const PackageDetail = () => {
       checkWishlistStatus();
     }
   }, [packageData]);
+
+  // Pre-fill booking form when modal opens and user is logged in
+  useEffect(() => {
+    if (bookingModalVisible && authService.isAuthenticated()) {
+      const currentUser = authService.getCurrentUser();
+      if (currentUser) {
+        // Pre-fill form with user data, but allow editing
+        form.setFieldsValue({
+          name: currentUser.name || '',
+          email: currentUser.email || '',
+          phone: currentUser.phone || '', // Pre-fill but allow editing
+          adults: form.getFieldValue('adults') || 1,
+          children: form.getFieldValue('children') || 0
+        });
+      }
+    }
+  }, [bookingModalVisible, form]);
 
   const checkWishlistStatus = async () => {
     if (!packageData?._id) {
@@ -150,6 +201,13 @@ const PackageDetail = () => {
   const handleWishlistToggle = async () => {
     if (!packageData?._id) {
       message.error('Package information not available');
+      return;
+    }
+
+    // Check if user is logged in first
+    if (!authService.isAuthenticated()) {
+      message.warning('Please login first, then add to wishlist');
+      redirectToLoginWithReturn();
       return;
     }
 
@@ -300,7 +358,7 @@ const PackageDetail = () => {
       // Check if user is logged in
       if (!authService.isAuthenticated()) {
         message.error('Please login to submit a review');
-        navigate('/login', { state: { from: { pathname: window.location.pathname } } });
+        redirectToLoginWithReturn();
         return;
       }
 
@@ -348,7 +406,7 @@ const PackageDetail = () => {
   const handleReviewModalOpen = () => {
     if (!authService.isAuthenticated()) {
       message.error('Please login to submit a review');
-      navigate('/login', { state: { from: { pathname: window.location.pathname } } });
+      redirectToLoginWithReturn();
       return;
     }
     setReviewModalVisible(true);
@@ -358,7 +416,7 @@ const PackageDetail = () => {
   const handleMarkHelpful = async (reviewId) => {
     if (!authService.isAuthenticated()) {
       message.warning('Please login to mark reviews as helpful');
-      navigate('/login', { state: { from: { pathname: window.location.pathname } } });
+      redirectToLoginWithReturn();
       return;
     }
 
@@ -389,12 +447,59 @@ const PackageDetail = () => {
     try {
       setPaymentLoading(true);
 
-      // Check if user is logged in
-      const user = await authService.getProfile();
-      if (!user) {
+      // Check if user is logged in first - check both token and user data
+      const token = localStorage.getItem('token');
+      const userData = localStorage.getItem('user');
+      
+      console.log('handleBookNow - Auth check:', { 
+        hasToken: !!token, 
+        hasUserData: !!userData,
+        isAuthenticated: authService.isAuthenticated() 
+      });
+      
+      if (!token || !userData) {
+        console.log('No token or user data found, redirecting to login');
         message.error('Please login to book this package');
-        navigate('/login', { state: { from: { pathname: window.location.pathname } } });
+        setPaymentLoading(false);
+        setBookingModalVisible(false);
+        redirectToLoginWithReturn();
         return;
+      }
+
+      // Get user profile from API to ensure token is valid
+      let user;
+      try {
+        user = await authService.getProfile();
+        console.log('User profile fetched successfully:', user?.email);
+        
+        // If profile fetch succeeds but returns no user, something is wrong
+        if (!user) {
+          throw new Error('User profile not found');
+        }
+      } catch (profileError) {
+        console.error('Profile fetch error:', profileError);
+        
+        // Check if it's a network error vs auth error
+        const isAuthError = profileError.response?.status === 401 || 
+                           profileError.message?.includes('401') ||
+                           profileError.message?.includes('token') ||
+                           profileError.message?.includes('expired');
+        
+        // Only redirect if it's an auth error, not a network error
+        if (isAuthError) {
+          // If it's a 401 error, token is invalid - clear it
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          message.error('Session expired. Please login again to book this package');
+          setPaymentLoading(false);
+          setBookingModalVisible(false);
+          redirectToLoginWithReturn();
+          return;
+        } else {
+          // Network error or other error - use cached user data
+          console.log('Using cached user data due to network error');
+          user = JSON.parse(userData);
+        }
       }
 
       const adults = values.adults || 1;
@@ -476,7 +581,9 @@ const PackageDetail = () => {
                 },
                 bookingDate: values.travelDate,
                 totalAmount: totalAmount,
-                specialRequests: values.specialRequests || ''
+                specialRequests: values.specialRequests || '',
+                phone: values.phone || user.phone,
+                customerPhone: values.phone || user.phone
               },
               couponCode: appliedCouponCode,
               couponDiscount: couponDiscount,
@@ -493,24 +600,30 @@ const PackageDetail = () => {
               setBookingModalVisible(false);
               form.resetFields();
               
-              // Download receipt if available
-              if (verifyResponse.receiptUrl || verifyResponse.bookingId) {
+              // Download receipt automatically after payment success
+              if (verifyResponse.bookingId) {
                 setTimeout(() => {
+                  console.log('📄 Downloading receipt for booking:', verifyResponse.bookingId);
                   paymentService.downloadReceipt(verifyResponse.bookingId)
                     .then(() => {
+                      console.log('✅ Receipt downloaded successfully');
                       message.success('📄 Receipt downloaded successfully!');
                     })
                     .catch((err) => {
-                      console.warn('Receipt download failed:', err);
-                      // Don't show error - receipt download is optional
+                      console.error('❌ Receipt download failed:', err);
+                      // Show error but don't block user
+                      message.warning('Receipt download failed. You can download it from your dashboard.');
                     });
-                }, 1000);
+                }, 1500);
               }
               
-              // Redirect to user dashboard
+              // Refresh user data to show new booking
+              // Redirect to user dashboard after a short delay
               setTimeout(() => {
-                navigate('/user-dashboard');
-              }, 3000);
+                navigate('/user-dashboard', { replace: true });
+                // Force page reload to refresh bookings
+                window.location.reload();
+              }, 2000);
             }
           } catch (error) {
             message.error('Payment verification failed. Please contact support.');
@@ -520,7 +633,11 @@ const PackageDetail = () => {
         prefill: {
           name: values.name || user.name,
           email: values.email || user.email,
-          contact: values.phone || user.phone
+          // IMPORTANT: Use phone from booking form (values.phone) - this is the phone number entered by the user making the booking
+          // Only fallback to user profile phone if booking form phone is not provided
+          contact: values.phone 
+            ? values.phone.replace(/\D/g, '').slice(0, 10) 
+            : (user.phone ? user.phone.replace(/\D/g, '').slice(0, 10) : '')
         },
         notes: {
           tourId: packageData._id,
@@ -1408,7 +1525,29 @@ const PackageDetail = () => {
 
               {/* Book Now Button */}
               <button 
-                onClick={() => setBookingModalVisible(true)}
+                onClick={() => {
+                  // Check if user is logged in before opening modal
+                  const token = localStorage.getItem('token');
+                  const user = localStorage.getItem('user');
+                  
+                  // Debug: Log auth status
+                  console.log('Booking button clicked - Auth check:', { 
+                    hasToken: !!token, 
+                    hasUser: !!user,
+                    isAuthenticated: authService.isAuthenticated() 
+                  });
+                  
+                  if (!token || !user) {
+                    console.log('User not authenticated, redirecting to login');
+                    message.warning('Please login first to book this package');
+                    redirectToLoginWithReturn();
+                    return;
+                  }
+                  
+                  // User is authenticated, open booking modal
+                  console.log('User authenticated, opening booking modal');
+                  setBookingModalVisible(true);
+                }}
                 style={{
                 width: '100%',
                 padding: '16px',
@@ -1577,8 +1716,14 @@ const PackageDetail = () => {
                 name="phone"
                 label="Phone Number"
                 rules={[{ required: true, message: 'Please enter your phone' }]}
+                tooltip="Enter the phone number for this booking (can be different from your profile)"
               >
-                <Input placeholder="10-digit number" maxLength={10} />
+                <Input 
+                  placeholder="Enter 10-digit phone number" 
+                  maxLength={10}
+                  type="tel"
+                  style={{ width: '100%' }}
+                />
               </Form.Item>
             </Col>
             <Col span={12}>
@@ -1906,6 +2051,12 @@ const PackageDetail = () => {
                   type="primary"
                   onClick={() => {
                     setReviewModalVisible(false);
+                    // Check if user is logged in before opening modal
+                    if (!authService.isAuthenticated()) {
+                      message.warning('Please login first to book this package');
+                      redirectToLoginWithReturn();
+                      return;
+                    }
                     setBookingModalVisible(true);
                   }}
                   style={{

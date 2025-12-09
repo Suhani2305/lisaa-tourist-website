@@ -74,7 +74,10 @@ const authService = {
 
   // Check if user is authenticated
   isAuthenticated: () => {
-    return !!localStorage.getItem('token');
+    const token = localStorage.getItem('token');
+    const user = localStorage.getItem('user');
+    // Both token and user data must exist
+    return !!(token && user);
   },
 
   // Check if admin is authenticated

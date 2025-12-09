@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { bookingService } from '../../../services';
+import dayjs from 'dayjs';
 import {
   Card,
   Table,
@@ -235,13 +236,26 @@ const BookingsManagement = () => {
 
   const handleEditBooking = (booking) => {
     setEditingBooking(booking);
-    form.setFieldsValue({
+    
+    // Prepare form values with proper date conversion
+    const formValues = {
       ...booking,
-      travelDates: [
-        new Date(booking.travelDates.startDate),
-        new Date(booking.travelDates.endDate)
-      ]
+      travelDates: booking.travelDates?.startDate && booking.travelDates?.endDate
+        ? [
+            dayjs(booking.travelDates.startDate),
+            dayjs(booking.travelDates.endDate)
+          ]
+        : undefined
+    };
+    
+    // Remove undefined values to avoid form issues
+    Object.keys(formValues).forEach(key => {
+      if (formValues[key] === undefined) {
+        delete formValues[key];
+      }
     });
+    
+    form.setFieldsValue(formValues);
     setModalVisible(true);
   };
 
@@ -285,15 +299,20 @@ const BookingsManagement = () => {
       
       if (editingBooking) {
         // Update existing booking
+        // Convert dayjs objects to ISO strings for travelDates
+        const travelDates = values.travelDates && Array.isArray(values.travelDates) && values.travelDates.length === 2
+          ? {
+              startDate: dayjs(values.travelDates[0]).toISOString().split('T')[0],
+              endDate: dayjs(values.travelDates[1]).toISOString().split('T')[0]
+            }
+          : values.travelDates;
+        
         const updatedBookings = bookings.map(booking =>
           booking.id === editingBooking.id
             ? { 
                 ...booking, 
-                ...values, 
-                travelDates: {
-                  startDate: values.travelDates[0].toISOString().split('T')[0],
-                  endDate: values.travelDates[1].toISOString().split('T')[0]
-                },
+                ...values,
+                travelDates,
                 updatedAt: new Date().toISOString().split('T')[0] 
               }
             : booking
@@ -1436,8 +1455,23 @@ const BookingsManagement = () => {
                           name="travelDates"
                           label="Travel Dates"
                           rules={[{ required: true, message: 'Please select travel dates' }]}
+                          normalize={(value) => {
+                            // Convert Date objects or strings to dayjs objects
+                            if (!value) return undefined;
+                            if (Array.isArray(value) && value.length === 2) {
+                              // Check if already dayjs objects (dayjs objects have $d property)
+                              return [
+                                value[0] ? (value[0].$d !== undefined ? value[0] : dayjs(value[0])) : null,
+                                value[1] ? (value[1].$d !== undefined ? value[1] : dayjs(value[1])) : null
+                              ];
+                            }
+                            return value;
+                          }}
                         >
-                          <DatePicker.RangePicker style={{ width: '100%', borderRadius: '8px' }} />
+                          <DatePicker.RangePicker 
+                            style={{ width: '100%', borderRadius: '8px' }}
+                            format="DD-MM-YYYY"
+                          />
                         </Form.Item>
                       </Col>
                       <Col span={12}>

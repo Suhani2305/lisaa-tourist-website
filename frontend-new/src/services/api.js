@@ -36,12 +36,41 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Token expired or invalid
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      // Don't redirect if we're already on login page
-      if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/admin')) {
-        window.location.href = '/login';
+      const isAdminRoute = window.location.pathname.includes('/admin');
+      const isLoginPage = window.location.pathname.includes('/login') || window.location.pathname.includes('/register');
+      
+      // Don't clear tokens on admin routes
+      if (!isAdminRoute) {
+        const errorMessage = error.response?.data?.message || '';
+        const errorCode = error.response?.data?.code || '';
+        
+        // Only clear tokens if it's explicitly a token-related error
+        // Don't clear on generic 401s (might be permission issues, not auth issues)
+        const isTokenError = 
+          errorMessage.toLowerCase().includes('token') || 
+          errorMessage.toLowerCase().includes('expired') || 
+          errorMessage.toLowerCase().includes('invalid') ||
+          errorMessage.toLowerCase().includes('unauthorized') ||
+          errorCode === 'TOKEN_EXPIRED' ||
+          errorCode === 'INVALID_TOKEN';
+        
+        if (isTokenError) {
+          // Clear tokens only if it's a token error
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          
+          // Only redirect if not already on login/register page
+          if (!isLoginPage) {
+            // Use setTimeout to avoid redirect loops
+            setTimeout(() => {
+              if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/register')) {
+                window.location.href = '/login';
+              }
+            }, 100);
+          }
+        }
+        // If it's a 401 but not a token error, just reject - don't clear tokens
+        // This handles cases like permission denied but user is still authenticated
       }
     }
     return Promise.reject(error);

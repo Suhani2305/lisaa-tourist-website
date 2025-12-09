@@ -680,18 +680,71 @@ const ApprovalsManagement = () => {
               style={{
                 backgroundColor: '#f5f5f5',
                 borderRadius: '8px',
-                marginBottom: '20px'
+                marginBottom: '20px',
+                maxHeight: '400px',
+                overflowY: 'auto'
               }}
             >
-              <pre style={{
-                margin: 0,
-                fontFamily: "'Poppins', monospace",
-                fontSize: '12px',
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-word'
-              }}>
-                {JSON.stringify(selectedApproval.data, null, 2)}
-              </pre>
+              {(() => {
+                // Helper function to format JSON data in readable format
+                const formatData = (data, indent = 0) => {
+                  if (data === null || data === undefined) {
+                    return <Text type="secondary">null</Text>;
+                  }
+                  
+                  if (typeof data === 'string') {
+                    return <Text>{data}</Text>;
+                  }
+                  
+                  if (typeof data === 'number' || typeof data === 'boolean') {
+                    return <Text strong>{String(data)}</Text>;
+                  }
+                  
+                  if (Array.isArray(data)) {
+                    return (
+                      <div style={{ marginLeft: `${indent * 20}px` }}>
+                        {data.map((item, index) => (
+                          <div key={index} style={{ marginBottom: '8px' }}>
+                            <Text type="secondary">[{index}]:</Text> {formatData(item, indent + 1)}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  }
+                  
+                  if (typeof data === 'object') {
+                    return (
+                      <div style={{ marginLeft: `${indent * 20}px` }}>
+                        {Object.entries(data).map(([key, value]) => (
+                          <div key={key} style={{ marginBottom: '8px', paddingLeft: '8px', borderLeft: '2px solid #d9d9d9' }}>
+                            <Text strong style={{ color: '#1890ff' }}>{key}:</Text>{' '}
+                            {typeof value === 'object' && value !== null ? (
+                              <div style={{ marginTop: '4px' }}>
+                                {formatData(value, indent + 1)}
+                              </div>
+                            ) : (
+                              <Text>{typeof value === 'string' ? `"${value}"` : String(value)}</Text>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  }
+                  
+                  return <Text>{String(data)}</Text>;
+                };
+
+                return (
+                  <div style={{
+                    fontFamily: "'Poppins', sans-serif",
+                    fontSize: '13px',
+                    lineHeight: '1.6',
+                    color: '#333'
+                  }}>
+                    {formatData(selectedApproval.data)}
+                  </div>
+                );
+              })()}
             </Card>
 
             {normalizedRole === 'Superadmin' && selectedApproval.status === 'pending' && (

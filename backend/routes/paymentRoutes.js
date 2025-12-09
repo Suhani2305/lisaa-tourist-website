@@ -132,21 +132,46 @@ router.post('/verify-payment', async (req, res) => {
       const couponDiscountAmount = couponDiscount || 0;
       const finalAmount = Math.max(0, basePrice - couponDiscountAmount);
 
-      // Create booking in database
-      const booking = new Booking({
+      // Sync phone number from booking to user profile if provided
+      const bookingPhone = bookingDetails.phone || bookingDetails.customerPhone;
+      if (bookingPhone) {
+        try {
+          const cleanedPhone = bookingPhone.replace(/\D/g, ''); // Remove non-digits
+          if (cleanedPhone.length === 10) {
+            // Update user phone if booking phone is provided (sync from booking form)
+            user.phone = cleanedPhone;
+            await user.save();
+            console.log('✅ Synced phone number to user profile:', user.phone);
+          }
+        } catch (phoneSyncError) {
+          console.error('❌ Error syncing phone number:', phoneSyncError);
+          // Don't fail the booking if phone sync fails
+        }
+      }
+
+      // Generate booking number before creating booking
+      // Format: LISAA + timestamp + random number for uniqueness
+      const bookingCount = await Booking.countDocuments();
+      const timestamp = Date.now().toString().slice(-6);
+      const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+      const bookingNumber = `LISAA${timestamp}${randomNum}`;
+
+      // Create booking in database with all required fields
+      const bookingData = {
         user: bookingDetails.userId,
         tour: bookingDetails.tourId,
+        bookingNumber: bookingNumber, // Set booking number explicitly
         travelers: bookingDetails.travelers?.adults 
-          ? [{ 
-              name: user.name, 
+          ? Array(bookingDetails.travelers.adults).fill(null).map((_, index) => ({
+              name: user.name || `Traveler ${index + 1}`, 
               age: 30, 
               type: 'adult', 
               gender: user.gender || 'male' 
-            }]
+            }))
           : [],
         contactInfo: {
-          email: user.email,
-          phone: user.phone || bookingDetails.phone
+          email: bookingDetails.email || user.email,
+          phone: bookingPhone || user.phone || ''
         },
         travelDates: {
           startDate: new Date(bookingDetails.bookingDate),
@@ -161,16 +186,25 @@ router.post('/verify-payment', async (req, res) => {
         },
         payment: {
           status: 'paid',
-          method: 'credit-card',
+          method: 'wallet', // Default, will be updated based on payment method
           transactionId: razorpay_payment_id,
           paymentDate: new Date()
         },
         status: 'confirmed',
         specialRequests: bookingDetails.specialRequests || '',
         appliedCoupon: appliedCouponData
-      });
+      };
 
+      const booking = new Booking(bookingData);
       await booking.save();
+      
+      console.log('✅ Booking saved successfully:', {
+        bookingId: booking._id,
+        bookingNumber: booking.bookingNumber,
+        userId: booking.user,
+        tourId: booking.tour,
+        status: booking.status
+      });
 
       // Populate booking with user and tour
       await booking.populate('user', 'name email phone');
@@ -178,20 +212,31 @@ router.post('/verify-payment', async (req, res) => {
 
       console.log('✅ Booking created:', booking._id);
 
-      // Generate receipt PDF
+      // Generate receipt PDF - MUST generate for all successful bookings
       let receiptUrl = null;
+      let receiptFilename = null;
       try {
+        console.log('📄 Generating receipt PDF for booking:', booking.bookingNumber);
         const receiptResult = await receiptService.generateReceiptPDF({
           user: booking.user,
           tour: booking.tour,
           booking: booking,
           bookingNumber: booking.bookingNumber
         });
-        if (receiptResult.success) {
-          receiptUrl = receiptResult.url;
+        
+        if (receiptResult && receiptResult.success) {
+          receiptUrl = receiptResult.url || `/api/payment/receipt/${booking._id}`;
+          receiptFilename = receiptResult.filename;
+          console.log('✅ Receipt PDF generated successfully:', receiptUrl);
+        } else {
+          console.error('❌ Receipt generation returned unsuccessful:', receiptResult);
+          // Still generate URL for download endpoint
+          receiptUrl = `/api/payment/receipt/${booking._id}`;
         }
       } catch (receiptError) {
         console.error('❌ Receipt generation error:', receiptError);
+        // Even if generation fails, provide download endpoint
+        receiptUrl = `/api/payment/receipt/${booking._id}`;
       }
 
       // Send notifications asynchronously (don't wait for them)
@@ -224,13 +269,26 @@ router.post('/verify-payment', async (req, res) => {
         console.error('❌ Notification sending error:', error);
       });
 
+      // Ensure booking is saved and user reference is updated
+      // Add booking to user's bookings array
+      try {
+        await User.findByIdAndUpdate(booking.user._id, {
+          $addToSet: { bookings: booking._id }
+        });
+        console.log('✅ Booking added to user bookings array');
+      } catch (userUpdateError) {
+        console.error('⚠️ Failed to update user bookings array:', userUpdateError);
+        // Don't fail the response if this fails
+      }
+
       res.json({
         success: true,
         message: 'Payment verified and booking confirmed!',
-        bookingId: booking._id,
+        bookingId: booking._id.toString(),
         bookingNumber: booking.bookingNumber,
         paymentId: razorpay_payment_id,
-        receiptUrl: receiptUrl
+        receiptUrl: receiptUrl || `/api/payment/receipt/${booking._id}`,
+        receiptFilename: receiptFilename
       });
     } else {
       console.error('❌ Invalid payment signature');

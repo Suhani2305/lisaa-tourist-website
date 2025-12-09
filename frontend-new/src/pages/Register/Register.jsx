@@ -512,8 +512,15 @@ const Register = () => {
       resetEmailOtpState();
       resetPhoneOtpState();
       
+      // Get redirect location from sessionStorage or default to home
+      const storedRedirect = sessionStorage.getItem('postLoginRedirect');
+      const redirectTo = storedRedirect || "/";
+      
       setTimeout(() => {
-        navigate("/");
+        navigate(redirectTo, { replace: true });
+        if (storedRedirect) {
+          sessionStorage.removeItem('postLoginRedirect');
+        }
       }, 1000);
     } catch (error) {
       console.error("Registration error:", error);
@@ -540,8 +547,16 @@ const Register = () => {
       
       if (response && response.user) {
         message.success(`Welcome, ${response.user.name || 'User'}!`);
+        
+        // Get redirect location from sessionStorage or default to home
+        const storedRedirect = sessionStorage.getItem('postLoginRedirect');
+        const redirectTo = storedRedirect || "/";
+        
         setTimeout(() => {
-          navigate("/");
+          navigate(redirectTo, { replace: true });
+          if (storedRedirect) {
+            sessionStorage.removeItem('postLoginRedirect');
+          }
         }, 500);
       } else {
         throw new Error('Invalid response from server');

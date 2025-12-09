@@ -265,12 +265,17 @@ const Login = () => {
       message.success(`Welcome back, ${response.user.name || 'User'}!`);
       
       // Get redirect location from state, search params, or default to home
+      const storedRedirect = sessionStorage.getItem('postLoginRedirect');
       const redirectTo = location.state?.from?.pathname 
         || searchParams.get('redirect') 
+        || storedRedirect
         || "/";
       
       setTimeout(() => {
         navigate(redirectTo, { replace: true });
+        if (storedRedirect) {
+          sessionStorage.removeItem('postLoginRedirect');
+        }
       }, 500);
     } catch (error) {
       console.error("Login error:", error);
@@ -365,12 +370,17 @@ const Login = () => {
         message.success(`Welcome, ${response.user.name || 'User'}!`);
         
         // Get redirect location from state, search params, or default to home
+        const storedRedirect = sessionStorage.getItem('postLoginRedirect');
         const redirectTo = location.state?.from?.pathname 
           || searchParams.get('redirect') 
+          || storedRedirect
           || "/";
         
         setTimeout(() => {
           navigate(redirectTo, { replace: true });
+          if (storedRedirect) {
+            sessionStorage.removeItem('postLoginRedirect');
+          }
         }, 500);
       } else {
         throw new Error('Invalid response from server');
